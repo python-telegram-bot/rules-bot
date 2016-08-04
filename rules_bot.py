@@ -24,7 +24,8 @@ def rules(bot, update):
 
 def error(bot, update, error):
     logger.warn('Update "%s" caused error "%s"' % (update, error))
-    with open('rules_bot.log', 'w') as logfile:
+    # Do `touch rules_bot.log` first!
+    with open('rules_bot.log', 'a') as logfile:
         logfile.write('Update "%s" caused error "%s"' % (update, error))
         logfile.close()
 
