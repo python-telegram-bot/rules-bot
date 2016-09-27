@@ -2,6 +2,7 @@ import logging
 from telegram import ParseMode
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
+
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -9,15 +10,16 @@ logger = logging.getLogger(__name__)
 updater = Updater(token='123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11')
 dispatcher = updater.dispatcher
 
-ONTOPIC_RULES = """This group is for questions, answers and discussions around the <a href="https://python-telegram-bot.org/">python-telegram-bot library</a> and, to some extent, Telegram bots in general.
+ONTOPIC_RULES = """This group is for questions, answers and discussions around the [python-telegram-bot library](https://python-telegram-bot.org/) and, to some extent, Telegram bots in general.
 
-<b>Rules:</b>
+*Rules:*
 - The group language is English
 - Stay on topic
-- No meta questions (eg. <i>"Can I ask something?"</i>)
+- No meta questions (eg. _"Can I ask something?"_)
 
-For bot examples, <a href="https://github.com/python-telegram-bot/python-telegram-bot/tree/master/examples">click here</a>
-For off-topic discussions, please use our <a href="https://telegram.me/pythontelegrambottalk">off-topic group</a>"""
+For bot examples, [click here](https://github.com/python-telegram-bot/python-telegram-bot/tree/master/examples)
+For off-topic discussions, please use our [off-topic group](https://telegram.me/pythontelegrambottalk)"""
+
 OFFTOPIC_RULES = """- No pornography
 - No advertising
 - No spam"""
@@ -29,7 +31,7 @@ def start(bot, update):
 def rules(bot, update):
     """Load and send the appropiate rules based on which group we're in"""
     if update.message.chat.username == "pythontelegrambotgroup":
-        bot.sendMessage(chat_id=update.message.chat_id, text=ONTOPIC_RULES, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+        bot.sendMessage(chat_id=update.message.chat_id, text=ONTOPIC_RULES, parse_mode="Markdown", disable_web_page_preview=True)
     elif update.message.chat.username == "pythontelegrambottalk":
         bot.sendMessage(chat_id=update.message.chat_id, text=OFFTOPIC_RULES)
     else:
