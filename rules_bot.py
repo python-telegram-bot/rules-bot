@@ -16,8 +16,9 @@ ONTOPIC_RULES = """This group is for questions, answers and discussions around t
 - The group language is English
 - Stay on topic
 - No meta questions (eg. _"Can I ask something?"_)
+- Use a pastebin when you have a question about your code, like [this one](https://www.codepile.net)
 
-For bot examples, [click here](https://github.com/python-telegram-bot/python-telegram-bot/tree/master/examples)
+Before asking, please take a look at our [wiki](https://github.com/python-telegram-bot/python-telegram-bot/wiki) and [example bots](https://github.com/python-telegram-bot/python-telegram-bot/tree/master/examples) or, depending on your question, the [official API docs](https://core.telegram.org/bots/api) and [python-telegram-bot docs](http://pythonhosted.org/python-telegram-bot/py-modindex.html).
 For off-topic discussions, please use our [off-topic group](https://telegram.me/pythontelegrambottalk)"""
 
 OFFTOPIC_RULES = """- No pornography
@@ -36,6 +37,14 @@ def rules(bot, update):
         bot.sendMessage(chat_id=update.message.chat_id, text=OFFTOPIC_RULES)
     else:
         bot.sendMessage(chat_id=update.message.chat_id, text='Hmm. You\'re not in a python-telegram-bot group, and I don\'t know the rules around here.')
+
+def docs(bot, update, args):
+    """Documentation search"""
+    try:
+        bot.sendMessage(chat_id=update.message.chat_id, text='This feature is under construction.\n\n`args[0]` or search term: `{}`'.format(args[0]), parse_mode="Markdown")
+    except IndexError:
+        # Not enough arguments
+        bot.sendMessage(chat_id=update.message.chat_id, text='This feature is under construction.\n\nPlease use this command like `/docs <something>`', parse_mode="Markdown")
 
 def other(bot, update):
     """Easter Eggs and utilities"""
@@ -59,10 +68,12 @@ def error(bot, update, error):
 
 start_handler = CommandHandler('start', start)
 rules_handler = CommandHandler('rules', rules)
+docs_handler = CommandHandler('docs', docs, pass_args=True)
 other_handler = MessageHandler([Filters.text], other)
 
 dispatcher.add_handler(start_handler)
 dispatcher.add_handler(rules_handler)
+dispatcher.add_handler(docs_handler)
 dispatcher.add_handler(other_handler)
 dispatcher.add_error_handler(error)
 
