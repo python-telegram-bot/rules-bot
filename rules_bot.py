@@ -3,6 +3,7 @@ import urllib.request
 import urllib.parse
 from collections import namedtuple
 
+from bs4 import BeautifulSoup
 from fuzzywuzzy import fuzz
 from sphinx.ext.intersphinx import read_inventory_v2
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
@@ -35,8 +36,12 @@ docs_data = urllib.request.urlopen(docs_url + "objects.inv")
 docs_data.readline()  # Need to remove first line for some reason
 docs_inv = read_inventory_v2(docs_data, docs_url, urllib.parse.urljoin)
 Doc = namedtuple('Doc', 'last_name, full_name, type url tg_name tg_url')
-official = ['sendmessage', 'message', 'file']
 official_url = "https://core.telegram.org/bots/api#"
+official_soup = BeautifulSoup(urllib.request.urlopen(official_url), "html.parser")
+official = []
+for anchor in official_soup.select('a.anchor'):
+    if '-' not in anchor['href']:
+        official.append(anchor['href'][1:])
 
 
 def start(bot, update):
