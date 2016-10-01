@@ -1,12 +1,18 @@
 import logging
-from telegram import ParseMode
+import urllib.request
+import urllib.parse
+from collections import namedtuple
+
+from fuzzywuzzy import fuzz
+from sphinx.ext.intersphinx import read_inventory_v2
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
+                    level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-updater = Updater(token='123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11')
+#updater = Updater(token='123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11')
+updater = Updater(token='256806399:AAH8Kko1Xqk-jjwPZxph89osLx3HCenVy70')
 dispatcher = updater.dispatcher
 
 ONTOPIC_RULES = """This group is for questions, answers and discussions around the [python-telegram-bot library](https://python-telegram-bot.org/) and, to some extent, Telegram bots in general.
@@ -23,6 +29,12 @@ For off-topic discussions, please use our [off-topic group](https://telegram.me/
 OFFTOPIC_RULES = """- No pornography
 - No advertising
 - No spam"""
+
+docs_url = "https://pythonhosted.org/python-telegram-bot/"
+docs_data = urllib.request.urlopen(docs_url + "objects.inv")
+docs_data.readline()  # Need to remove first line for some reason
+docs_inv = read_inventory_v2(docs_data, docs_url, urllib.parse.urljoin)
+Doc = namedtuple('Doc', 'name type url tg_name tg_url')
 
 
 def start(bot, update):
@@ -43,17 +55,42 @@ def rules(bot, update):
                         text='Hmm. You\'re not in a python-telegram-bot group, and I don\'t know the rules around here.')
 
 
+def get_docs(search):
+    search = list(reversed(search.split('.')))
+    best = (0, None)
+    for typ, items in docs_inv.items():
+        if typ not in ['py:staticmethod', 'py:exception', 'py:method', 'py:module', 'py:class', 'py:attribute',
+                       'py:data', 'py:function']:
+            continue
+        for name, item in items.items():
+            dot_split = zip(search, reversed(name.split('.')))
+            score = 0
+            for s, n in dot_split:
+                score += fuzz.ratio(s, n)
+            if typ == 'py:module':
+                score *= 0.75
+            if typ == 'py:class':
+                score *= 1.25
+            if score > best[0]:
+                best = (score, Doc(name, typ, item[2], None, None))
+    return best[1]
+
+
 def docs(bot, update, args):
     """Documentation search"""
-    try:
-        bot.sendMessage(chat_id=update.message.chat_id,
-                        text='This feature is under construction.\n\n`args[0]` or search term: `{}`'.format(args[0]),
-                        parse_mode="Markdown")
-    except IndexError:
-        # Not enough arguments
-        bot.sendMessage(chat_id=update.message.chat_id,
-                        text='This feature is under construction.\n\nPlease use this command like `/docs <something>`',
-                        parse_mode="Markdown")
+    doc = get_docs(' '.join(args))
+    if doc:
+        text = "*Library documentation for the {type} {last_name}.*\n[{full_name}]({url})"
+        text = text.format(type=doc.type[3:], last_name=doc.name.split('.')[-1], full_name=doc.name,
+                           url=doc.url)
+        if doc.tg_name:
+            text += "\n\n[The official documentation for {tg_name} might also be helpful.](tg_url)"
+        bot.send_message(chat_id=update.message.chat_id,
+                         text=text,
+                         parse_mode='Markdown')
+    else:
+        bot.send_message(chat_id=update.message.chat_id,
+                         text="No documentation could be found.")
 
 
 def other(bot, update):
