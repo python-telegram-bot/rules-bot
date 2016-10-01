@@ -9,7 +9,7 @@ from sphinx.ext.intersphinx import read_inventory_v2
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.DEBUG)
+                    level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 updater = Updater(token='123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11')
