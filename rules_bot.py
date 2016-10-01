@@ -34,7 +34,9 @@ docs_url = "https://pythonhosted.org/python-telegram-bot/"
 docs_data = urllib.request.urlopen(docs_url + "objects.inv")
 docs_data.readline()  # Need to remove first line for some reason
 docs_inv = read_inventory_v2(docs_data, docs_url, urllib.parse.urljoin)
-Doc = namedtuple('Doc', 'name type url tg_name tg_url')
+Doc = namedtuple('Doc', 'last_name, full_name, type url tg_name tg_url')
+official = ['sendmessage', 'message', 'file']
+official_url = "https://core.telegram.org/bots/api#"
 
 
 def start(bot, update):
@@ -63,7 +65,8 @@ def get_docs(search):
                        'py:data', 'py:function']:
             continue
         for name, item in items.items():
-            dot_split = zip(search, reversed(name.split('.')))
+            name_bits = name.split('.')
+            dot_split = zip(search, reversed(name_bits))
             score = 0
             for s, n in dot_split:
                 score += fuzz.ratio(s, n)
@@ -72,7 +75,18 @@ def get_docs(search):
             if typ == 'py:class':
                 score *= 1.25
             if score > best[0]:
-                best = (score, Doc(name, typ, item[2], None, None))
+                tg_name = ''
+                tg_test = None
+                if typ in ['py:class', 'py:method']:
+                    tg_test = name_bits[-1].replace('_', '').lower()
+                elif typ == 'py:attribute':
+                    tg_test = name_bits[-2].replace('_', '').lower()
+                if tg_test in official:
+                    tg_name = tg_test
+                    if typ in ['py:class', 'py:attribute']:
+                        tg_name = tg_name.capitalize()
+                tg_url = official_url + tg_name
+                best = (score, Doc(name_bits[-1], name, typ[3:], item[2], tg_name, tg_url))
     return best[1]
 
 
@@ -80,14 +94,14 @@ def docs(bot, update, args):
     """Documentation search"""
     doc = get_docs(' '.join(args))
     if doc:
-        text = "*Library documentation for the {type} {last_name}.*\n[{full_name}]({url})"
-        text = text.format(type=doc.type[3:], last_name=doc.name.split('.')[-1], full_name=doc.name,
-                           url=doc.url)
+        text = "*Docs for the {type} {last_name}*\n[{full_name}]({url})"
         if doc.tg_name:
-            text += "\n\n[The official documentation for {tg_name} might also be helpful.](tg_url)"
+            text += "\n\nThe official documentation for [{tg_name}]({tg_url}) might also be helpful."
+        text = text.format(**doc._asdict())
         bot.send_message(chat_id=update.message.chat_id,
                          text=text,
-                         parse_mode='Markdown')
+                         parse_mode='Markdown',
+                         disable_web_page_preview=True)
     else:
         bot.send_message(chat_id=update.message.chat_id,
                          text="No documentation could be found.")
