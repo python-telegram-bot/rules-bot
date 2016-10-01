@@ -38,10 +38,10 @@ docs_inv = read_inventory_v2(docs_data, docs_url, urllib.parse.urljoin)
 Doc = namedtuple('Doc', 'last_name, full_name, type url tg_name tg_url')
 official_url = "https://core.telegram.org/bots/api#"
 official_soup = BeautifulSoup(urllib.request.urlopen(official_url), "html.parser")
-official = []
+official = {}
 for anchor in official_soup.select('a.anchor'):
     if '-' not in anchor['href']:
-        official.append(anchor['href'][1:])
+        official[anchor['href'][1:]] = anchor.next_sibling
 
 
 def start(bot, update):
@@ -86,10 +86,8 @@ def get_docs(search):
                     tg_test = name_bits[-1].replace('_', '').lower()
                 elif typ == 'py:attribute':
                     tg_test = name_bits[-2].replace('_', '').lower()
-                if tg_test in official:
-                    tg_name = tg_test
-                    if typ in ['py:class', 'py:attribute']:
-                        tg_name = tg_name.capitalize()
+                if tg_test in official.keys():
+                    tg_name = official[tg_test]
                 tg_url = official_url + tg_name
                 best = (score, Doc(name_bits[-1], name, typ[3:], item[2], tg_name, tg_url))
     return best[1]
