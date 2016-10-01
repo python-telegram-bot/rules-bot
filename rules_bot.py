@@ -12,8 +12,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
                     level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-#updater = Updater(token='123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11')
-updater = Updater(token='256806399:AAH8Kko1Xqk-jjwPZxph89osLx3HCenVy70')
+updater = Updater(token='123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11')
 dispatcher = updater.dispatcher
 
 ONTOPIC_RULES = """This group is for questions, answers and discussions around the [python-telegram-bot library](https://python-telegram-bot.org/) and, to some extent, Telegram bots in general.
