@@ -8,11 +8,15 @@ from fuzzywuzzy import fuzz
 from sphinx.ext.intersphinx import read_inventory_v2
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
+
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-updater = Updater(token='123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11')
+config = configparser.ConfigParser()
+config.read('bot.ini')
+
+updater = Updater(token=config['KEYS']['bot_api'])
 dispatcher = updater.dispatcher
 
 ONTOPIC_RULES = """This group is for questions, answers and discussions around the [python-telegram-bot library](https://python-telegram-bot.org/) and, to some extent, Telegram bots in general.
@@ -36,7 +40,8 @@ docs_data.readline()  # Need to remove first line for some reason
 docs_inv = read_inventory_v2(docs_data, docs_url, urllib.parse.urljoin)
 Doc = namedtuple('Doc', 'short_name, full_name, type url tg_name tg_url')
 official_url = "https://core.telegram.org/bots/api#"
-official_soup = BeautifulSoup(urllib.request.urlopen(official_url), "html.parser")
+official_soup = BeautifulSoup(
+    urllib.request.urlopen(official_url), "html.parser")
 official = {}
 for anchor in official_soup.select('a.anchor'):
     if '-' not in anchor['href']:
@@ -87,35 +92,45 @@ def get_docs(search):
             if score > best[0]:
                 tg_name = ''
                 tg_test = ''
+
                 if typ in ['py:class', 'py:method']:
                     tg_test = name_bits[-1].replace('_', '').lower()
                 elif typ == 'py:attribute':
                     tg_test = name_bits[-2].replace('_', '').lower()
+                
                 if tg_test in official.keys():
                     tg_name = official[tg_test]
+
                 tg_url = official_url + tg_test
                 short_name = name_bits[1:]
+
                 try:
                     if name_bits[1].lower() == name_bits[2].lower():
                         short_name = name_bits[2:]
                 except IndexError:
                     pass
-                best = (score, Doc('.'.join(short_name), name, typ[3:], item[2], tg_name, tg_url))
+                best = (score, Doc('.'.join(short_name), name,
+                                   typ[3:], item[2], tg_name, tg_url))
     return best[1]
 
 
 def docs(bot, update, args):
     """Documentation search"""
     doc = get_docs(' '.join(args))
+
     if doc:
         text = "*{short_name}*\n_python-telegram-bot_ documentation for this {type}:\n[{full_name}]({url})"
+
         if doc.tg_name:
             text += "\n\nThe official documentation has more info about [{tg_name}]({tg_url})."
+
         text = text.format(**doc._asdict())
         bot.send_message(chat_id=update.message.chat_id,
                          text=text,
                          parse_mode='Markdown',
                          disable_web_page_preview=True)
+    elif len(args) == 0:
+        bot.sendMessage(chat_id=update.message.chat_id, text="Use the `/docs` command like `/docs <search term>`.", parse_mode="Markdown")
     else:
         bot.send_message(chat_id=update.message.chat_id,
                          text="No documentation could be found.")
@@ -137,7 +152,8 @@ def other(bot, update):
 
     if update.message.chat.username == "pythontelegrambottalk":
         if "sudo make me a sandwich" in update.message.text:
-            bot.sendMessage(chat_id=update.message.chat_id, text="Okay.", reply_to_message_id=update.message.message_id)
+            bot.sendMessage(chat_id=update.message.chat_id, text="Okay.",
+                            reply_to_message_id=update.message.message_id)
         elif "make me a sandwich" in update.message.text:
             bot.sendMessage(chat_id=update.message.chat_id, text="What? Make it yourself.",
                             reply_to_message_id=update.message.message_id)
