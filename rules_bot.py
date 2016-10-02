@@ -11,7 +11,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
+                    level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 config = configparser.ConfigParser()
@@ -139,12 +139,6 @@ def docs(bot, update, args):
                          text=text,
                          parse_mode='Markdown',
                          disable_web_page_preview=True)
-    elif len(args) == 0:
-        bot.sendMessage(chat_id=update.message.chat_id,
-                        text="Use the `/docs` command like `/docs <search term>`.", parse_mode="Markdown")
-    else:
-        bot.send_message(chat_id=update.message.chat_id,
-                         text="No documentation could be found.")
 
 
 def wiki(bot, update, args):
