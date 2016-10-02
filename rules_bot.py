@@ -11,7 +11,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.DEBUG)
+                    level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 config = configparser.ConfigParser()
@@ -60,20 +60,20 @@ for li in wiki_soup.select("ul.wiki-pages > li"):
 
 def start(bot, update):
     if update.message.chat.username not in ("pythontelegrambotgroup", "pythontelegrambottalk"):
-        bot.sendMessage(chat_id=update.message.chat_id,
-                        text="Hi. I'm a bot that will anounce the rules of the python-telegram-bot groups when you type /rules.")
+        update.message.reply_text("Hi. I'm a bot that will anounce the rules of the "
+                                  "python-telegram-bot groups when you type /rules.")
 
 
 def rules(bot, update):
     """Load and send the appropiate rules based on which group we're in"""
     if update.message.chat.username == "pythontelegrambotgroup":
-        bot.sendMessage(chat_id=update.message.chat_id, text=ONTOPIC_RULES, parse_mode="Markdown",
-                        disable_web_page_preview=True)
+        update.message.reply_text(ONTOPIC_RULES, parse_mode="Markdown",
+                                  disable_web_page_preview=True)
     elif update.message.chat.username == "pythontelegrambottalk":
-        bot.sendMessage(chat_id=update.message.chat_id, text=OFFTOPIC_RULES)
+        update.message.reply_text(OFFTOPIC_RULES)
     else:
-        bot.sendMessage(chat_id=update.message.chat_id,
-                        text='Hmm. You\'re not in a python-telegram-bot group, and I don\'t know the rules around here.')
+        update.message.reply_text('Hmm. You\'re not in a python-telegram-bot group, '
+                                  'and I don\'t know the rules around here.')
 
 
 def get_docs(search):
@@ -135,10 +135,9 @@ def docs(bot, update, args):
             text += "\n\nThe official documentation has more info about [{tg_name}]({tg_url})."
 
         text = text.format(**doc._asdict())
-        bot.send_message(chat_id=update.message.chat_id,
-                         text=text,
-                         parse_mode='Markdown',
-                         disable_web_page_preview=True)
+        update.message.reply_text(text,
+                                  parse_mode='Markdown',
+                                  disable_web_page_preview=True)
 
 
 def wiki(bot, update, args):
@@ -157,23 +156,21 @@ def other(bot, update):
     """Easter Eggs and utilities"""
     if update.message.chat.username == "pythontelegrambotgroup":
         if any(ot in update.message.text for ot in ('off-topic', 'off topic', 'offtopic')):
-            bot.sendMessage(chat_id=update.message.chat_id,
-                            text="The off-topic group is [here](https://telegram.me/pythontelegrambottalk). Come join us!",
-                            disable_web_page_preview=True, parse_mode="Markdown")
+            update.message.reply_text("The off-topic group is [here](https://telegram.me/pythontelegrambottalk)."
+                                      "Come join us!",
+                                      disable_web_page_preview=True, parse_mode="Markdown")
 
     if update.message.chat.username == "pythontelegrambottalk":
         if any(ot in update.message.text for ot in ('on-topic', 'on topic', 'ontopic')):
-            bot.sendMessage(chat_id=update.message.chat_id,
-                            text="The on-topic group is [here](https://telegram.me/pythontelegrambotgroup). Come join us!",
-                            disable_web_page_preview=True, parse_mode="Markdown")
+            update.message.reply_text("The on-topic group is [here](https://telegram.me/pythontelegrambotgroup)."
+                                      "Come join us!",
+                                      disable_web_page_preview=True, parse_mode="Markdown")
 
     if update.message.chat.username == "pythontelegrambottalk":
         if "sudo make me a sandwich" in update.message.text:
-            bot.sendMessage(chat_id=update.message.chat_id, text="Okay.",
-                            reply_to_message_id=update.message.message_id)
+            update.message.reply_text("Okay.", quote=True)
         elif "make me a sandwich" in update.message.text:
-            bot.sendMessage(chat_id=update.message.chat_id, text="What? Make it yourself.",
-                            reply_to_message_id=update.message.message_id)
+            update.message.reply_text("What? Make it yourself.", quote=True)
 
 
 def error(bot, update, error):
