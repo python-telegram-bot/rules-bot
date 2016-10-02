@@ -3,6 +3,7 @@ import urllib.request
 import urllib.parse
 from collections import namedtuple
 
+import configparser
 from bs4 import BeautifulSoup
 from fuzzywuzzy import fuzz
 from sphinx.ext.intersphinx import read_inventory_v2
