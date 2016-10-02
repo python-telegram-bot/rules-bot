@@ -39,7 +39,9 @@ docs_url = "https://pythonhosted.org/python-telegram-bot/"
 docs_data = urllib.request.urlopen(docs_url + "objects.inv")
 docs_data.readline()  # Need to remove first line for some reason
 docs_inv = read_inventory_v2(docs_data, docs_url, urllib.parse.urljoin)
+
 Doc = namedtuple('Doc', 'short_name, full_name, type url tg_name tg_url')
+
 official_url = "https://core.telegram.org/bots/api#"
 official_soup = BeautifulSoup(
     urllib.request.urlopen(official_url), "html.parser")
@@ -47,6 +49,13 @@ official = {}
 for anchor in official_soup.select('a.anchor'):
     if '-' not in anchor['href']:
         official[anchor['href'][1:]] = anchor.next_sibling
+
+wiki_url = "https://github.com/python-telegram-bot/python-telegram-bot/wiki"
+wiki_soup = BeautifulSoup(urllib.request.urlopen(wiki_url), "html.parser")
+wiki_pages = {}
+for li in wiki_soup.select("ul.wiki-pages > li"):
+    if li.a['href'] != '#':
+        wiki_pages[li.strong.a.string] = "https://github.com" + li.strong.a['href']
 
 
 def start(bot, update):
@@ -138,6 +147,18 @@ def docs(bot, update, args):
                          text="No documentation could be found.")
 
 
+def wiki(bot, update, args):
+    search = ' '.join(args)
+    best = (0, ('HOME', wiki_url))
+    if search != '':
+        for name, link in wiki_pages.items():
+            score = fuzz.partial_ratio(search, name)
+            if score > best[0]:
+                best = (score, (name, link))
+    update.message.reply_text('Github wiki for _python-telegram-bot_\n[{b[0]}]({b[1]})'.format(b=best[1]),
+                              disable_web_page_preview=True, parse_mode='Markdown')
+
+
 def other(bot, update):
     """Easter Eggs and utilities"""
     if update.message.chat.username == "pythontelegrambotgroup":
@@ -169,11 +190,13 @@ def error(bot, update, error):
 start_handler = CommandHandler('start', start)
 rules_handler = CommandHandler('rules', rules)
 docs_handler = CommandHandler('docs', docs, pass_args=True)
+wiki_handler = CommandHandler('wiki', wiki, pass_args=True)
 other_handler = MessageHandler([Filters.text], other)
 
 dispatcher.add_handler(start_handler)
 dispatcher.add_handler(rules_handler)
 dispatcher.add_handler(docs_handler)
+dispatcher.add_handler(wiki_handler)
 dispatcher.add_handler(other_handler)
 dispatcher.add_error_handler(error)
 
