@@ -8,10 +8,16 @@ from bs4 import BeautifulSoup
 from fuzzywuzzy import fuzz
 from sphinx.ext.intersphinx import read_inventory_v2
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+import os
 
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
+if os.environ.get('ROOLSBOT_DEBUG'):
+    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                        level=logging.DEBUG)
+else:
+    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                        level=logging.DEBUG)
+
 logger = logging.getLogger(__name__)
 
 config = configparser.ConfigParser()
