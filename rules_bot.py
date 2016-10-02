@@ -97,7 +97,7 @@ def get_docs(search):
                     tg_test = name_bits[-1].replace('_', '').lower()
                 elif typ == 'py:attribute':
                     tg_test = name_bits[-2].replace('_', '').lower()
-                
+
                 if tg_test in official.keys():
                     tg_name = official[tg_test]
 
@@ -130,7 +130,8 @@ def docs(bot, update, args):
                          parse_mode='Markdown',
                          disable_web_page_preview=True)
     elif len(args) == 0:
-        bot.sendMessage(chat_id=update.message.chat_id, text="Use the `/docs` command like `/docs <search term>`.", parse_mode="Markdown")
+        bot.sendMessage(chat_id=update.message.chat_id,
+                        text="Use the `/docs` command like `/docs <search term>`.", parse_mode="Markdown")
     else:
         bot.send_message(chat_id=update.message.chat_id,
                          text="No documentation could be found.")
