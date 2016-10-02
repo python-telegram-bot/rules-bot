@@ -96,7 +96,7 @@ def get_docs(search):
                 tg_url = official_url + tg_test
                 short_name = name_bits[1:]
                 try:
-                    if name_bits[1].lower() == name_bits[2].lower:
+                    if name_bits[1].lower() == name_bits[2].lower():
                         short_name = name_bits[2:]
                 except IndexError:
                     pass
