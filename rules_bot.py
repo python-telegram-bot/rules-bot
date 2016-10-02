@@ -34,7 +34,7 @@ docs_url = "https://pythonhosted.org/python-telegram-bot/"
 docs_data = urllib.request.urlopen(docs_url + "objects.inv")
 docs_data.readline()  # Need to remove first line for some reason
 docs_inv = read_inventory_v2(docs_data, docs_url, urllib.parse.urljoin)
-Doc = namedtuple('Doc', 'last_name, full_name, type url tg_name tg_url')
+Doc = namedtuple('Doc', 'short_name, full_name, type url tg_name tg_url')
 official_url = "https://core.telegram.org/bots/api#"
 official_soup = BeautifulSoup(urllib.request.urlopen(official_url), "html.parser")
 official = {}
@@ -74,21 +74,33 @@ def get_docs(search):
             score = 0
             for s, n in dot_split:
                 score += fuzz.ratio(s, n)
+            score += fuzz.ratio(search, name)
+
+            # These values are basically random :/
             if typ == 'py:module':
                 score *= 0.75
             if typ == 'py:class':
-                score *= 1.25
+                score *= 1.10
+            if typ == 'py:attribute':
+                score *= 0.85
+
             if score > best[0]:
                 tg_name = ''
-                tg_test = None
+                tg_test = ''
                 if typ in ['py:class', 'py:method']:
                     tg_test = name_bits[-1].replace('_', '').lower()
                 elif typ == 'py:attribute':
                     tg_test = name_bits[-2].replace('_', '').lower()
                 if tg_test in official.keys():
                     tg_name = official[tg_test]
-                tg_url = official_url + tg_name
-                best = (score, Doc(name_bits[-1], name, typ[3:], item[2], tg_name, tg_url))
+                tg_url = official_url + tg_test
+                short_name = name_bits[1:]
+                try:
+                    if name_bits[1].lower() == name_bits[2].lower:
+                        short_name = name_bits[2:]
+                except IndexError:
+                    pass
+                best = (score, Doc('.'.join(short_name), name, typ[3:], item[2], tg_name, tg_url))
     return best[1]
 
 
@@ -96,9 +108,9 @@ def docs(bot, update, args):
     """Documentation search"""
     doc = get_docs(' '.join(args))
     if doc:
-        text = "*Docs for the {type} {last_name}*\n[{full_name}]({url})"
+        text = "*{short_name}*\n_python-telegram-bot_ documentation for this {type}:\n[{full_name}]({url})"
         if doc.tg_name:
-            text += "\n\nThe official documentation for [{tg_name}]({tg_url}) might also be helpful."
+            text += "\n\nThe official documentation has more info about [{tg_name}]({tg_url})."
         text = text.format(**doc._asdict())
         bot.send_message(chat_id=update.message.chat_id,
                          text=text,
