@@ -163,13 +163,13 @@ def other(bot, update):
     if update.message.chat.username == "pythontelegrambotgroup":
         if any(ot in update.message.text for ot in ('off-topic', 'off topic', 'offtopic')):
             update.message.reply_text("The off-topic group is [here](https://telegram.me/pythontelegrambottalk)."
-                                      "Come join us!",
+                                      " Come join us!",
                                       disable_web_page_preview=True, parse_mode="Markdown")
 
     if update.message.chat.username == "pythontelegrambottalk":
         if any(ot in update.message.text for ot in ('on-topic', 'on topic', 'ontopic')):
             update.message.reply_text("The on-topic group is [here](https://telegram.me/pythontelegrambotgroup)."
-                                      "Come join us!",
+                                      " Come join us!",
                                       disable_web_page_preview=True, parse_mode="Markdown")
 
     if update.message.chat.username == "pythontelegrambottalk":
