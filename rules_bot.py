@@ -154,7 +154,7 @@ def wiki(bot, update, args):
             score = fuzz.partial_ratio(search, name)
             if score > best[0]:
                 best = (score, (name, link))
-    update.message.reply_text('Github wiki for _python-telegram-bot_\n[{b[0]}]({b[1]})'.format(b=best[1]),
+        update.message.reply_text('Github wiki for _python-telegram-bot_\n[{b[0]}]({b[1]})'.format(b=best[1]),
                               disable_web_page_preview=True, parse_mode='Markdown')
 
 
