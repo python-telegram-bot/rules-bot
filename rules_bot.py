@@ -41,7 +41,7 @@ OFFTOPIC_RULES = """- No pornography
 - No advertising
 - No spam"""
 
-docs_url = "https://pythonhosted.org/python-telegram-bot/"
+docs_url = "https://python-telegram-bot.readthedocs.io/en/stable/"
 docs_data = urllib.request.urlopen(docs_url + "objects.inv")
 docs_data.readline()  # Need to remove first line for some reason
 docs_inv = read_inventory_v2(docs_data, docs_url, urllib.parse.urljoin)
