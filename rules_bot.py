@@ -7,6 +7,8 @@ import configparser
 from bs4 import BeautifulSoup
 from fuzzywuzzy import fuzz
 from sphinx.ext.intersphinx import read_inventory_v2
+
+from telegram import ParseMode
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import os
 
@@ -26,20 +28,28 @@ config.read('bot.ini')
 updater = Updater(token=config['KEYS']['bot_api'])
 dispatcher = updater.dispatcher
 
-ONTOPIC_RULES = """This group is for questions, answers and discussions around the [python-telegram-bot library](https://python-telegram-bot.org/) and, to some extent, Telegram bots in general.
+ONTOPIC_RULES = """This group is for questions, answers and discussions around the <a href="https://python-telegram-bot.org/">python-telegram-bot library</a> and, to some extent, Telegram bots in general.
 
-*Rules:*
+<b>Rules:</b>
 - The group language is English
 - Stay on topic
-- No meta questions (eg. _"Can I ask something?"_)
-- Use a pastebin when you have a question about your code, like [this one](https://www.codepile.net)
+- No meta questions (eg. <i>"Can I ask something?"</i>)
+- Use a pastebin when you have a question about your code, like <a href="https://www.codepile.net">this one</a>.
+- Use <code>/wiki</code> and <code>/docs</code> in a private chat if possible.
 
-Before asking, please take a look at our [wiki](https://github.com/python-telegram-bot/python-telegram-bot/wiki) and [example bots](https://github.com/python-telegram-bot/python-telegram-bot/tree/master/examples) or, depending on your question, the [official API docs](https://core.telegram.org/bots/api) and [python-telegram-bot docs](http://pythonhosted.org/python-telegram-bot/py-modindex.html).
-For off-topic discussions, please use our [off-topic group](https://telegram.me/pythontelegrambottalk)"""
+Before asking, please take a look at our <a href="https://github.com/python-telegram-bot/python-telegram-bot/wiki">wiki</a> and <a href="https://github.com/python-telegram-bot/python-telegram-bot/tree/master/examples">example bots</a> or, depending on your question, the <a href="https://core.telegram.org/bots/api">official API docs</a> and <a href="http://pythonhosted.org/python-telegram-bot/py-modindex.html">python-telegram-bot docs</a>).
+For off-topic discussions, please use our <a href="https://telegram.me/pythontelegrambottalk">off-topic group</a>."""
 
-OFFTOPIC_RULES = """- No pornography
-- No advertising
-- No spam"""
+OFFTOPIC_RULES = """<b>Topics:</b>
+- Discussions about Python in general
+- Meta discussions about <code>python-telegram-bot</code>
+- Friendly, respectful talking about non-tech topics
+
+<b>Rules:</b>
+- The group language is English
+- Use a pastebin to share code
+- No <a href="https://telegram.me/joinchat/A6kAm0EeUdd0SciQStb9cg">shitposting, flamewars or excessive trolling</a>
+- Max. 1 meme per user and day"""
 
 docs_url = "https://python-telegram-bot.readthedocs.io/en/stable/"
 docs_data = urllib.request.urlopen(docs_url + "objects.inv")
@@ -63,6 +73,8 @@ for li in wiki_soup.select("ul.wiki-pages > li"):
     if li.a['href'] != '#':
         wiki_pages[li.strong.a.string] = "https://github.com" + li.strong.a['href']
 
+threshold = 60
+
 
 def start(bot, update):
     if update.message.chat.username not in ("pythontelegrambotgroup", "pythontelegrambottalk"):
@@ -72,8 +84,8 @@ def start(bot, update):
 
 def rules(bot, update):
     """Load and send the appropiate rules based on which group we're in"""
-    if update.message.chat.username == "pythontelegrambotgroup":
-        update.message.reply_text(ONTOPIC_RULES, parse_mode="Markdown",
+    if not update.message.chat.username == "pythontelegrambotgroup":
+        update.message.reply_text(ONTOPIC_RULES, parse_mode=ParseMode.HTML,
                                   disable_web_page_preview=True)
     elif update.message.chat.username == "pythontelegrambottalk":
         update.message.reply_text(OFFTOPIC_RULES)
@@ -127,23 +139,27 @@ def get_docs(search):
                     pass
                 best = (score, Doc('.'.join(short_name), name,
                                    typ[3:], item[2], tg_name, tg_url))
-    return best[1]
+    if best[0] > threshold:
+        return best[1]
+    else:
+        return None
 
 
 def docs(bot, update, args):
     """Documentation search"""
-    doc = get_docs(' '.join(args))
+    if len(args) > 0:
+        doc = get_docs(' '.join(args))
 
-    if doc:
-        text = "*{short_name}*\n_python-telegram-bot_ documentation for this {type}:\n[{full_name}]({url})"
+        if doc:
+            text = "*{short_name}*\n_python-telegram-bot_ documentation for this {type}:\n[{full_name}]({url})"
 
-        if doc.tg_name:
-            text += "\n\nThe official documentation has more info about [{tg_name}]({tg_url})."
+            if doc.tg_name:
+                text += "\n\nThe official documentation has more info about [{tg_name}]({tg_url})."
 
-        text = text.format(**doc._asdict())
-        update.message.reply_text(text,
-                                  parse_mode='Markdown',
-                                  disable_web_page_preview=True)
+            text = text.format(**doc._asdict())
+            update.message.reply_text(text,
+                                      parse_mode='Markdown',
+                                      disable_web_page_preview=True)
 
 
 def wiki(bot, update, args):
