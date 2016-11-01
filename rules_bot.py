@@ -83,7 +83,7 @@ def start(bot, update):
 
 def rules(bot, update):
     """Load and send the appropiate rules based on which group we're in"""
-    if not update.message.chat.username == "pythontelegrambotgroup":
+    if update.message.chat.username == "pythontelegrambotgroup":
         update.message.reply_text(ONTOPIC_RULES, parse_mode=ParseMode.HTML,
                                   disable_web_page_preview=True)
     elif update.message.chat.username == "pythontelegrambottalk":
