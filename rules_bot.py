@@ -87,7 +87,7 @@ def rules(bot, update):
         update.message.reply_text(ONTOPIC_RULES, parse_mode=ParseMode.HTML,
                                   disable_web_page_preview=True)
     elif update.message.chat.username == "pythontelegrambottalk":
-        update.message.reply_text(OFFTOPIC_RULES)
+        update.message.reply_text(OFFTOPIC_RULES, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
     else:
         update.message.reply_text('Hmm. You\'re not in a python-telegram-bot group, '
                                   'and I don\'t know the rules around here.')
@@ -138,7 +138,6 @@ def get_docs(search):
                     pass
                 best = (score, Doc('.'.join(short_name), name,
                                    typ[3:], item[2], tg_name, tg_url))
-    print(best[0], threshold)
     if best[0] > threshold:
         return best[1]
     else:
