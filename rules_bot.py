@@ -48,7 +48,7 @@ OFFTOPIC_RULES = """<b>Topics:</b>
 - The group language is English
 - Use a pastebin to share code
 - No <a href="https://telegram.me/joinchat/A6kAm0EeUdd0SciQStb9cg">shitposting, flamewars or excessive trolling</a>
-- Max. 1 meme per user and day"""
+- Max. 1 meme per user per day"""
 
 docs_url = "https://python-telegram-bot.readthedocs.io/en/latest/"
 docs_data = urllib.request.urlopen(docs_url + "objects.inv")
@@ -158,7 +158,6 @@ def docs(bot, update, args, chat_data):
     """Documentation search"""
     if len(args) > 0:
         doc = get_docs(' '.join(args))
-
         if doc:
             text = "*{short_name}*\n_python-telegram-bot_ documentation for this {type}:\n[{full_name}]({url})"
 
@@ -168,6 +167,7 @@ def docs(bot, update, args, chat_data):
             text = text.format(**doc._asdict())
         else:
             text = "Sorry, your search term didn't match anything, please edit your message to search again."
+
         reply_or_edit(update, chat_data, text)
 
 
@@ -179,10 +179,12 @@ def wiki(bot, update, args, chat_data):
             score = fuzz.partial_ratio(search, name)
             if score > best[0]:
                 best = (score, (name, link))
+
         if best[0] > threshold:
             text = 'Github wiki for _python-telegram-bot_\n[{b[0]}]({b[1]})'.format(b=best[1])
         else:
             text = "Sorry, your search term didn't match anything, please edit your message to search again."
+
         reply_or_edit(update, chat_data, text)
 
 
