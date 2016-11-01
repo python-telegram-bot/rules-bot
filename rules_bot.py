@@ -72,7 +72,7 @@ for li in wiki_soup.select("ul.wiki-pages > li"):
     if li.a['href'] != '#':
         wiki_pages[li.strong.a.string] = "https://github.com" + li.strong.a['href']
 
-threshold = 70
+threshold = 80
 
 
 def start(bot, update):
@@ -145,7 +145,16 @@ def get_docs(search):
         return None
 
 
-def docs(bot, update, args, user_data):
+def reply_or_edit(update, chat_data, text):
+    if update.edited_message:
+        chat_data[update.edited_message.message_id].edit_text(text, parse_mode=ParseMode.MARKDOWN)
+    else:
+        chat_data[update.message.message_id] = update.message.reply_text(text,
+                                                                         parse_mode=ParseMode.MARKDOWN,
+                                                                         disable_web_page_preview=True)
+
+
+def docs(bot, update, args, chat_data):
     """Documentation search"""
     if len(args) > 0:
         doc = get_docs(' '.join(args))
@@ -157,19 +166,12 @@ def docs(bot, update, args, user_data):
                 text += "\n\nThe official documentation has more info about [{tg_name}]({tg_url})."
 
             text = text.format(**doc._asdict())
-            if update.edited_message:
-                user_data[update.edited_message.message_id].edit_text(text, parse_mode=ParseMode.MARKDOWN)
-            else:
-                user_data[update.message.message_id] = update.message.reply_text(text,
-                                                                                 parse_mode=ParseMode.MARKDOWN,
-                                                                                 disable_web_page_preview=True)
         else:
             text = "Sorry, your search term didn't match anything, please edit your message to search again."
-            user_data[update.message.message_id] = update.message.reply_text(text,
-                                                                             parse_mode=ParseMode.MARKDOWN)
+        reply_or_edit(update, chat_data, text)
 
 
-def wiki(bot, update, args):
+def wiki(bot, update, args, chat_data):
     search = ' '.join(args)
     best = (0, ('HOME', wiki_url))
     if search != '':
@@ -177,8 +179,11 @@ def wiki(bot, update, args):
             score = fuzz.partial_ratio(search, name)
             if score > best[0]:
                 best = (score, (name, link))
-        update.message.reply_text('Github wiki for _python-telegram-bot_\n[{b[0]}]({b[1]})'.format(b=best[1]),
-                                  disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
+        if best[0] > threshold:
+            text = 'Github wiki for _python-telegram-bot_\n[{b[0]}]({b[1]})'.format(b=best[1])
+        else:
+            text = "Sorry, your search term didn't match anything, please edit your message to search again."
+        reply_or_edit(update, chat_data, text)
 
 
 def other(bot, update):
@@ -209,8 +214,8 @@ def error(bot, update, error):
 
 start_handler = CommandHandler('start', start)
 rules_handler = CommandHandler('rules', rules)
-docs_handler = CommandHandler('docs', docs, pass_args=True, allow_edited=True, pass_user_data=True)
-wiki_handler = CommandHandler('wiki', wiki, pass_args=True, allow_edited=True)
+docs_handler = CommandHandler('docs', docs, pass_args=True, allow_edited=True, pass_chat_data=True)
+wiki_handler = CommandHandler('wiki', wiki, pass_args=True, allow_edited=True, pass_chat_data=True)
 other_handler = MessageHandler(Filters.text, other)
 
 dispatcher.add_handler(start_handler)
