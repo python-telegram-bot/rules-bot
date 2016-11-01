@@ -50,7 +50,7 @@ OFFTOPIC_RULES = """<b>Topics:</b>
 - No <a href="https://telegram.me/joinchat/A6kAm0EeUdd0SciQStb9cg">shitposting, flamewars or excessive trolling</a>
 - Max. 1 meme per user and day"""
 
-docs_url = "https://python-telegram-bot.readthedocs.io/en/stable/"
+docs_url = "https://python-telegram-bot.readthedocs.io/en/latest/"
 docs_data = urllib.request.urlopen(docs_url + "objects.inv")
 docs_data.readline()  # Need to remove first line for some reason
 docs_inv = read_inventory_v2(docs_data, docs_url, urllib.parse.urljoin)
