@@ -12,7 +12,6 @@ from telegram import ParseMode
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import os
 
-
 if os.environ.get('ROOLSBOT_DEBUG'):
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                         level=logging.DEBUG)
@@ -73,7 +72,7 @@ for li in wiki_soup.select("ul.wiki-pages > li"):
     if li.a['href'] != '#':
         wiki_pages[li.strong.a.string] = "https://github.com" + li.strong.a['href']
 
-threshold = 60
+threshold = 70
 
 
 def start(bot, update):
@@ -139,13 +138,14 @@ def get_docs(search):
                     pass
                 best = (score, Doc('.'.join(short_name), name,
                                    typ[3:], item[2], tg_name, tg_url))
+    print(best[0], threshold)
     if best[0] > threshold:
         return best[1]
     else:
         return None
 
 
-def docs(bot, update, args):
+def docs(bot, update, args, user_data):
     """Documentation search"""
     if len(args) > 0:
         doc = get_docs(' '.join(args))
@@ -157,9 +157,16 @@ def docs(bot, update, args):
                 text += "\n\nThe official documentation has more info about [{tg_name}]({tg_url})."
 
             text = text.format(**doc._asdict())
-            update.message.reply_text(text,
-                                      parse_mode='Markdown',
-                                      disable_web_page_preview=True)
+            if update.edited_message:
+                user_data[update.edited_message.message_id].edit_text(text, parse_mode=ParseMode.MARKDOWN)
+            else:
+                user_data[update.message.message_id] = update.message.reply_text(text,
+                                                                                 parse_mode=ParseMode.MARKDOWN,
+                                                                                 disable_web_page_preview=True)
+        else:
+            text = "Sorry, your search term didn't match anything, please edit your message to search again."
+            user_data[update.message.message_id] = update.message.reply_text(text,
+                                                                             parse_mode=ParseMode.MARKDOWN)
 
 
 def wiki(bot, update, args):
@@ -171,7 +178,7 @@ def wiki(bot, update, args):
             if score > best[0]:
                 best = (score, (name, link))
         update.message.reply_text('Github wiki for _python-telegram-bot_\n[{b[0]}]({b[1]})'.format(b=best[1]),
-                              disable_web_page_preview=True, parse_mode='Markdown')
+                                  disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
 
 
 def other(bot, update):
@@ -180,13 +187,13 @@ def other(bot, update):
         if any(ot in update.message.text for ot in ('off-topic', 'off topic', 'offtopic')):
             update.message.reply_text("The off-topic group is [here](https://telegram.me/pythontelegrambottalk)."
                                       " Come join us!",
-                                      disable_web_page_preview=True, parse_mode="Markdown")
+                                      disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
 
     if update.message.chat.username == "pythontelegrambottalk":
         if any(ot in update.message.text for ot in ('on-topic', 'on topic', 'ontopic')):
             update.message.reply_text("The on-topic group is [here](https://telegram.me/pythontelegrambotgroup)."
                                       " Come join us!",
-                                      disable_web_page_preview=True, parse_mode="Markdown")
+                                      disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
 
     if update.message.chat.username == "pythontelegrambottalk":
         if "sudo make me a sandwich" in update.message.text:
@@ -202,9 +209,9 @@ def error(bot, update, error):
 
 start_handler = CommandHandler('start', start)
 rules_handler = CommandHandler('rules', rules)
-docs_handler = CommandHandler('docs', docs, pass_args=True)
-wiki_handler = CommandHandler('wiki', wiki, pass_args=True)
-other_handler = MessageHandler([Filters.text], other)
+docs_handler = CommandHandler('docs', docs, pass_args=True, allow_edited=True, pass_user_data=True)
+wiki_handler = CommandHandler('wiki', wiki, pass_args=True, allow_edited=True)
+other_handler = MessageHandler(Filters.text, other)
 
 dispatcher.add_handler(start_handler)
 dispatcher.add_handler(rules_handler)
