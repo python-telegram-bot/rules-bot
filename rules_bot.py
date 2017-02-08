@@ -1,16 +1,20 @@
+import configparser
 import logging
-import urllib.request
+import os
 import urllib.parse
 from collections import namedtuple
+from uuid import uuid4
 
-import configparser
 from bs4 import BeautifulSoup
 from fuzzywuzzy import fuzz
 from sphinx.ext.intersphinx import read_inventory_v2
-
+from telegram import InlineQueryResultArticle
+from telegram import InputTextMessageContent
 from telegram import ParseMode
+from telegram.ext import InlineQueryHandler
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
-import os
+
+import util
 
 if os.environ.get('ROOLSBOT_DEBUG'):
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -144,6 +148,17 @@ def get_docs(search):
         return None
 
 
+def search_wiki(query):
+    best = (0, ('HOME', wiki_url))
+    if query != '':
+        for name, link in wiki_pages.items():
+            score = fuzz.partial_ratio(query, name)
+            if score > best[0]:
+                best = (score, (name, link))
+
+        return best
+
+
 def reply_or_edit(update, chat_data, text):
     if update.edited_message:
         chat_data[update.edited_message.message_id].edit_text(text, parse_mode=ParseMode.MARKDOWN)
@@ -172,12 +187,8 @@ def docs(bot, update, args, chat_data):
 
 def wiki(bot, update, args, chat_data):
     search = ' '.join(args)
-    best = (0, ('HOME', wiki_url))
     if search != '':
-        for name, link in wiki_pages.items():
-            score = fuzz.partial_ratio(search, name)
-            if score > best[0]:
-                best = (score, (name, link))
+        best = search_wiki(search)
 
         if best[0] > threshold:
             text = 'Github wiki for _python-telegram-bot_\n[{b[0]}]({b[1]})'.format(b=best[1])
@@ -208,6 +219,76 @@ def other(bot, update):
             update.message.reply_text("What? Make it yourself.", quote=True)
 
 
+def get_faq():
+    pass
+
+
+def inlinequery(bot, update):
+    query = update.inline_query.query
+    results_list = list()
+
+    wiki = search_wiki(query)
+    doc = get_docs(query)
+
+    if len(query) > 0:
+
+        # add the doc if found
+        if doc:
+            text = "*{short_name}*\n_python-telegram-bot_ documentation for this {type}:\n[{full_name}]({url})"
+            if doc.tg_name:
+                text += "\n\nThe official documentation has more info about [{tg_name}]({tg_url})."
+            text = text.format(**doc._asdict())
+
+            results_list.append(InlineQueryResultArticle(
+                id=uuid4(),
+                title="{full_name}".format(**doc._asdict()),
+                description="python-telegram-bot documentation",
+                input_message_content=InputTextMessageContent(
+                    message_text=text,
+                    parse_mode=ParseMode.MARKDOWN,
+                    disable_web_page_preview=True)
+            ))
+
+        # add the best wiki page if weight is over threshold
+        if wiki and wiki[0] > threshold:
+            results_list.append(InlineQueryResultArticle(
+                id=uuid4(),
+                title="{w[0]}".format(w=wiki[1]),
+                description="Github wiki for python-telegram-bot",
+                input_message_content=InputTextMessageContent(
+                    message_text="Wiki for _python-telegram-bot_\n[{w[0]}]({w[1]})".format(w=wiki[1]),
+                    parse_mode=ParseMode.MARKDOWN,
+                    disable_web_page_preview=True,
+                )))
+
+        # "No results" entry
+        if len(results_list) == 0:
+            results_list.append(InlineQueryResultArticle(
+                id=uuid4(),
+                title=util.failure("No results."),
+                description="",
+                input_message_content=InputTextMessageContent(
+                    message_text="[GitHub wiki]({}) of _python-telegram-bot_".format(wiki_url),
+                    parse_mode=ParseMode.MARKDOWN,
+                    disable_web_page_preview=True)
+            ))
+
+    else:  # no query input
+        # add all wiki pages
+        for name, link in wiki_pages.items():
+            results_list.append(InlineQueryResultArticle(
+                id=uuid4(),
+                title=name,
+                description="Wiki of python-telegram-bot",
+                input_message_content=InputTextMessageContent(
+                    message_text="Wiki of _python-telegram-bot_\n[{}]({})".format(name, link),
+                    parse_mode=ParseMode.MARKDOWN,
+                    disable_web_page_preview=True,
+                )))
+
+    bot.answerInlineQuery(update.inline_query.id, results=results_list)
+
+
 def error(bot, update, error):
     """Log all errors"""
     logger.warn('Update "%s" caused error "%s"' % (update, error))
@@ -224,7 +305,10 @@ dispatcher.add_handler(rules_handler)
 dispatcher.add_handler(docs_handler)
 dispatcher.add_handler(wiki_handler)
 dispatcher.add_handler(other_handler)
+
+dispatcher.add_handler(InlineQueryHandler(inlinequery))
 dispatcher.add_error_handler(error)
 
 updater.start_polling()
+logger.info("Listening...")
 updater.idle()
