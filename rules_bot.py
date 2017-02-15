@@ -76,8 +76,6 @@ for li in wiki_soup.select("ul.wiki-pages > li"):
     if li.a['href'] != '#':
         wiki_pages[li.strong.a.string] = "https://github.com" + li.strong.a['href']
 
-threshold = 80
-
 
 def start(bot, update):
     if update.message.chat.username not in ("pythontelegrambotgroup", "pythontelegrambottalk"):
@@ -97,7 +95,7 @@ def rules(bot, update):
                                   'and I don\'t know the rules around here.')
 
 
-def get_docs(search):
+def get_docs(search, threshold=80):
     search = list(reversed(search.split('.')))
     best = (0, None)
     for typ, items in docs_inv.items():
@@ -159,17 +157,31 @@ def search_wiki(query):
         return best
 
 
-def reply_or_edit(update, chat_data, text):
+def _get_reply_id(update):
+    if update.message and update.message.reply_to_message:
+        return update.message.reply_to_message.message_id
+
+    return None
+
+
+def reply_or_edit(bot, update, chat_data, text):
     if update.edited_message:
         chat_data[update.edited_message.message_id].edit_text(text, parse_mode=ParseMode.MARKDOWN)
     else:
-        chat_data[update.message.message_id] = update.message.reply_text(text,
-                                                                         parse_mode=ParseMode.MARKDOWN,
-                                                                         disable_web_page_preview=True)
+        issued_reply = _get_reply_id(update)
+        if issued_reply:
+            chat_data[update.message.message_id] = bot.sendMessage(update.message.chat_id, text,
+                                                                   reply_to_message_id=issued_reply,
+                                                                   parse_mode=ParseMode.MARKDOWN,
+                                                                   disable_web_page_preview=True)
+        else:
+            chat_data[update.message.message_id] = update.message.reply_text(text,
+                                                                             parse_mode=ParseMode.MARKDOWN,
+                                                                             disable_web_page_preview=True)
 
 
 def docs(bot, update, args, chat_data):
-    """Documentation search"""
+    """ Documentation search """
     if len(args) > 0:
         doc = get_docs(' '.join(args))
         if doc:
@@ -182,10 +194,11 @@ def docs(bot, update, args, chat_data):
         else:
             text = "Sorry, your search term didn't match anything, please edit your message to search again."
 
-        reply_or_edit(update, chat_data, text)
+        reply_or_edit(bot, update, chat_data, text)
 
 
-def wiki(bot, update, args, chat_data):
+def wiki(bot, update, args, chat_data, threshold=80):
+    """ Wiki search """
     search = ' '.join(args)
     if search != '':
         best = search_wiki(search)
@@ -195,7 +208,7 @@ def wiki(bot, update, args, chat_data):
         else:
             text = "Sorry, your search term didn't match anything, please edit your message to search again."
 
-        reply_or_edit(update, chat_data, text)
+        reply_or_edit(bot, update, chat_data, text)
 
 
 def other(bot, update):
@@ -223,7 +236,7 @@ def get_faq():
     pass
 
 
-def inlinequery(bot, update):
+def inlinequery(bot, update, threshold=60):
     query = update.inline_query.query
     results_list = list()
 
@@ -251,13 +264,18 @@ def inlinequery(bot, update):
 
         # add the best wiki page if weight is over threshold
         if wiki and wiki[0] > threshold:
+            print('abc')
+            print(util.escape_markdown(wiki[1][0]))
             results_list.append(InlineQueryResultArticle(
                 id=uuid4(),
                 title="{w[0]}".format(w=wiki[1]),
                 description="Github wiki for python-telegram-bot",
                 input_message_content=InputTextMessageContent(
-                    message_text="Wiki for _python-telegram-bot_\n[{w[0]}]({w[1]})".format(w=wiki[1]),
-                    parse_mode=ParseMode.MARKDOWN,
+                    message_text='Wiki of <i>python-telegram-bot</i>\n<a href="{}">{}</a>'.format(
+                        wiki[1][1],
+                        wiki[1][0]
+                    ),
+                    parse_mode=ParseMode.HTML,
                     disable_web_page_preview=True,
                 )))
 
@@ -281,7 +299,7 @@ def inlinequery(bot, update):
                 title=name,
                 description="Wiki of python-telegram-bot",
                 input_message_content=InputTextMessageContent(
-                    message_text="Wiki of _python-telegram-bot_\n[{}]({})".format(name, link),
+                    message_text="Wiki of _python-telegram-bot_\n{}]({})".format(util.escape_markdown(name), link),
                     parse_mode=ParseMode.MARKDOWN,
                     disable_web_page_preview=True,
                 )))
