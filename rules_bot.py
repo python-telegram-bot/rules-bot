@@ -232,10 +232,6 @@ def other(bot, update):
             update.message.reply_text("What? Make it yourself.", quote=True)
 
 
-def get_faq():
-    pass
-
-
 def inlinequery(bot, update, threshold=60):
     query = update.inline_query.query
     results_list = list()
@@ -299,7 +295,7 @@ def inlinequery(bot, update, threshold=60):
                 title=name,
                 description="Wiki of python-telegram-bot",
                 input_message_content=InputTextMessageContent(
-                    message_text="Wiki of _python-telegram-bot_\n{}]({})".format(util.escape_markdown(name), link),
+                    message_text="Wiki of _python-telegram-bot_\n[{}]({})".format(util.escape_markdown(name), link),
                     parse_mode=ParseMode.MARKDOWN,
                     disable_web_page_preview=True,
                 )))
