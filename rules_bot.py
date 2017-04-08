@@ -1,3 +1,6 @@
+"""
+Rules bot of python-telegram-bot chat
+"""
 import configparser
 import logging
 import os
@@ -10,9 +13,10 @@ from fuzzywuzzy import fuzz
 from sphinx.ext.intersphinx import read_inventory_v2
 from telegram import InlineQueryResultArticle
 from telegram import InputTextMessageContent
-from telegram import ParseMode
+from telegram import ParseMode, TelegramError
 from telegram.ext import InlineQueryHandler
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Job
+import requests
 
 import util
 
@@ -30,6 +34,7 @@ config.read('bot.ini')
 
 updater = Updater(token=config['KEYS']['bot_api'])
 dispatcher = updater.dispatcher
+JOBQ = updater.job_queue
 
 ONTOPIC_RULES = """This group is for questions, answers and discussions around the <a href="https://python-telegram-bot.org/">python-telegram-bot library</a> and, to some extent, Telegram bots in general.
 
@@ -212,7 +217,9 @@ def wiki(bot, update, args, chat_data, threshold=80):
 
 
 def other(bot, update):
-    """Easter Eggs and utilities"""
+    """
+    Easter Eggs, utilities and antispam
+    """
     if update.message.chat.username == "pythontelegrambotgroup":
         if any(ot in update.message.text for ot in ('off-topic', 'off topic', 'offtopic')):
             update.message.reply_text("The off-topic group is [here](https://telegram.me/pythontelegrambottalk)."
@@ -230,7 +237,17 @@ def other(bot, update):
             update.message.reply_text("Okay.", quote=True)
         elif "make me a sandwich" in update.message.text:
             update.message.reply_text("What? Make it yourself.", quote=True)
-
+    if update.message.chat.username == "pythontelegrambotgroup" or update.message.chat.username == "pythontelegrambottalk":
+        if update.message.forward_from_chat is not None:
+            if update.message.forward_from_chat.title in SPAMCHANS:
+                try:
+                    update.message.reply_text("Spam detected⚠")
+                    update.message.chat.kick_member(update.message.from_user.id)
+                except TelegramError:
+                    update.message.reply_text("I tried to ban this spammer, but it seems like " +
+                                              "I am not an admin!")
+                else:
+                    update.message.reply_text("Banned!🔨")
 
 def inlinequery(bot, update, threshold=60):
     query = update.inline_query.query
@@ -308,6 +325,15 @@ def error(bot, update, error):
     logger.warn('Update "%s" caused error "%s"' % (update, error))
 
 
+def update_spam_list(*_):
+    """
+    Updates a spam list
+    """
+    global SPAMCHANS
+    req = requests.get("https://raw.githubusercontent.com/OctoNezd/octonezd.github.io/master/telespam.json")
+    SPAMCHANS = req.json()
+
+
 start_handler = CommandHandler('start', start)
 rules_handler = CommandHandler('rules', rules)
 docs_handler = CommandHandler('docs', docs, pass_args=True, allow_edited=True, pass_chat_data=True)
@@ -322,7 +348,8 @@ dispatcher.add_handler(other_handler)
 
 dispatcher.add_handler(InlineQueryHandler(inlinequery))
 dispatcher.add_error_handler(error)
-
+UPDJOB = Job(update_spam_list, 60.0)
+JOBQ.put(UPDJOB, next_t=0.0)
 updater.start_polling()
 logger.info("Listening...")
 updater.idle()
