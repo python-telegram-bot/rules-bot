@@ -220,7 +220,7 @@ def other_plaintext(bot, update):
     chat_username = update.message.chat.username
 
     if chat_username == "pythontelegrambotgroup":
-        if any(ot in update.message.text for ot in ('off-topic', 'off topic', 'offtopic')):
+        if any(ot in update.message.text.lower() for ot in ('off-topic', 'off topic', 'offtopic')):
             if update.message.reply_to_message and update.message.reply_to_message.text:
                 update.message.reply_text("I moved this discussion to the "
                                           "[off-topic Group](https://telegram.me/pythontelegrambottalk).",
@@ -233,7 +233,7 @@ def other_plaintext(bot, update):
 
                 replied_message_text = update.message.reply_to_message.text
 
-                text = '_{} wrote:_\n{}\n\n⬇️ ᴘʟᴇᴀsᴇ ᴄᴏɴᴛɪɴᴜᴇ ʜᴇʀᴇ ⬇️'.format(name, replied_message_text)
+                text = '{} _wrote:_\n{}\n\n⬇️ ᴘʟᴇᴀsᴇ ᴄᴏɴᴛɪɴᴜᴇ ʜᴇʀᴇ ⬇️'.format(name, replied_message_text)
 
                 bot.sendMessage(OFFTOPIC_CHAT_ID, text, disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
             else:
@@ -242,7 +242,7 @@ def other_plaintext(bot, update):
                                           disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
 
     elif chat_username == "pythontelegrambottalk":
-        if any(ot in update.message.text for ot in ('on-topic', 'on topic', 'ontopic')):
+        if any(ot in update.message.text.lower() for ot in ('on-topic', 'on topic', 'ontopic')):
             update.message.reply_text("The on-topic group is [here](https://telegram.me/pythontelegrambotgroup)."
                                       " Come join us!",
                                       disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
