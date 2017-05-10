@@ -3,6 +3,7 @@ import logging
 import os
 import urllib.parse
 from collections import namedtuple
+from pprint import pprint
 from uuid import uuid4
 
 from bs4 import BeautifulSoup
@@ -30,6 +31,8 @@ config.read('bot.ini')
 
 updater = Updater(token=config['KEYS']['bot_api'])
 dispatcher = updater.dispatcher
+
+OFFTOPIC_CHAT_ID = '@pythontelegrambottalk'
 
 ONTOPIC_RULES = """This group is for questions, answers and discussions around the <a href="https://python-telegram-bot.org/">python-telegram-bot library</a> and, to some extent, Telegram bots in general.
 
@@ -211,21 +214,40 @@ def wiki(bot, update, args, chat_data, threshold=80):
         reply_or_edit(bot, update, chat_data, text)
 
 
-def other(bot, update):
+def other_plaintext(bot, update):
     """Easter Eggs and utilities"""
-    if update.message.chat.username == "pythontelegrambotgroup":
-        if any(ot in update.message.text for ot in ('off-topic', 'off topic', 'offtopic')):
-            update.message.reply_text("The off-topic group is [here](https://telegram.me/pythontelegrambottalk)."
-                                      " Come join us!",
-                                      disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
 
-    if update.message.chat.username == "pythontelegrambottalk":
+    chat_username = update.message.chat.username
+
+    if chat_username == "pythontelegrambotgroup":
+        if any(ot in update.message.text for ot in ('off-topic', 'off topic', 'offtopic')):
+            if update.message.reply_to_message and update.message.reply_to_message.text:
+                update.message.reply_text("I moved this discussion to the "
+                                          "[off-topic Group](https://telegram.me/pythontelegrambottalk).",
+                                          disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
+
+                if update.message.reply_to_message.from_user.username:
+                    name = '@' + update.message.reply_to_message.from_user.username
+                else:
+                    name = update.message.reply_to_message.from_user.first_name
+
+                replied_message_text = update.message.reply_to_message.text
+
+                text = '_{} wrote:_\n{}\n\n⬇️ ᴘʟᴇᴀsᴇ ᴄᴏɴᴛɪɴᴜᴇ ʜᴇʀᴇ ⬇️'.format(name, replied_message_text)
+
+                bot.sendMessage(OFFTOPIC_CHAT_ID, text, disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
+            else:
+                update.message.reply_text("The off-topic group is [here](https://telegram.me/pythontelegrambottalk)."
+                                          " Come join us!",
+                                          disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
+
+    elif chat_username == "pythontelegrambottalk":
         if any(ot in update.message.text for ot in ('on-topic', 'on topic', 'ontopic')):
             update.message.reply_text("The on-topic group is [here](https://telegram.me/pythontelegrambotgroup)."
                                       " Come join us!",
                                       disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
 
-    if update.message.chat.username == "pythontelegrambottalk":
+        # Easteregg
         if "sudo make me a sandwich" in update.message.text:
             update.message.reply_text("Okay.", quote=True)
         elif "make me a sandwich" in update.message.text:
@@ -312,7 +334,7 @@ start_handler = CommandHandler('start', start)
 rules_handler = CommandHandler('rules', rules)
 docs_handler = CommandHandler('docs', docs, pass_args=True, allow_edited=True, pass_chat_data=True)
 wiki_handler = CommandHandler('wiki', wiki, pass_args=True, allow_edited=True, pass_chat_data=True)
-other_handler = MessageHandler(Filters.text, other)
+other_handler = MessageHandler(Filters.text, other_plaintext)
 
 dispatcher.add_handler(start_handler)
 dispatcher.add_handler(rules_handler)
