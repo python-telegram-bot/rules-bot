@@ -1,6 +1,7 @@
 import configparser
 import logging
 import os
+import re
 import urllib.parse
 from collections import namedtuple
 from uuid import uuid4
@@ -15,6 +16,7 @@ from telegram.ext import InlineQueryHandler
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 import util
+from custemoji import Emoji
 
 if os.environ.get('ROOLSBOT_DEBUG'):
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -30,6 +32,9 @@ config.read('bot.ini')
 
 updater = Updater(token=config['KEYS']['bot_api'])
 dispatcher = updater.dispatcher
+
+ENCLOSING_REPLACEMENT_CHARACTER = '$'
+OFFTOPIC_CHAT_ID = '@pythontelegrambottalk'
 
 ONTOPIC_RULES = """This group is for questions, answers and discussions around the <a href="https://python-telegram-bot.org/">python-telegram-bot library</a> and, to some extent, Telegram bots in general.
 
@@ -76,13 +81,28 @@ for li in wiki_soup.select("ul.wiki-pages > li"):
     if li.a['href'] != '#':
         wiki_pages[li.strong.a.string] = "https://github.com" + li.strong.a['href']
 
-threshold = 80
 
-
-def start(bot, update):
-    if update.message.chat.username not in ("pythontelegrambotgroup", "pythontelegrambottalk"):
+def start(bot, update, args=None):
+    if args:
+        if args[0] == 'inline-help':
+            inlinequery_help(bot, update)
+    elif update.message.chat.username not in ("pythontelegrambotgroup", "pythontelegrambottalk"):
         update.message.reply_text("Hi. I'm a bot that will anounce the rules of the "
                                   "python-telegram-bot groups when you type /rules.")
+
+
+def inlinequery_help(bot, update):
+    chat_id = update.message.chat_id
+    text = "Use the `{char}`-character in your inline queries and I will replace them with a link to the corresponding " \
+           "article from the documentation or wiki.\n\n" \
+           "*Example:*\n" \
+           "@roolsbot I 💙 {char}InlineQueries{char}, but you need an {char}InlineQueryHandler{char} for it." \
+           "\n\n*becomes:*\n" \
+           "I 💙 [InlineQueries](https://python-telegram-bot.readthedocs.io/en/latest/telegram.html#telegram" \
+           ".InlineQuery), but you need an [InlineQueryHandler](https://python-telegram-bot.readthedocs.io/en" \
+           "/latest/telegram.ext.html#telegram.ext.InlineQueryHandler) for it.".format(
+        char=ENCLOSING_REPLACEMENT_CHARACTER)
+    bot.sendMessage(chat_id, text, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True)
 
 
 def rules(bot, update):
@@ -97,9 +117,10 @@ def rules(bot, update):
                                   'and I don\'t know the rules around here.')
 
 
-def get_docs(search):
+def get_docs(search, threshold=80):
     search = list(reversed(search.split('.')))
     best = (0, None)
+
     for typ, items in docs_inv.items():
         if typ not in ['py:staticmethod', 'py:exception', 'py:method', 'py:module', 'py:class', 'py:attribute',
                        'py:data', 'py:function']:
@@ -159,17 +180,31 @@ def search_wiki(query):
         return best
 
 
-def reply_or_edit(update, chat_data, text):
+def _get_reply_id(update):
+    if update.message and update.message.reply_to_message:
+        return update.message.reply_to_message.message_id
+
+    return None
+
+
+def reply_or_edit(bot, update, chat_data, text):
     if update.edited_message:
         chat_data[update.edited_message.message_id].edit_text(text, parse_mode=ParseMode.MARKDOWN)
     else:
-        chat_data[update.message.message_id] = update.message.reply_text(text,
-                                                                         parse_mode=ParseMode.MARKDOWN,
-                                                                         disable_web_page_preview=True)
+        issued_reply = _get_reply_id(update)
+        if issued_reply:
+            chat_data[update.message.message_id] = bot.sendMessage(update.message.chat_id, text,
+                                                                   reply_to_message_id=issued_reply,
+                                                                   parse_mode=ParseMode.MARKDOWN,
+                                                                   disable_web_page_preview=True)
+        else:
+            chat_data[update.message.message_id] = update.message.reply_text(text,
+                                                                             parse_mode=ParseMode.MARKDOWN,
+                                                                             disable_web_page_preview=True)
 
 
 def docs(bot, update, args, chat_data):
-    """Documentation search"""
+    """ Documentation search """
     if len(args) > 0:
         doc = get_docs(' '.join(args))
         if doc:
@@ -182,10 +217,11 @@ def docs(bot, update, args, chat_data):
         else:
             text = "Sorry, your search term didn't match anything, please edit your message to search again."
 
-        reply_or_edit(update, chat_data, text)
+        reply_or_edit(bot, update, chat_data, text)
 
 
-def wiki(bot, update, args, chat_data):
+def wiki(bot, update, args, chat_data, threshold=80):
+    """ Wiki search """
     search = ' '.join(args)
     if search != '':
         best = search_wiki(search)
@@ -195,42 +231,121 @@ def wiki(bot, update, args, chat_data):
         else:
             text = "Sorry, your search term didn't match anything, please edit your message to search again."
 
-        reply_or_edit(update, chat_data, text)
+        reply_or_edit(bot, update, chat_data, text)
 
 
-def other(bot, update):
+def other_plaintext(bot, update):
     """Easter Eggs and utilities"""
-    if update.message.chat.username == "pythontelegrambotgroup":
-        if any(ot in update.message.text for ot in ('off-topic', 'off topic', 'offtopic')):
-            update.message.reply_text("The off-topic group is [here](https://telegram.me/pythontelegrambottalk)."
-                                      " Come join us!",
-                                      disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
 
-    if update.message.chat.username == "pythontelegrambottalk":
-        if any(ot in update.message.text for ot in ('on-topic', 'on topic', 'ontopic')):
+    chat_username = update.message.chat.username
+
+    if chat_username == "pythontelegrambotgroup":
+        if any(ot in update.message.text.lower() for ot in ('off-topic', 'off topic', 'offtopic')):
+            if update.message.reply_to_message and update.message.reply_to_message.text:
+                issued_reply = _get_reply_id(update)
+
+                update.message.reply_text("I moved this discussion to the "
+                                          "[off-topic Group](https://telegram.me/pythontelegrambottalk).",
+                                          disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN,
+                                          reply_to_message_id=issued_reply)
+
+                if update.message.reply_to_message.from_user.username:
+                    name = '@' + update.message.reply_to_message.from_user.username
+                else:
+                    name = update.message.reply_to_message.from_user.first_name
+
+                replied_message_text = update.message.reply_to_message.text
+
+                text = '{} _wrote:_\n{}\n\n⬇️ ᴘʟᴇᴀsᴇ ᴄᴏɴᴛɪɴᴜᴇ ʜᴇʀᴇ ⬇️'.format(name, replied_message_text)
+
+                bot.sendMessage(OFFTOPIC_CHAT_ID, text, disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
+            else:
+                update.message.reply_text("The off-topic group is [here](https://telegram.me/pythontelegrambottalk)."
+                                          " Come join us!",
+                                          disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
+
+    elif chat_username == "pythontelegrambottalk":
+        if any(ot in update.message.text.lower() for ot in ('on-topic', 'on topic', 'ontopic')):
             update.message.reply_text("The on-topic group is [here](https://telegram.me/pythontelegrambotgroup)."
                                       " Come join us!",
                                       disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
 
-    if update.message.chat.username == "pythontelegrambottalk":
+        # Easteregg
         if "sudo make me a sandwich" in update.message.text:
             update.message.reply_text("Okay.", quote=True)
         elif "make me a sandwich" in update.message.text:
             update.message.reply_text("What? Make it yourself.", quote=True)
 
 
-def get_faq():
-    pass
+def fuzzy_replacements_markdown(query, threshold=95):
+    enclosed_regex = r'\{char}([a-zA-Z_.0-9]*)\{char}'.format(
+        char=ENCLOSING_REPLACEMENT_CHARACTER)  # match names enclosed in {char}...{char}
+    symbols = re.findall(enclosed_regex, query)
+
+    if not symbols:
+        return None, None
+
+    replacements = list()
+    for s in symbols:
+        doc = get_docs(s, threshold=threshold)
+
+        if doc:
+            # replace only once in the query
+            if doc.short_name in replacements:
+                continue
+
+            text = "[{}]({})"
+            text = text.format(s, doc.url)
+
+            replacements.append((True, doc.short_name, s, text))
+            continue
+
+        wiki = search_wiki(s)
+        if wiki and wiki[0] > threshold:
+            text = "[{}]({})".format(s, wiki[1][1])
+            replacements.append((True, wiki[1][0], s, text))
+            continue
+
+        # not found
+        replacements.append((False, '{}{}'.format(Emoji.BLACK_QUESTION_MARK_ORNAMENT, s), s, s))
+
+    result = query
+    for found, name, symbol, text in replacements:
+        result = result.replace('{char}{symbol}{char}'.format(
+            symbol=symbol,
+            char=ENCLOSING_REPLACEMENT_CHARACTER
+        ), text)
+
+    result_changed = [x[1] for x in replacements]
+
+    # # TODO sort the list by errors first
+    # pprint(list(enumerate([x[1] for x in replacements])))
+    # result_changed = sorted(enumerate([x[1] for x in replacements]), key=lambda k: k[1][0])
+
+    return result_changed, result
 
 
-def inlinequery(bot, update):
+def inlinequery(bot, update, threshold=60):
     query = update.inline_query.query
     results_list = list()
 
-    wiki = search_wiki(query)
-    doc = get_docs(query)
+    modified, replaced = fuzzy_replacements_markdown(query, threshold=threshold)
 
     if len(query) > 0:
+
+        if modified:
+            results_list.append(InlineQueryResultArticle(
+                id=uuid4(),
+                title="Replace Links",
+                description=', '.join(modified),
+                input_message_content=InputTextMessageContent(
+                    message_text=replaced,
+                    parse_mode=ParseMode.MARKDOWN,
+                    disable_web_page_preview=True)
+            ))
+
+        wiki = search_wiki(query)
+        doc = get_docs(query)
 
         # add the doc if found
         if doc:
@@ -256,8 +371,11 @@ def inlinequery(bot, update):
                 title="{w[0]}".format(w=wiki[1]),
                 description="Github wiki for python-telegram-bot",
                 input_message_content=InputTextMessageContent(
-                    message_text="Wiki for _python-telegram-bot_\n[{w[0]}]({w[1]})".format(w=wiki[1]),
-                    parse_mode=ParseMode.MARKDOWN,
+                    message_text='Wiki of <i>python-telegram-bot</i>\n<a href="{}">{}</a>'.format(
+                        wiki[1][1],
+                        wiki[1][0]
+                    ),
+                    parse_mode=ParseMode.HTML,
                     disable_web_page_preview=True,
                 )))
 
@@ -281,12 +399,13 @@ def inlinequery(bot, update):
                 title=name,
                 description="Wiki of python-telegram-bot",
                 input_message_content=InputTextMessageContent(
-                    message_text="Wiki of _python-telegram-bot_\n[{}]({})".format(name, link),
+                    message_text="Wiki of _python-telegram-bot_\n[{}]({})".format(util.escape_markdown(name), link),
                     parse_mode=ParseMode.MARKDOWN,
                     disable_web_page_preview=True,
                 )))
 
-    bot.answerInlineQuery(update.inline_query.id, results=results_list)
+    bot.answerInlineQuery(update.inline_query.id, results=results_list, switch_pm_text='Help',
+                          switch_pm_parameter='inline-help')
 
 
 def error(bot, update, error):
@@ -294,11 +413,11 @@ def error(bot, update, error):
     logger.warn('Update "%s" caused error "%s"' % (update, error))
 
 
-start_handler = CommandHandler('start', start)
+start_handler = CommandHandler('start', start, pass_args=True)
 rules_handler = CommandHandler('rules', rules)
 docs_handler = CommandHandler('docs', docs, pass_args=True, allow_edited=True, pass_chat_data=True)
 wiki_handler = CommandHandler('wiki', wiki, pass_args=True, allow_edited=True, pass_chat_data=True)
-other_handler = MessageHandler(Filters.text, other)
+other_handler = MessageHandler(Filters.text, other_plaintext)
 
 dispatcher.add_handler(start_handler)
 dispatcher.add_handler(rules_handler)
