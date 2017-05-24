@@ -33,7 +33,7 @@ config.read('bot.ini')
 updater = Updater(token=config['KEYS']['bot_api'])
 dispatcher = updater.dispatcher
 
-ENCLOSING_REPLACEMENT_CHARACTER = '$'
+ENCLOSING_REPLACEMENT_CHARACTER = '+'
 OFFTOPIC_CHAT_ID = '@pythontelegrambottalk'
 
 ONTOPIC_RULES = """This group is for questions, answers and discussions around the <a href="https://python-telegram-bot.org/">python-telegram-bot library</a> and, to some extent, Telegram bots in general.
@@ -277,16 +277,38 @@ def other_plaintext(bot, update):
             update.message.reply_text("What? Make it yourself.", quote=True)
 
 
-def fuzzy_replacements_markdown(query, threshold=95):
+def _to_sup(s):
+    """ Returns a number formatted as superscript (for footnotes) """
+    if isinstance(s, int):
+        s = str(s)
+    sups = {u'0': u'\u2070',
+            u'1': u'\xb9',
+            u'2': u'\xb2',
+            u'3': u'\xb3',
+            u'4': u'\u2074',
+            u'5': u'\u2075',
+            u'6': u'\u2076',
+            u'7': u'\u2077',
+            u'8': u'\u2078',
+            u'9': u'\u2079'}
+
+    return ''.join(sups.get(char, char) for char in s)
+
+
+def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
+    """ Replaces the enclosed characters in the query string with hyperlinks to the documentations """
     enclosed_regex = r'\{char}([a-zA-Z_.0-9]*)\{char}'.format(
         char=ENCLOSING_REPLACEMENT_CHARACTER)  # match names enclosed in {char}...{char}
     symbols = re.findall(enclosed_regex, query)
+    official_urls = list()
 
     if not symbols:
         return None, None
 
     replacements = list()
+    counter = 0
     for s in symbols:
+        counter += 1
         doc = get_docs(s, threshold=threshold)
 
         if doc:
@@ -295,7 +317,11 @@ def fuzzy_replacements_markdown(query, threshold=95):
                 continue
 
             text = "[{}]({})"
-            text = text.format(s, doc.url)
+            text = text.format(s, doc.url, doc.tg_url)
+
+            if doc.tg_url and official_api_links:
+                official_urls.append((counter, doc.short_name, doc.tg_url))
+                text += _to_sup(counter)
 
             replacements.append((True, doc.short_name, s, text))
             continue
@@ -316,12 +342,12 @@ def fuzzy_replacements_markdown(query, threshold=95):
             char=ENCLOSING_REPLACEMENT_CHARACTER
         ), text)
 
+    if official_urls and official_api_links:
+        result += '\n\nTelegram Bot API Documentation:'
+        for count, name, url in official_urls:
+            result += '\n{}[{}]({})'.format(_to_sup(count), name, url)
+
     result_changed = [x[1] for x in replacements]
-
-    # # TODO sort the list by errors first
-    # pprint(list(enumerate([x[1] for x in replacements])))
-    # result_changed = sorted(enumerate([x[1] for x in replacements]), key=lambda k: k[1][0])
-
     return result_changed, result
 
 
@@ -329,10 +355,19 @@ def inlinequery(bot, update, threshold=60):
     query = update.inline_query.query
     results_list = list()
 
-    modified, replaced = fuzzy_replacements_markdown(query, threshold=threshold)
-
     if len(query) > 0:
-
+        modified, replaced = fuzzy_replacements_markdown(query, threshold=threshold, official_api_links=True)
+        if modified:
+            results_list.append(InlineQueryResultArticle(
+                id=uuid4(),
+                title="Replace Links and show official Bot API documentation",
+                description=', '.join(modified),
+                input_message_content=InputTextMessageContent(
+                    message_text=replaced,
+                    parse_mode=ParseMode.MARKDOWN,
+                    disable_web_page_preview=True)
+            ))
+        modified, replaced = fuzzy_replacements_markdown(query, threshold=threshold, official_api_links=False)
         if modified:
             results_list.append(InlineQueryResultArticle(
                 id=uuid4(),
