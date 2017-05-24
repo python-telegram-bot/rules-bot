@@ -1,9 +1,9 @@
 import configparser
 import logging
 import os
+import re
 import urllib.parse
 from collections import namedtuple
-from pprint import pprint
 from uuid import uuid4
 
 from bs4 import BeautifulSoup
@@ -16,6 +16,7 @@ from telegram.ext import InlineQueryHandler
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 import util
+from custemoji import Emoji
 
 if os.environ.get('ROOLSBOT_DEBUG'):
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -32,6 +33,7 @@ config.read('bot.ini')
 updater = Updater(token=config['KEYS']['bot_api'])
 dispatcher = updater.dispatcher
 
+ENCLOSING_REPLACEMENT_CHARACTER = '+'
 OFFTOPIC_CHAT_ID = '@pythontelegrambottalk'
 
 ONTOPIC_RULES = """This group is for questions, answers and discussions around the <a href="https://python-telegram-bot.org/">python-telegram-bot library</a> and, to some extent, Telegram bots in general.
@@ -80,10 +82,27 @@ for li in wiki_soup.select("ul.wiki-pages > li"):
         wiki_pages[li.strong.a.string] = "https://github.com" + li.strong.a['href']
 
 
-def start(bot, update):
-    if update.message.chat.username not in ("pythontelegrambotgroup", "pythontelegrambottalk"):
+def start(bot, update, args=None):
+    if args:
+        if args[0] == 'inline-help':
+            inlinequery_help(bot, update)
+    elif update.message.chat.username not in ("pythontelegrambotgroup", "pythontelegrambottalk"):
         update.message.reply_text("Hi. I'm a bot that will anounce the rules of the "
                                   "python-telegram-bot groups when you type /rules.")
+
+
+def inlinequery_help(bot, update):
+    chat_id = update.message.chat_id
+    text = "Use the `{char}`-character in your inline queries and I will replace them with a link to the corresponding " \
+           "article from the documentation or wiki.\n\n" \
+           "*Example:*\n" \
+           "@roolsbot I 💙 {char}InlineQueries{char}, but you need an {char}InlineQueryHandler{char} for it." \
+           "\n\n*becomes:*\n" \
+           "I 💙 [InlineQueries](https://python-telegram-bot.readthedocs.io/en/latest/telegram.html#telegram" \
+           ".InlineQuery), but you need an [InlineQueryHandler](https://python-telegram-bot.readthedocs.io/en" \
+           "/latest/telegram.ext.html#telegram.ext.InlineQueryHandler) for it.".format(
+        char=ENCLOSING_REPLACEMENT_CHARACTER)
+    bot.sendMessage(chat_id, text, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True)
 
 
 def rules(bot, update):
@@ -101,6 +120,7 @@ def rules(bot, update):
 def get_docs(search, threshold=80):
     search = list(reversed(search.split('.')))
     best = (0, None)
+
     for typ, items in docs_inv.items():
         if typ not in ['py:staticmethod', 'py:exception', 'py:method', 'py:module', 'py:class', 'py:attribute',
                        'py:data', 'py:function']:
@@ -222,9 +242,12 @@ def other_plaintext(bot, update):
     if chat_username == "pythontelegrambotgroup":
         if any(ot in update.message.text.lower() for ot in ('off-topic', 'off topic', 'offtopic')):
             if update.message.reply_to_message and update.message.reply_to_message.text:
+                issued_reply = _get_reply_id(update)
+
                 update.message.reply_text("I moved this discussion to the "
                                           "[off-topic Group](https://telegram.me/pythontelegrambottalk).",
-                                          disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
+                                          disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN,
+                                          reply_to_message_id=issued_reply)
 
                 if update.message.reply_to_message.from_user.username:
                     name = '@' + update.message.reply_to_message.from_user.username
@@ -254,14 +277,110 @@ def other_plaintext(bot, update):
             update.message.reply_text("What? Make it yourself.", quote=True)
 
 
+def _to_sup(s):
+    """ Returns a number formatted as superscript (for footnotes) """
+    if isinstance(s, int):
+        s = str(s)
+    sups = {u'0': u'\u2070',
+            u'1': u'\xb9',
+            u'2': u'\xb2',
+            u'3': u'\xb3',
+            u'4': u'\u2074',
+            u'5': u'\u2075',
+            u'6': u'\u2076',
+            u'7': u'\u2077',
+            u'8': u'\u2078',
+            u'9': u'\u2079'}
+
+    return ''.join(sups.get(char, char) for char in s)
+
+
+def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
+    """ Replaces the enclosed characters in the query string with hyperlinks to the documentations """
+    enclosed_regex = r'\{char}([a-zA-Z_.0-9]*)\{char}'.format(
+        char=ENCLOSING_REPLACEMENT_CHARACTER)  # match names enclosed in {char}...{char}
+    symbols = re.findall(enclosed_regex, query)
+    official_urls = list()
+
+    if not symbols:
+        return None, None
+
+    replacements = list()
+    counter = 0
+    for s in symbols:
+        counter += 1
+        doc = get_docs(s, threshold=threshold)
+
+        if doc:
+            # replace only once in the query
+            if doc.short_name in replacements:
+                continue
+
+            text = "[{}]({})"
+            text = text.format(s, doc.url, doc.tg_url)
+
+            if doc.tg_url and official_api_links:
+                official_urls.append((counter, doc.short_name, doc.tg_url))
+                text += _to_sup(counter)
+
+            replacements.append((True, doc.short_name, s, text))
+            continue
+
+        wiki = search_wiki(s)
+        if wiki and wiki[0] > threshold:
+            text = "[{}]({})".format(s, wiki[1][1])
+            replacements.append((True, wiki[1][0], s, text))
+            continue
+
+        # not found
+        replacements.append((False, '{}{}'.format(Emoji.BLACK_QUESTION_MARK_ORNAMENT, s), s, s))
+
+    result = query
+    for found, name, symbol, text in replacements:
+        result = result.replace('{char}{symbol}{char}'.format(
+            symbol=symbol,
+            char=ENCLOSING_REPLACEMENT_CHARACTER
+        ), text)
+
+    if official_urls and official_api_links:
+        result += '\n\nTelegram Bot API Documentation:'
+        for count, name, url in official_urls:
+            result += '\n{}[{}]({})'.format(_to_sup(count), name, url)
+
+    result_changed = [x[1] for x in replacements]
+    return result_changed, result
+
+
 def inlinequery(bot, update, threshold=60):
     query = update.inline_query.query
     results_list = list()
 
-    wiki = search_wiki(query)
-    doc = get_docs(query)
-
     if len(query) > 0:
+        modified, replaced = fuzzy_replacements_markdown(query, threshold=threshold, official_api_links=True)
+        if modified:
+            results_list.append(InlineQueryResultArticle(
+                id=uuid4(),
+                title="Replace Links and show official Bot API documentation",
+                description=', '.join(modified),
+                input_message_content=InputTextMessageContent(
+                    message_text=replaced,
+                    parse_mode=ParseMode.MARKDOWN,
+                    disable_web_page_preview=True)
+            ))
+        modified, replaced = fuzzy_replacements_markdown(query, threshold=threshold, official_api_links=False)
+        if modified:
+            results_list.append(InlineQueryResultArticle(
+                id=uuid4(),
+                title="Replace Links",
+                description=', '.join(modified),
+                input_message_content=InputTextMessageContent(
+                    message_text=replaced,
+                    parse_mode=ParseMode.MARKDOWN,
+                    disable_web_page_preview=True)
+            ))
+
+        wiki = search_wiki(query)
+        doc = get_docs(query)
 
         # add the doc if found
         if doc:
@@ -282,8 +401,6 @@ def inlinequery(bot, update, threshold=60):
 
         # add the best wiki page if weight is over threshold
         if wiki and wiki[0] > threshold:
-            print('abc')
-            print(util.escape_markdown(wiki[1][0]))
             results_list.append(InlineQueryResultArticle(
                 id=uuid4(),
                 title="{w[0]}".format(w=wiki[1]),
@@ -322,7 +439,8 @@ def inlinequery(bot, update, threshold=60):
                     disable_web_page_preview=True,
                 )))
 
-    bot.answerInlineQuery(update.inline_query.id, results=results_list)
+    bot.answerInlineQuery(update.inline_query.id, results=results_list, switch_pm_text='Help',
+                          switch_pm_parameter='inline-help')
 
 
 def error(bot, update, error):
@@ -330,7 +448,7 @@ def error(bot, update, error):
     logger.warn('Update "%s" caused error "%s"' % (update, error))
 
 
-start_handler = CommandHandler('start', start)
+start_handler = CommandHandler('start', start, pass_args=True)
 rules_handler = CommandHandler('rules', rules)
 docs_handler = CommandHandler('docs', docs, pass_args=True, allow_edited=True, pass_chat_data=True)
 wiki_handler = CommandHandler('wiki', wiki, pass_args=True, allow_edited=True, pass_chat_data=True)
