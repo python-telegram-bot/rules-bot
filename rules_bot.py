@@ -448,21 +448,25 @@ def error(bot, update, error):
     logger.warn('Update "%s" caused error "%s"' % (update, error))
 
 
-start_handler = CommandHandler('start', start, pass_args=True)
-rules_handler = CommandHandler('rules', rules)
-docs_handler = CommandHandler('docs', docs, pass_args=True, allow_edited=True, pass_chat_data=True)
-wiki_handler = CommandHandler('wiki', wiki, pass_args=True, allow_edited=True, pass_chat_data=True)
-other_handler = MessageHandler(Filters.text, other_plaintext)
+def main():
+    start_handler = CommandHandler('start', start, pass_args=True)
+    rules_handler = CommandHandler('rules', rules)
+    docs_handler = CommandHandler('docs', docs, pass_args=True, allow_edited=True, pass_chat_data=True)
+    wiki_handler = CommandHandler('wiki', wiki, pass_args=True, allow_edited=True, pass_chat_data=True)
+    other_handler = MessageHandler(Filters.text, other_plaintext)
 
-dispatcher.add_handler(start_handler)
-dispatcher.add_handler(rules_handler)
-dispatcher.add_handler(docs_handler)
-dispatcher.add_handler(wiki_handler)
-dispatcher.add_handler(other_handler)
+    dispatcher.add_handler(start_handler)
+    dispatcher.add_handler(rules_handler)
+    dispatcher.add_handler(docs_handler)
+    dispatcher.add_handler(wiki_handler)
+    dispatcher.add_handler(other_handler)
 
-dispatcher.add_handler(InlineQueryHandler(inlinequery))
-dispatcher.add_error_handler(error)
+    dispatcher.add_handler(InlineQueryHandler(inlinequery))
+    dispatcher.add_error_handler(error)
 
-updater.start_polling()
-logger.info("Listening...")
-updater.idle()
+    updater.start_polling()
+    logger.info("Listening...")
+    updater.idle()
+
+if __name__ == '__main__':
+    main()
