@@ -62,14 +62,16 @@ def start(bot, update, args=None):
 
 def inlinequery_help(bot, update):
     chat_id = update.message.chat_id
-    text = ("Use the `{char}`-character in your inline queries and I will replace"
+    text = ("Use the `{char}`-character in your inline queries and I will replace "
             "them with a link to the corresponding article from the documentation or wiki.\n\n"
             "*Example:*\n"
             "{self} I 💙 {char}InlineQueries{char}, but you need an {char}InlineQueryHandler{char} for it.\n\n"
             "*becomes:*\n"
             "I 💙 [InlineQueries](https://python-telegram-bot.readthedocs.io/en/latest/telegram.html#telegram"
             ".InlineQuery), but you need an [InlineQueryHandler](https://python-telegram-bot.readthedocs.io/en"
-            "/latest/telegram.ext.html#telegram.ext.InlineQueryHandler) for it.").format(
+            "/latest/telegram.ext.html#telegram.ext.InlineQueryHandler) for it.\n\n"
+            "Some wiki pages have spaces in them. Please replace such spaces with underscores. "
+            "The bot will automatically change them back desired space.").format(
         char=ENCLOSING_REPLACEMENT_CHARACTER, self=SELF_CHAT_ID)
     bot.sendMessage(chat_id, text, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True)
 
@@ -169,22 +171,22 @@ def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
 
     replacements = list()
     for s in symbols:
+        # Wiki first, cause with docs you can always prepend telegram. for better precision
+        wiki = search.wiki(s.replace('_', ' '), amount=1, threshold=threshold)
+        if wiki:
+            text = "[{}]({})".format(wiki[0][0].split('🡺')[-1].strip(), wiki[0][1])
+            replacements.append((wiki[0][0], s, text))
+            continue
 
         doc = search.docs(s, threshold=threshold)
         if doc:
             text = "[{}]({})"
-            text = text.format(s, doc.url, doc.tg_url)
+            text = text.format(doc.short_name, doc.url, doc.tg_url)
 
             if doc.tg_url and official_api_links:
                 text += ' [{}]({})'.format(TELEGRAM_SUPERSCRIPT, doc.tg_url)
 
             replacements.append((doc.short_name, s, text))
-            continue
-
-        wiki = search.wiki(s.replace('_', ' '), amount=1, threshold=threshold)
-        if wiki:
-            text = "[{}]({})".format(s, wiki[0][1])
-            replacements.append((wiki[0][0], s, text))
             continue
 
         # not found

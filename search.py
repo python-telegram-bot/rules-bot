@@ -58,16 +58,16 @@ class Search:
 
         # Parse main pages from custom sidebar
         for ol in wiki_soup.select("div.wiki-custom-sidebar > ol"):
-            category = ol.find_previous_sibling('h2').text
+            category = ol.find_previous_sibling('h2').text.strip()
             for li in ol.select('li'):
                 if li.a['href'] != '#':
-                    name = '{} 🡺 {}'.format(category, li.a.text)
+                    name = '{} 🡺 {}'.format(category, li.a.text.strip())
                     self._wiki[name] = urljoin(WIKI_URL, li.a['href'])
 
     def parse_wiki_code_snippets(self):
         code_snippet_soup = BeautifulSoup(urlopen(WIKI_CODE_SNIPPETS_URL), 'html.parser')
         for h4 in code_snippet_soup.select('div.wiki-body h4'):
-            name = 'Code snippets 🡺 ' + h4.text
+            name = 'Code snippets 🡺 ' + h4.text.strip()
             self._wiki[name] = urljoin(WIKI_CODE_SNIPPETS_URL, h4.a['href'])
 
     def parse_examples(self):
@@ -77,7 +77,7 @@ class Search:
 
         for a in example_soup.select('.files td.content a'):
             if a.text not in ['LICENSE.txt', 'README.md']:
-                name = 'Examples 🡺 ' + a.text
+                name = 'Examples 🡺 ' + a.text.strip()
                 self._wiki[name] = urljoin(EXAMPLES_URL, a['href'])
 
     def docs(self, query, threshold=80):
@@ -133,7 +133,7 @@ class Search:
         best.add(0, ('HOME', WIKI_URL))
         if query != '':
             for name, link in self._wiki.items():
-                score = fuzz.partial_ratio(query.lower(), name.split('🡺 ')[-1].lower())
+                score = fuzz.ratio(query.lower(), name.split('🡺')[-1].strip().lower())
                 best.add(score, (name, link))
 
         return best.to_list(amount, threshold)
