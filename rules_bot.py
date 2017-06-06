@@ -4,11 +4,11 @@ import os
 import re
 from uuid import uuid4
 
-import util
+from util import reply_or_edit, get_reply_id
 from search import search, WIKI_URL
-from custemoji import Emoji
 from telegram import InlineQueryResultArticle, InputTextMessageContent, ParseMode
 from telegram.ext import InlineQueryHandler, Updater, CommandHandler, MessageHandler, Filters
+from telegram.utils.helpers import escape_markdown
 
 if os.environ.get('ROOLSBOT_DEBUG'):
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -25,8 +25,11 @@ config.read('bot.ini')
 updater = Updater(token=config['KEYS']['bot_api'])
 dispatcher = updater.dispatcher
 
+SELF_CHAT_ID = '@' + updater.bot.get_me().username
 ENCLOSING_REPLACEMENT_CHARACTER = '+'
-OFFTOPIC_CHAT_ID = '@pythontelegrambottalk'
+OFFTOPIC_USERNAME = 'pythontelegrambottalk'
+ONTOPIC_USERNAME = 'pythontelegrambotgroup'
+OFFTOPIC_CHAT_ID = '@' + OFFTOPIC_USERNAME
 
 ONTOPIC_RULES = """This group is for questions, answers and discussions around the <a href="https://python-telegram-bot.org/">python-telegram-bot library</a> and, to some extent, Telegram bots in general.
 
@@ -56,8 +59,8 @@ def start(bot, update, args=None):
     if args:
         if args[0] == 'inline-help':
             inlinequery_help(bot, update)
-    elif update.message.chat.username not in ("pythontelegrambotgroup", "pythontelegrambottalk"):
-        update.message.reply_text("Hi. I'm a bot that will anounce the rules of the "
+    elif update.message.chat.username not in (OFFTOPIC_USERNAME, ONTOPIC_USERNAME):
+        update.message.reply_text("Hi. I'm a bot that will announce the rules of the "
                                   "python-telegram-bot groups when you type /rules.")
 
 
@@ -66,48 +69,25 @@ def inlinequery_help(bot, update):
     text = ("Use the `{char}`-character in your inline queries and I will replace"
             "them with a link to the corresponding article from the documentation or wiki.\n\n"
             "*Example:*\n"
-            "@roolsbot I 💙 {char}InlineQueries{char}, but you need an {char}InlineQueryHandler{char} for it.\n\n"
+            "{self} I 💙 {char}InlineQueries{char}, but you need an {char}InlineQueryHandler{char} for it.\n\n"
             "*becomes:*\n"
             "I 💙 [InlineQueries](https://python-telegram-bot.readthedocs.io/en/latest/telegram.html#telegram"
             ".InlineQuery), but you need an [InlineQueryHandler](https://python-telegram-bot.readthedocs.io/en"
             "/latest/telegram.ext.html#telegram.ext.InlineQueryHandler) for it.").format(
-        char=ENCLOSING_REPLACEMENT_CHARACTER)
+        char=ENCLOSING_REPLACEMENT_CHARACTER, self=SELF_CHAT_ID)
     bot.sendMessage(chat_id, text, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True)
 
 
 def rules(bot, update):
     """Load and send the appropiate rules based on which group we're in"""
-    if update.message.chat.username == "pythontelegrambotgroup":
+    if update.message.chat.username == ONTOPIC_USERNAME:
         update.message.reply_text(ONTOPIC_RULES, parse_mode=ParseMode.HTML,
                                   disable_web_page_preview=True)
-    elif update.message.chat.username == "pythontelegrambottalk":
+    elif update.message.chat.username == OFFTOPIC_USERNAME:
         update.message.reply_text(OFFTOPIC_RULES, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
     else:
         update.message.reply_text('Hmm. You\'re not in a python-telegram-bot group, '
                                   'and I don\'t know the rules around here.')
-
-
-def _get_reply_id(update):
-    if update.message and update.message.reply_to_message:
-        return update.message.reply_to_message.message_id
-
-    return None
-
-
-def reply_or_edit(bot, update, chat_data, text):
-    if update.edited_message:
-        chat_data[update.edited_message.message_id].edit_text(text, parse_mode=ParseMode.MARKDOWN)
-    else:
-        issued_reply = _get_reply_id(update)
-        if issued_reply:
-            chat_data[update.message.message_id] = bot.sendMessage(update.message.chat_id, text,
-                                                                   reply_to_message_id=issued_reply,
-                                                                   parse_mode=ParseMode.MARKDOWN,
-                                                                   disable_web_page_preview=True)
-        else:
-            chat_data[update.message.message_id] = update.message.reply_text(text,
-                                                                             parse_mode=ParseMode.MARKDOWN,
-                                                                             disable_web_page_preview=True)
 
 
 def docs(bot, update, args, chat_data):
@@ -146,10 +126,10 @@ def other_plaintext(bot, update):
 
     chat_username = update.message.chat.username
 
-    if chat_username == "pythontelegrambotgroup":
+    if chat_username == ONTOPIC_USERNAME:
         if any(ot in update.message.text.lower() for ot in ('off-topic', 'off topic', 'offtopic')):
             if update.message.reply_to_message and update.message.reply_to_message.text:
-                issued_reply = _get_reply_id(update)
+                issued_reply = get_reply_id(update)
 
                 update.message.reply_text("I moved this discussion to the "
                                           "[off-topic Group](https://telegram.me/pythontelegrambottalk).",
@@ -171,7 +151,7 @@ def other_plaintext(bot, update):
                                           " Come join us!",
                                           disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
 
-    elif chat_username == "pythontelegrambottalk":
+    elif chat_username == OFFTOPIC_USERNAME:
         if any(ot in update.message.text.lower() for ot in ('on-topic', 'on topic', 'ontopic')):
             update.message.reply_text("The on-topic group is [here](https://telegram.me/pythontelegrambotgroup)."
                                       " Come join us!",
@@ -240,7 +220,7 @@ def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
             continue
 
         # not found
-        replacements.append((False, '{}{}'.format(Emoji.BLACK_QUESTION_MARK_ORNAMENT, s), s, s))
+        replacements.append((False, '{}{}'.format('❓', s), s, s))
 
     result = query
     for found, name, symbol, text in replacements:
@@ -325,7 +305,7 @@ def inlinequery(bot, update, threshold=60):
         if len(results_list) == 0:
             results_list.append(InlineQueryResultArticle(
                 id=uuid4(),
-                title=util.failure("No results."),
+                title='❌ No results.',
                 description="",
                 input_message_content=InputTextMessageContent(
                     message_text="[GitHub wiki]({}) of _python-telegram-bot_".format(WIKI_URL),
@@ -341,7 +321,7 @@ def inlinequery(bot, update, threshold=60):
                 title=name,
                 description="Wiki of python-telegram-bot",
                 input_message_content=InputTextMessageContent(
-                    message_text="Wiki of _python-telegram-bot_\n[{}]({})".format(util.escape_markdown(name), link),
+                    message_text="Wiki of _python-telegram-bot_\n[{}]({})".format(escape_markdown(name), link),
                     parse_mode=ParseMode.MARKDOWN,
                     disable_web_page_preview=True,
                 )))
