@@ -2,21 +2,13 @@ import configparser
 import logging
 import os
 import re
-import urllib.parse
-from collections import namedtuple
 from uuid import uuid4
 
-from bs4 import BeautifulSoup
-from fuzzywuzzy import fuzz
-from sphinx.ext.intersphinx import read_inventory_v2
-from telegram import InlineQueryResultArticle
-from telegram import InputTextMessageContent
-from telegram import ParseMode
-from telegram.ext import InlineQueryHandler
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
-
 import util
+from search import search, WIKI_URL
 from custemoji import Emoji
+from telegram import InlineQueryResultArticle, InputTextMessageContent, ParseMode
+from telegram.ext import InlineQueryHandler, Updater, CommandHandler, MessageHandler, Filters
 
 if os.environ.get('ROOLSBOT_DEBUG'):
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -59,28 +51,6 @@ OFFTOPIC_RULES = """<b>Topics:</b>
 - No <a href="https://telegram.me/joinchat/A6kAm0EeUdd0SciQStb9cg">shitposting, flamewars or excessive trolling</a>
 - Max. 1 meme per user per day"""
 
-docs_url = "https://python-telegram-bot.readthedocs.io/en/latest/"
-docs_data = urllib.request.urlopen(docs_url + "objects.inv")
-docs_data.readline()  # Need to remove first line for some reason
-docs_inv = read_inventory_v2(docs_data, docs_url, urllib.parse.urljoin)
-
-Doc = namedtuple('Doc', 'short_name, full_name, type url tg_name tg_url')
-
-official_url = "https://core.telegram.org/bots/api#"
-official_soup = BeautifulSoup(
-    urllib.request.urlopen(official_url), "html.parser")
-official = {}
-for anchor in official_soup.select('a.anchor'):
-    if '-' not in anchor['href']:
-        official[anchor['href'][1:]] = anchor.next_sibling
-
-wiki_url = "https://github.com/python-telegram-bot/python-telegram-bot/wiki"
-wiki_soup = BeautifulSoup(urllib.request.urlopen(wiki_url), "html.parser")
-wiki_pages = {}
-for li in wiki_soup.select("ul.wiki-pages > li"):
-    if li.a['href'] != '#':
-        wiki_pages[li.strong.a.string] = "https://github.com" + li.strong.a['href']
-
 
 def start(bot, update, args=None):
     if args:
@@ -93,14 +63,14 @@ def start(bot, update, args=None):
 
 def inlinequery_help(bot, update):
     chat_id = update.message.chat_id
-    text = "Use the `{char}`-character in your inline queries and I will replace them with a link to the corresponding " \
-           "article from the documentation or wiki.\n\n" \
-           "*Example:*\n" \
-           "@roolsbot I 💙 {char}InlineQueries{char}, but you need an {char}InlineQueryHandler{char} for it." \
-           "\n\n*becomes:*\n" \
-           "I 💙 [InlineQueries](https://python-telegram-bot.readthedocs.io/en/latest/telegram.html#telegram" \
-           ".InlineQuery), but you need an [InlineQueryHandler](https://python-telegram-bot.readthedocs.io/en" \
-           "/latest/telegram.ext.html#telegram.ext.InlineQueryHandler) for it.".format(
+    text = ("Use the `{char}`-character in your inline queries and I will replace"
+            "them with a link to the corresponding article from the documentation or wiki.\n\n"
+            "*Example:*\n"
+            "@roolsbot I 💙 {char}InlineQueries{char}, but you need an {char}InlineQueryHandler{char} for it.\n\n"
+            "*becomes:*\n"
+            "I 💙 [InlineQueries](https://python-telegram-bot.readthedocs.io/en/latest/telegram.html#telegram"
+            ".InlineQuery), but you need an [InlineQueryHandler](https://python-telegram-bot.readthedocs.io/en"
+            "/latest/telegram.ext.html#telegram.ext.InlineQueryHandler) for it.").format(
         char=ENCLOSING_REPLACEMENT_CHARACTER)
     bot.sendMessage(chat_id, text, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True)
 
@@ -115,69 +85,6 @@ def rules(bot, update):
     else:
         update.message.reply_text('Hmm. You\'re not in a python-telegram-bot group, '
                                   'and I don\'t know the rules around here.')
-
-
-def get_docs(search, threshold=80):
-    search = list(reversed(search.split('.')))
-    best = (0, None)
-
-    for typ, items in docs_inv.items():
-        if typ not in ['py:staticmethod', 'py:exception', 'py:method', 'py:module', 'py:class', 'py:attribute',
-                       'py:data', 'py:function']:
-            continue
-        for name, item in items.items():
-            name_bits = name.split('.')
-            dot_split = zip(search, reversed(name_bits))
-            score = 0
-            for s, n in dot_split:
-                score += fuzz.ratio(s, n)
-            score += fuzz.ratio(search, name)
-
-            # These values are basically random :/
-            if typ == 'py:module':
-                score *= 0.75
-            if typ == 'py:class':
-                score *= 1.10
-            if typ == 'py:attribute':
-                score *= 0.85
-
-            if score > best[0]:
-                tg_name = ''
-                tg_test = ''
-
-                if typ in ['py:class', 'py:method']:
-                    tg_test = name_bits[-1].replace('_', '').lower()
-                elif typ == 'py:attribute':
-                    tg_test = name_bits[-2].replace('_', '').lower()
-
-                if tg_test in official.keys():
-                    tg_name = official[tg_test]
-
-                tg_url = official_url + tg_test
-                short_name = name_bits[1:]
-
-                try:
-                    if name_bits[1].lower() == name_bits[2].lower():
-                        short_name = name_bits[2:]
-                except IndexError:
-                    pass
-                best = (score, Doc('.'.join(short_name), name,
-                                   typ[3:], item[2], tg_name, tg_url))
-    if best[0] > threshold:
-        return best[1]
-    else:
-        return None
-
-
-def search_wiki(query):
-    best = (0, ('HOME', wiki_url))
-    if query != '':
-        for name, link in wiki_pages.items():
-            score = fuzz.partial_ratio(query, name)
-            if score > best[0]:
-                best = (score, (name, link))
-
-        return best
 
 
 def _get_reply_id(update):
@@ -206,7 +113,7 @@ def reply_or_edit(bot, update, chat_data, text):
 def docs(bot, update, args, chat_data):
     """ Documentation search """
     if len(args) > 0:
-        doc = get_docs(' '.join(args))
+        doc = search.docs(' '.join(args))
         if doc:
             text = "*{short_name}*\n_python-telegram-bot_ documentation for this {type}:\n[{full_name}]({url})"
 
@@ -222,9 +129,9 @@ def docs(bot, update, args, chat_data):
 
 def wiki(bot, update, args, chat_data, threshold=80):
     """ Wiki search """
-    search = ' '.join(args)
+    query = ' '.join(args)
     if search != '':
-        best = search_wiki(search)
+        best = search.wiki(query)
 
         if best[0] > threshold:
             text = 'Github wiki for _python-telegram-bot_\n[{b[0]}]({b[1]})'.format(b=best[1])
@@ -309,7 +216,7 @@ def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
     counter = 0
     for s in symbols:
         counter += 1
-        doc = get_docs(s, threshold=threshold)
+        doc = search.docs(s, threshold=threshold)
 
         if doc:
             # replace only once in the query
@@ -326,7 +233,7 @@ def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
             replacements.append((True, doc.short_name, s, text))
             continue
 
-        wiki = search_wiki(s)
+        wiki = search.wiki(s)
         if wiki and wiki[0] > threshold:
             text = "[{}]({})".format(s, wiki[1][1])
             replacements.append((True, wiki[1][0], s, text))
@@ -379,8 +286,8 @@ def inlinequery(bot, update, threshold=60):
                     disable_web_page_preview=True)
             ))
 
-        wiki = search_wiki(query)
-        doc = get_docs(query)
+        wiki = search.wiki(query)
+        doc = search.docs(query)
 
         # add the doc if found
         if doc:
@@ -421,14 +328,14 @@ def inlinequery(bot, update, threshold=60):
                 title=util.failure("No results."),
                 description="",
                 input_message_content=InputTextMessageContent(
-                    message_text="[GitHub wiki]({}) of _python-telegram-bot_".format(wiki_url),
+                    message_text="[GitHub wiki]({}) of _python-telegram-bot_".format(WIKI_URL),
                     parse_mode=ParseMode.MARKDOWN,
                     disable_web_page_preview=True)
             ))
 
     else:  # no query input
         # add all wiki pages
-        for name, link in wiki_pages.items():
+        for name, link in search._wiki.items():
             results_list.append(InlineQueryResultArticle(
                 id=uuid4(),
                 title=name,
@@ -445,7 +352,7 @@ def inlinequery(bot, update, threshold=60):
 
 def error(bot, update, error):
     """Log all errors"""
-    logger.warn('Update "%s" caused error "%s"' % (update, error))
+    logger.warning('Update "%s" caused error "%s"' % (update, error))
 
 
 def main():
@@ -467,6 +374,7 @@ def main():
     updater.start_polling()
     logger.info("Listening...")
     updater.idle()
+
 
 if __name__ == '__main__':
     main()
