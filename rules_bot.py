@@ -27,6 +27,7 @@ dispatcher = updater.dispatcher
 
 SELF_CHAT_ID = '@' + updater.bot.get_me().username
 ENCLOSING_REPLACEMENT_CHARACTER = '+'
+ENCLOSED_REGEX = r'\{char}([a-zA-Z_.0-9]*)\{char}'.format(char=ENCLOSING_REPLACEMENT_CHARACTER)
 OFFTOPIC_USERNAME = 'pythontelegrambottalk'
 ONTOPIC_USERNAME = 'pythontelegrambotgroup'
 OFFTOPIC_CHAT_ID = '@' + OFFTOPIC_USERNAME
@@ -184,10 +185,7 @@ def _to_sup(s):
 
 def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
     """ Replaces the enclosed characters in the query string with hyperlinks to the documentations """
-    enclosed_regex = r'\{char}([a-zA-Z_.0-9]*)\{char}'.format(
-        char=ENCLOSING_REPLACEMENT_CHARACTER)  # match names enclosed in {char}...{char}
-    symbols = re.findall(enclosed_regex, query)
-    official_urls = list()
+    symbols = re.findall(ENCLOSED_REGEX, query)
 
     if not symbols:
         return None, None
@@ -207,8 +205,7 @@ def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
             text = text.format(s, doc.url, doc.tg_url)
 
             if doc.tg_url and official_api_links:
-                official_urls.append((counter, doc.short_name, doc.tg_url))
-                text += _to_sup(counter)
+                text += ' [ᵗᵉˡᵉᵍʳᵃᵐ]({})'.format(doc.tg_url)
 
             replacements.append((True, doc.short_name, s, text))
             continue
@@ -228,11 +225,6 @@ def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
             symbol=symbol,
             char=ENCLOSING_REPLACEMENT_CHARACTER
         ), text)
-
-    if official_urls and official_api_links:
-        result += '\n\nTelegram Bot API Documentation:'
-        for count, name, url in official_urls:
-            result += '\n{}[{}]({})'.format(_to_sup(count), name, url)
 
     result_changed = [x[1] for x in replacements]
     return result_changed, result

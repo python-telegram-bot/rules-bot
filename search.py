@@ -1,13 +1,13 @@
 import urllib.request
 from urllib.parse import urljoin
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 
 from bs4 import BeautifulSoup
 from fuzzywuzzy import fuzz
 from sphinx.ext.intersphinx import read_inventory_v2
 
 DOCS_URL = "https://python-telegram-bot.readthedocs.io/en/latest/"
-OFFICIAL_URL = "https://core.telegram.org/bots/api#"
+OFFICIAL_URL = "https://core.telegram.org/bots/api"
 GITHUB_URL = "https://github.com/"
 WIKI_URL = urljoin(GITHUB_URL, "python-telegram-bot/python-telegram-bot/wiki/")
 WIKI_CODE_SNIPPETS_URL = urljoin(WIKI_URL, "Code-snippets")
@@ -19,7 +19,7 @@ class Search:
     def __init__(self):
         self._docs = {}
         self._official = {}
-        self._wiki = {}
+        self._wiki = OrderedDict()
         self.parse_docs()
         self.parse_official()
         self.parse_wiki()
@@ -47,6 +47,7 @@ class Search:
                     self._wiki[name] = urljoin(WIKI_URL, li.a['href'])
 
         # Parse code snippets
+        # Since it's ordered they will come last when all pages are shown
         code_snippet_soup = BeautifulSoup(urllib.request.urlopen(WIKI_CODE_SNIPPETS_URL), 'html.parser')
         for h4 in code_snippet_soup.select('div.wiki-body h4'):
             name = 'Code snippets 🡺 ' + h4.text
@@ -77,8 +78,7 @@ class Search:
                     score *= 0.85
 
                 if score > best[0]:
-                    tg_name = ''
-                    tg_test = ''
+                    tg_url, tg_test, tg_name = '', '', ''
 
                     if typ in ['py:class', 'py:method']:
                         tg_test = name_bits[-1].replace('_', '').lower()
@@ -87,8 +87,8 @@ class Search:
 
                     if tg_test in self._official.keys():
                         tg_name = self._official[tg_test]
+                        tg_url = urljoin(OFFICIAL_URL, '#' + tg_name)
 
-                    tg_url = OFFICIAL_URL + tg_test
                     short_name = name_bits[1:]
 
                     try:
