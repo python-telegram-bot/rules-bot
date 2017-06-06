@@ -107,10 +107,10 @@ def wiki(bot, update, args, chat_data, threshold=80):
     """ Wiki search """
     query = ' '.join(args)
     if search != '':
-        best = search.wiki(query)
+        best = search.wiki(query, amount=1, threshold=threshold)
 
-        if best[0] > threshold:
-            text = 'Github wiki for _python-telegram-bot_\n[{b[0]}]({b[1]})'.format(b=best[1])
+        if best:
+            text = 'Github wiki for _python-telegram-bot_\n[{b[0]}]({b[1]})'.format(b=best[0])
         else:
             text = "Sorry, your search term didn't match anything, please edit your message to search again."
 
@@ -168,11 +168,9 @@ def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
         return None, None
 
     replacements = list()
-    counter = 0
     for s in symbols:
-        counter += 1
-        doc = search.docs(s, threshold=threshold)
 
+        doc = search.docs(s, threshold=threshold)
         if doc:
             # replace only once in the query
             if doc.short_name in replacements:
@@ -187,8 +185,9 @@ def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
             replacements.append((True, doc.short_name, s, text))
             continue
 
-        wiki = search.wiki(s)
-        if wiki and wiki[0] > threshold:
+        wiki = search.wiki(s, amount=1, threshold=threshold)
+        if wiki:
+            wiki = wiki[0]
             text = "[{}]({})".format(s, wiki[1][1])
             replacements.append((True, wiki[1][0], s, text))
             continue
@@ -238,10 +237,9 @@ def inlinequery(bot, update, threshold=60):
                 description=', '.join(modified),
                 message_text=replaced))
 
-        wiki_page = search.wiki(query)
-        doc = search.docs(query)
+        wiki_pages = search.wiki(query, amount=4, threshold=threshold)
+        doc = search.docs(query, threshold=threshold)
 
-        # add the doc if found
         if doc:
             text = "*{short_name}*\n_python-telegram-bot_ documentation for this {type}:\n[{full_name}]({url})"
             if doc.tg_name:
@@ -254,16 +252,13 @@ def inlinequery(bot, update, threshold=60):
                 message_text=text,
             ))
 
-        # add the best wiki page if weight is over threshold
-        if wiki_page and wiki_page[0] > threshold:
-            results_list.append(article(
-                title="{w[0]}".format(w=wiki_page[1]),
-                description="Github wiki for python-telegram-bot",
-                message_text='Wiki of <i>python-telegram-bot</i>\n<a href="{}">{}</a>'.format(
-                    wiki_page[1][1],
-                    wiki_page[1][0]
-                )
-            ))
+        if wiki_pages:
+            for wiki_page in wiki_pages:
+                results_list.append(article(
+                    title="{w[0]}".format(w=wiki_page),
+                    description="Github wiki for python-telegram-bot",
+                    message_text='Wiki of _python-telegram-bot_\n[{w[0]}]({w[1]})</a>'.format(w=wiki_page)
+                ))
 
         # "No results" entry
         if len(results_list) == 0:
