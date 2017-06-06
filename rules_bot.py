@@ -25,7 +25,7 @@ ENCLOSED_REGEX = r'\{char}([a-zA-Z_.0-9]*)\{char}'.format(char=ENCLOSING_REPLACE
 OFFTOPIC_USERNAME = 'pythontelegrambottalk'
 ONTOPIC_USERNAME = 'pythontelegrambotgroup'
 OFFTOPIC_CHAT_ID = '@' + OFFTOPIC_USERNAME
-TELEGRAM_SUPERSCRIPT = 'ᵗᵉˡᵉᵍʳᵃᵐ'
+TELEGRAM_SUPERSCRIPT = 'ᵀᴱᴸᴱᴳᴿᴬᴹ'
 
 ONTOPIC_RULES = """This group is for questions, answers and discussions around the <a href="https://python-telegram-bot.org/">python-telegram-bot library</a> and, to some extent, Telegram bots in general.
 
@@ -173,7 +173,7 @@ def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
         doc = search.docs(s, threshold=threshold)
         if doc:
             text = "[{}]({})"
-            text = text.format(escape_markdown(s), doc.url, doc.tg_url)
+            text = text.format(s, doc.url, doc.tg_url)
 
             if doc.tg_url and official_api_links:
                 text += ' [{}]({})'.format(TELEGRAM_SUPERSCRIPT, doc.tg_url)
@@ -183,7 +183,7 @@ def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
 
         wiki = search.wiki(s.replace('_', ' '), amount=1, threshold=threshold)
         if wiki:
-            text = "[{}]({})".format(escape_markdown(s), wiki[0][1])
+            text = "[{}]({})".format(s, wiki[0][1])
             replacements.append((wiki[0][0], s, text))
             continue
 
