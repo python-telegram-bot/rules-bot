@@ -40,11 +40,11 @@ class Search:
 
         # Parse main pages from custom sidebar
         for ol in wiki_soup.select("div.wiki-custom-sidebar > ol"):
-            category = ol.previous_sibling.string
+            category = ol.find_previous_sibling('h2').text
             for li in ol.select('li'):
                 if li.a['href'] != '#':
                     name = '{} 🡺 {}'.format(category, li.a.text)
-                    self._wiki[name] = "https://github.com" + li.a['href']
+                    self._wiki[name] = urljoin(WIKI_URL, li.a['href'])
 
         # Parse code snippets
         code_snippet_soup = BeautifulSoup(urllib.request.urlopen(WIKI_CODE_SNIPPETS_URL), 'html.parser')
