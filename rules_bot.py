@@ -4,11 +4,11 @@ import os
 import re
 from uuid import uuid4
 
-from util import reply_or_edit, get_reply_id
 from search import search, WIKI_URL
 from telegram import InlineQueryResultArticle, InputTextMessageContent, ParseMode
 from telegram.ext import InlineQueryHandler, Updater, CommandHandler, MessageHandler, Filters
 from telegram.utils.helpers import escape_markdown
+from util import reply_or_edit, get_reply_id
 
 if os.environ.get('ROOLSBOT_DEBUG'):
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -19,18 +19,13 @@ else:
 
 logger = logging.getLogger(__name__)
 
-config = configparser.ConfigParser()
-config.read('bot.ini')
-
-updater = Updater(token=config['KEYS']['bot_api'])
-dispatcher = updater.dispatcher
-
-SELF_CHAT_ID = '@' + updater.bot.get_me().username
+SELF_CHAT_ID = '@'  # For now, gets updated in main()
 ENCLOSING_REPLACEMENT_CHARACTER = '+'
 ENCLOSED_REGEX = r'\{char}([a-zA-Z_.0-9]*)\{char}'.format(char=ENCLOSING_REPLACEMENT_CHARACTER)
 OFFTOPIC_USERNAME = 'pythontelegrambottalk'
 ONTOPIC_USERNAME = 'pythontelegrambotgroup'
 OFFTOPIC_CHAT_ID = '@' + OFFTOPIC_USERNAME
+TELEGRAM_SUPERSCRIPT = 'ᵗᵉˡᵉᵍʳᵃᵐ'
 
 ONTOPIC_RULES = """This group is for questions, answers and discussions around the <a href="https://python-telegram-bot.org/">python-telegram-bot library</a> and, to some extent, Telegram bots in general.
 
@@ -165,24 +160,6 @@ def other_plaintext(bot, update):
             update.message.reply_text("What? Make it yourself.", quote=True)
 
 
-def _to_sup(s):
-    """ Returns a number formatted as superscript (for footnotes) """
-    if isinstance(s, int):
-        s = str(s)
-    sups = {u'0': u'\u2070',
-            u'1': u'\xb9',
-            u'2': u'\xb2',
-            u'3': u'\xb3',
-            u'4': u'\u2074',
-            u'5': u'\u2075',
-            u'6': u'\u2076',
-            u'7': u'\u2077',
-            u'8': u'\u2078',
-            u'9': u'\u2079'}
-
-    return ''.join(sups.get(char, char) for char in s)
-
-
 def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
     """ Replaces the enclosed characters in the query string with hyperlinks to the documentations """
     symbols = re.findall(ENCLOSED_REGEX, query)
@@ -205,7 +182,7 @@ def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
             text = text.format(s, doc.url, doc.tg_url)
 
             if doc.tg_url and official_api_links:
-                text += ' [ᵗᵉˡᵉᵍʳᵃᵐ]({})'.format(doc.tg_url)
+                text += ' [{}]({})'.format(TELEGRAM_SUPERSCRIPT, doc.tg_url)
 
             replacements.append((True, doc.short_name, s, text))
             continue
@@ -230,6 +207,18 @@ def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
     return result_changed, result
 
 
+def article(title='', description='', message_text=''):
+    return InlineQueryResultArticle(
+        id=uuid4(),
+        title=title,
+        description=description,
+        input_message_content=InputTextMessageContent(
+            message_text=message_text,
+            parse_mode=ParseMode.MARKDOWN,
+            disable_web_page_preview=True)
+    )
+
+
 def inlinequery(bot, update, threshold=60):
     query = update.inline_query.query
     results_list = list()
@@ -237,28 +226,19 @@ def inlinequery(bot, update, threshold=60):
     if len(query) > 0:
         modified, replaced = fuzzy_replacements_markdown(query, threshold=threshold, official_api_links=True)
         if modified:
-            results_list.append(InlineQueryResultArticle(
-                id=uuid4(),
-                title="Replace Links and show official Bot API documentation",
+            results_list.append(article(
+                title="Replace links and show official Bot API documentation",
                 description=', '.join(modified),
-                input_message_content=InputTextMessageContent(
-                    message_text=replaced,
-                    parse_mode=ParseMode.MARKDOWN,
-                    disable_web_page_preview=True)
-            ))
+                message_text=replaced))
+
         modified, replaced = fuzzy_replacements_markdown(query, threshold=threshold, official_api_links=False)
         if modified:
-            results_list.append(InlineQueryResultArticle(
-                id=uuid4(),
-                title="Replace Links",
+            results_list.append(article(
+                title="Replace links",
                 description=', '.join(modified),
-                input_message_content=InputTextMessageContent(
-                    message_text=replaced,
-                    parse_mode=ParseMode.MARKDOWN,
-                    disable_web_page_preview=True)
-            ))
+                message_text=replaced))
 
-        wiki = search.wiki(query)
+        wiki_page = search.wiki(query)
         doc = search.docs(query)
 
         # add the doc if found
@@ -268,55 +248,39 @@ def inlinequery(bot, update, threshold=60):
                 text += "\n\nThe official documentation has more info about [{tg_name}]({tg_url})."
             text = text.format(**doc._asdict())
 
-            results_list.append(InlineQueryResultArticle(
-                id=uuid4(),
+            results_list.append(article(
                 title="{full_name}".format(**doc._asdict()),
                 description="python-telegram-bot documentation",
-                input_message_content=InputTextMessageContent(
-                    message_text=text,
-                    parse_mode=ParseMode.MARKDOWN,
-                    disable_web_page_preview=True)
+                message_text=text,
             ))
 
         # add the best wiki page if weight is over threshold
-        if wiki and wiki[0] > threshold:
-            results_list.append(InlineQueryResultArticle(
-                id=uuid4(),
-                title="{w[0]}".format(w=wiki[1]),
+        if wiki_page and wiki_page[0] > threshold:
+            results_list.append(article(
+                title="{w[0]}".format(w=wiki_page[1]),
                 description="Github wiki for python-telegram-bot",
-                input_message_content=InputTextMessageContent(
-                    message_text='Wiki of <i>python-telegram-bot</i>\n<a href="{}">{}</a>'.format(
-                        wiki[1][1],
-                        wiki[1][0]
-                    ),
-                    parse_mode=ParseMode.HTML,
-                    disable_web_page_preview=True,
-                )))
+                message_text='Wiki of <i>python-telegram-bot</i>\n<a href="{}">{}</a>'.format(
+                    wiki_page[1][1],
+                    wiki_page[1][0]
+                )
+            ))
 
         # "No results" entry
         if len(results_list) == 0:
-            results_list.append(InlineQueryResultArticle(
-                id=uuid4(),
+            results_list.append(article(
                 title='❌ No results.',
                 description="",
-                input_message_content=InputTextMessageContent(
-                    message_text="[GitHub wiki]({}) of _python-telegram-bot_".format(WIKI_URL),
-                    parse_mode=ParseMode.MARKDOWN,
-                    disable_web_page_preview=True)
+                message_text="[GitHub wiki]({}) of _python-telegram-bot_".format(WIKI_URL),
             ))
 
     else:  # no query input
         # add all wiki pages
         for name, link in search._wiki.items():
-            results_list.append(InlineQueryResultArticle(
-                id=uuid4(),
+            results_list.append(article(
                 title=name,
                 description="Wiki of python-telegram-bot",
-                input_message_content=InputTextMessageContent(
-                    message_text="Wiki of _python-telegram-bot_\n[{}]({})".format(escape_markdown(name), link),
-                    parse_mode=ParseMode.MARKDOWN,
-                    disable_web_page_preview=True,
-                )))
+                message_text="Wiki of _python-telegram-bot_\n[{}]({})".format(escape_markdown(name), link),
+            ))
 
     bot.answerInlineQuery(update.inline_query.id, results=results_list, switch_pm_text='Help',
                           switch_pm_parameter='inline-help')
@@ -328,6 +292,15 @@ def error(bot, update, error):
 
 
 def main():
+    config = configparser.ConfigParser()
+    config.read('bot.ini')
+
+    updater = Updater(token=config['KEYS']['bot_api'])
+    dispatcher = updater.dispatcher
+
+    global SELF_CHAT_ID
+    SELF_CHAT_ID = '@' + updater.bot.get_me().username
+
     start_handler = CommandHandler('start', start, pass_args=True)
     rules_handler = CommandHandler('rules', rules)
     docs_handler = CommandHandler('docs', docs, pass_args=True, allow_edited=True, pass_chat_data=True)
