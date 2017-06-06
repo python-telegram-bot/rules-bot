@@ -172,37 +172,32 @@ def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
 
         doc = search.docs(s, threshold=threshold)
         if doc:
-            # replace only once in the query
-            if doc.short_name in replacements:
-                continue
-
             text = "[{}]({})"
-            text = text.format(s, doc.url, doc.tg_url)
+            text = text.format(escape_markdown(s), doc.url, doc.tg_url)
 
             if doc.tg_url and official_api_links:
                 text += ' [{}]({})'.format(TELEGRAM_SUPERSCRIPT, doc.tg_url)
 
-            replacements.append((True, doc.short_name, s, text))
+            replacements.append((doc.short_name, s, text))
             continue
 
-        wiki = search.wiki(s, amount=1, threshold=threshold)
+        wiki = search.wiki(s.replace('_', ' '), amount=1, threshold=threshold)
         if wiki:
-            wiki = wiki[0]
-            text = "[{}]({})".format(s, wiki[1][1])
-            replacements.append((True, wiki[1][0], s, text))
+            text = "[{}]({})".format(escape_markdown(s), wiki[0][1])
+            replacements.append((wiki[0][0], s, text))
             continue
 
         # not found
-        replacements.append((False, '{}{}'.format('❓', s), s, s))
+        replacements.append((s + '❓', s, escape_markdown(s)))
 
     result = query
-    for found, name, symbol, text in replacements:
+    for name, symbol, text in replacements:
         result = result.replace('{char}{symbol}{char}'.format(
             symbol=symbol,
             char=ENCLOSING_REPLACEMENT_CHARACTER
         ), text)
 
-    result_changed = [x[1] for x in replacements]
+    result_changed = [x[0] for x in replacements]
     return result_changed, result
 
 
@@ -223,14 +218,14 @@ def inlinequery(bot, update, threshold=60):
     results_list = list()
 
     if len(query) > 0:
-        modified, replaced = fuzzy_replacements_markdown(query, threshold=threshold, official_api_links=True)
+        modified, replaced = fuzzy_replacements_markdown(query, official_api_links=True)
         if modified:
             results_list.append(article(
                 title="Replace links and show official Bot API documentation",
                 description=', '.join(modified),
                 message_text=replaced))
 
-        modified, replaced = fuzzy_replacements_markdown(query, threshold=threshold, official_api_links=False)
+        modified, replaced = fuzzy_replacements_markdown(query, official_api_links=False)
         if modified:
             results_list.append(article(
                 title="Replace links",
@@ -277,7 +272,7 @@ def inlinequery(bot, update, threshold=60):
                 message_text="Wiki of _python-telegram-bot_\n[{}]({})".format(escape_markdown(name), link),
             ))
 
-    bot.answerInlineQuery(update.inline_query.id, results=results_list, switch_pm_text='Help',
+    bot.answerInlineQuery(update.inline_query.id, results=[results_list[0]], switch_pm_text='Help',
                           switch_pm_parameter='inline-help')
 
 

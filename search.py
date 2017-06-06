@@ -26,7 +26,7 @@ class BestHandler:
 
     def to_list(self, amount, threshold):
         items = sorted(self.items, key=lambda x: x[0])
-        items = [item for score, item in items[-amount:] if score > threshold]
+        items = [item for score, item in reversed(items[-amount:]) if score > threshold]
         return items if len(items) > 0 else None
 
 
@@ -133,7 +133,7 @@ class Search:
         best.add(0, ('HOME', WIKI_URL))
         if query != '':
             for name, link in self._wiki.items():
-                score = fuzz.partial_ratio(query, name)
+                score = fuzz.partial_ratio(query.lower(), name.split('🡺 ')[-1].lower())
                 best.add(score, (name, link))
 
         return best.to_list(amount, threshold)
