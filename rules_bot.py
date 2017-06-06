@@ -274,7 +274,7 @@ def inlinequery(bot, update, threshold=60):
                 message_text="Wiki of _python-telegram-bot_\n[{}]({})".format(escape_markdown(name), link),
             ))
 
-    bot.answerInlineQuery(update.inline_query.id, results=[results_list[0]], switch_pm_text='Help',
+    bot.answerInlineQuery(update.inline_query.id, results=results_list, switch_pm_text='Help',
                           switch_pm_parameter='inline-help')
 
 
