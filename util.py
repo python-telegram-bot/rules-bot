@@ -1,5 +1,7 @@
 from telegram import ParseMode
 
+ARROW_CHARACTER = '➜'
+
 
 def get_reply_id(update):
     if update.message and update.message.reply_to_message:

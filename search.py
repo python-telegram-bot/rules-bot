@@ -6,6 +6,8 @@ from bs4 import BeautifulSoup
 from fuzzywuzzy import fuzz
 from sphinx.util.inventory import InventoryFile
 
+from util import ARROW_CHARACTER
+
 DOCS_URL = "https://python-telegram-bot.readthedocs.io/en/latest/"
 OFFICIAL_URL = "https://core.telegram.org/bots/api"
 GITHUB_URL = "https://github.com/"
@@ -13,8 +15,6 @@ PROJECT_URL = urljoin(GITHUB_URL, "python-telegram-bot/python-telegram-bot/")
 WIKI_URL = urljoin(PROJECT_URL, "wiki/")
 WIKI_CODE_SNIPPETS_URL = urljoin(WIKI_URL, "Code-snippets")
 EXAMPLES_URL = urljoin(PROJECT_URL, 'tree/master/examples/')
-
-ARROW_CHARACTER = '➜'
 
 Doc = namedtuple('Doc', 'short_name, full_name, type, url, tg_name, tg_url')
 
@@ -134,7 +134,7 @@ class Search:
         best.add(0, ('HOME', WIKI_URL))
         if query != '':
             for name, link in self._wiki.items():
-                score = fuzz.ratio(query.lower(), name.split('🡺')[-1].strip().lower())
+                score = fuzz.ratio(query.lower(), name.split(ARROW_CHARACTER)[-1].strip().lower())
                 best.add(score, (name, link))
 
         return best.to_list(amount, threshold)

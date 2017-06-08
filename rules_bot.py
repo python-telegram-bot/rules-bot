@@ -8,7 +8,8 @@ from search import search, WIKI_URL
 from telegram import InlineQueryResultArticle, InputTextMessageContent, ParseMode
 from telegram.ext import InlineQueryHandler, Updater, CommandHandler, MessageHandler, Filters
 from telegram.utils.helpers import escape_markdown
-from util import reply_or_edit, get_reply_id
+
+from util import reply_or_edit, get_reply_id, ARROW_CHARACTER
 
 if os.environ.get('ROOLSBOT_DEBUG'):
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -177,7 +178,7 @@ def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
         # Wiki first, cause with docs you can always prepend telegram. for better precision
         wiki = search.wiki(s.replace('_', ' '), amount=1, threshold=threshold)
         if wiki:
-            name = wiki[0][0].split('🡺')[-1].strip()
+            name = wiki[0][0].split(ARROW_CHARACTER)[-1].strip()
             text = f'[{name}]({wiki[0][1]})'
             replacements.append((wiki[0][0], s, text))
             continue
@@ -216,7 +217,7 @@ def article(title='', description='', message_text=''):
     )
 
 
-def inlinequery(bot, update, threshold=60):
+def inline_query(bot, update, threshold=20):
     query = update.inline_query.query
     results_list = list()
 
@@ -254,10 +255,10 @@ def inlinequery(bot, update, threshold=60):
         if wiki_pages:
             for wiki_page in wiki_pages:
                 results_list.append(article(
-                    title=f'{wiki_pages[0]}',
+                    title=f'{wiki_page[0]}',
                     description="Github wiki for python-telegram-bot",
                     message_text=f'Wiki of _python-telegram-bot_\n'
-                                 f'[{wiki_pages[0]}]({wiki_pages[1]})'
+                                 f'[{wiki_page[0]}]({wiki_page[1]})'
                 ))
 
         # "No results" entry
@@ -273,7 +274,7 @@ def inlinequery(bot, update, threshold=60):
         for name, link in search._wiki.items():
             results_list.append(article(
                 title=name,
-                description="Wiki of python-telegram-bot",
+                description='Wiki of python-telegram-bot',
                 message_text=f'Wiki of _python-telegram-bot_\n'
                              f'[{escape_markdown(name)}]({link})',
             ))
@@ -309,11 +310,11 @@ def main():
     dispatcher.add_handler(wiki_handler)
     dispatcher.add_handler(other_handler)
 
-    dispatcher.add_handler(InlineQueryHandler(inlinequery))
+    dispatcher.add_handler(InlineQueryHandler(inline_query))
     dispatcher.add_error_handler(error)
 
     updater.start_polling()
-    logger.info("Listening...")
+    logger.info('Listening...')
     updater.idle()
 
 
