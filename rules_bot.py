@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 SELF_CHAT_ID = '@'  # For now, gets updated in main()
 ENCLOSING_REPLACEMENT_CHARACTER = '+'
-ENCLOSED_REGEX = r'\{char}([a-zA-Z_.0-9]*)\{char}'.format(char=ENCLOSING_REPLACEMENT_CHARACTER)
+ENCLOSED_REGEX = rf'\{ENCLOSING_REPLACEMENT_CHARACTER}([a-zA-Z_.0-9]*)\{ENCLOSING_REPLACEMENT_CHARACTER}'
 OFFTOPIC_USERNAME = 'pythontelegrambottalk'
 ONTOPIC_USERNAME = 'pythontelegrambotgroup'
 OFFTOPIC_CHAT_ID = '@' + OFFTOPIC_USERNAME
@@ -62,17 +62,17 @@ def start(bot, update, args=None):
 
 def inlinequery_help(bot, update):
     chat_id = update.message.chat_id
-    text = ("Use the `{char}`-character in your inline queries and I will replace "
-            "them with a link to the corresponding article from the documentation or wiki.\n\n"
-            "*Example:*\n"
-            "{self} I 💙 {char}InlineQueries{char}, but you need an {char}InlineQueryHandler{char} for it.\n\n"
-            "*becomes:*\n"
-            "I 💙 [InlineQueries](https://python-telegram-bot.readthedocs.io/en/latest/telegram.html#telegram"
-            ".InlineQuery), but you need an [InlineQueryHandler](https://python-telegram-bot.readthedocs.io/en"
-            "/latest/telegram.ext.html#telegram.ext.InlineQueryHandler) for it.\n\n"
-            "Some wiki pages have spaces in them. Please replace such spaces with underscores. "
-            "The bot will automatically change them back desired space.").format(
-        char=ENCLOSING_REPLACEMENT_CHARACTER, self=SELF_CHAT_ID)
+    char = ENCLOSING_REPLACEMENT_CHARACTER
+    text = (f"Use the `{char}`-character in your inline queries and I will replace "
+            f"them with a link to the corresponding article from the documentation or wiki.\n\n"
+            f"*Example:*\n"
+            f"{SELF_CHAT_ID} I 💙 {char}InlineQueries{char}, but you need an {char}InlineQueryHandler{char} for it.\n\n"
+            f"*becomes:*\n"
+            f"I 💙 [InlineQueries](https://python-telegram-bot.readthedocs.io/en/latest/telegram.html#telegram"
+            f".InlineQuery), but you need an [InlineQueryHandler](https://python-telegram-bot.readthedocs.io/en"
+            f"/latest/telegram.ext.html#telegram.ext.InlineQueryHandler) for it.\n\n"
+            f"Some wiki pages have spaces in them. Please replace such spaces with underscores. "
+            f"The bot will automatically change them back desired space.")
     bot.sendMessage(chat_id, text, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True)
 
 
@@ -84,8 +84,8 @@ def rules(bot, update):
     elif update.message.chat.username == OFFTOPIC_USERNAME:
         update.message.reply_text(OFFTOPIC_RULES, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
     else:
-        update.message.reply_text('Hmm. You\'re not in a python-telegram-bot group, '
-                                  'and I don\'t know the rules around here.')
+        update.message.reply_text("Hmm. You're not in a python-telegram-bot group, "
+                                  "and I don't know the rules around here.")
 
 
 def docs(bot, update, args, chat_data):
@@ -93,12 +93,12 @@ def docs(bot, update, args, chat_data):
     if len(args) > 0:
         doc = search.docs(' '.join(args))
         if doc:
-            text = "*{short_name}*\n_python-telegram-bot_ documentation for this {type}:\n[{full_name}]({url})"
+            text = (f'*{doc.short_name}*\n'
+                    f'_python-telegram-bot_ documentation for this {doc.type}:\n'
+                    f'[{doc.full_name}]({doc.url})')
 
             if doc.tg_name:
-                text += "\n\nThe official documentation has more info about [{tg_name}]({tg_url})."
-
-            text = text.format(**doc._asdict())
+                text += f'\n\nThe official documentation has more info about [{doc.tg_name}]({doc.tg_url}).'
         else:
             text = "Sorry, your search term didn't match anything, please edit your message to search again."
 
@@ -112,7 +112,8 @@ def wiki(bot, update, args, chat_data, threshold=80):
         best = search.wiki(query, amount=1, threshold=threshold)
 
         if best:
-            text = 'Github wiki for _python-telegram-bot_\n[{b[0]}]({b[1]})'.format(b=best[0])
+            text = (f'Github wiki for _python-telegram-bot_\n'
+                    f'[{best[0][0]}]({best[0][1]})')
         else:
             text = "Sorry, your search term didn't match anything, please edit your message to search again."
 
@@ -129,8 +130,8 @@ def other_plaintext(bot, update):
             if update.message.reply_to_message and update.message.reply_to_message.text:
                 issued_reply = get_reply_id(update)
 
-                update.message.reply_text("I moved this discussion to the "
-                                          "[off-topic Group](https://telegram.me/pythontelegrambottalk).",
+                update.message.reply_text('I moved this discussion to the '
+                                          '[off-topic Group](https://telegram.me/pythontelegrambottalk).',
                                           disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN,
                                           reply_to_message_id=issued_reply)
 
@@ -141,18 +142,20 @@ def other_plaintext(bot, update):
 
                 replied_message_text = update.message.reply_to_message.text
 
-                text = '{} _wrote:_\n{}\n\n⬇️ ᴘʟᴇᴀsᴇ ᴄᴏɴᴛɪɴᴜᴇ ʜᴇʀᴇ ⬇️'.format(name, replied_message_text)
+                text = (f'{name} _wrote:_\n'
+                        f'{replied_message_text}\n\n'
+                        f'⬇️ ᴘʟᴇᴀsᴇ ᴄᴏɴᴛɪɴᴜᴇ ʜᴇʀᴇ ⬇️')
 
                 bot.sendMessage(OFFTOPIC_CHAT_ID, text, disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
             else:
-                update.message.reply_text("The off-topic group is [here](https://telegram.me/pythontelegrambottalk)."
-                                          " Come join us!",
+                update.message.reply_text('The off-topic group is [here](https://telegram.me/pythontelegrambottalk). '
+                                          'Come join us!',
                                           disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
 
     elif chat_username == OFFTOPIC_USERNAME:
         if any(ot in update.message.text.lower() for ot in ('on-topic', 'on topic', 'ontopic')):
-            update.message.reply_text("The on-topic group is [here](https://telegram.me/pythontelegrambotgroup)."
-                                      " Come join us!",
+            update.message.reply_text('The on-topic group is [here](https://telegram.me/pythontelegrambotgroup). '
+                                      'Come join us!',
                                       disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
 
         # Easteregg
@@ -174,17 +177,17 @@ def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
         # Wiki first, cause with docs you can always prepend telegram. for better precision
         wiki = search.wiki(s.replace('_', ' '), amount=1, threshold=threshold)
         if wiki:
-            text = "[{}]({})".format(wiki[0][0].split('🡺')[-1].strip(), wiki[0][1])
+            name = wiki[0][0].split('🡺')[-1].strip()
+            text = f'[{name}]({wiki[0][1]})'
             replacements.append((wiki[0][0], s, text))
             continue
 
         doc = search.docs(s, threshold=threshold)
         if doc:
-            text = "[{}]({})"
-            text = text.format(doc.short_name, doc.url, doc.tg_url)
+            text = f'[{doc.short_name}]({doc.url})'
 
             if doc.tg_url and official_api_links:
-                text += ' [{}]({})'.format(TELEGRAM_SUPERSCRIPT, doc.tg_url)
+                text += f' [{TELEGRAM_SUPERSCRIPT}]({doc.tg_url})'
 
             replacements.append((doc.short_name, s, text))
             continue
@@ -194,10 +197,8 @@ def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
 
     result = query
     for name, symbol, text in replacements:
-        result = result.replace('{char}{symbol}{char}'.format(
-            symbol=symbol,
-            char=ENCLOSING_REPLACEMENT_CHARACTER
-        ), text)
+        char = ENCLOSING_REPLACEMENT_CHARACTER
+        result = result.replace(f'{char}{symbol}{char}', text)
 
     result_changed = [x[0] for x in replacements]
     return result_changed, result
@@ -238,13 +239,14 @@ def inlinequery(bot, update, threshold=60):
         doc = search.docs(query, threshold=threshold)
 
         if doc:
-            text = "*{short_name}*\n_python-telegram-bot_ documentation for this {type}:\n[{full_name}]({url})"
+            text = f'*{doc.short_name}*\n' \
+                   f'_python-telegram-bot_ documentation for this {doc.type}:\n' \
+                   f'[{doc.full_name}]({doc.url})'
             if doc.tg_name:
-                text += "\n\nThe official documentation has more info about [{tg_name}]({tg_url})."
-            text = text.format(**doc._asdict())
+                text += f'\n\nThe official documentation has more info about [{doc.tg_name}]({doc.tg_url}).'
 
             results_list.append(article(
-                title="{full_name}".format(**doc._asdict()),
+                title=f'{doc.full_name}',
                 description="python-telegram-bot documentation",
                 message_text=text,
             ))
@@ -252,17 +254,18 @@ def inlinequery(bot, update, threshold=60):
         if wiki_pages:
             for wiki_page in wiki_pages:
                 results_list.append(article(
-                    title="{w[0]}".format(w=wiki_page),
+                    title=f'{wiki_pages[0]}',
                     description="Github wiki for python-telegram-bot",
-                    message_text='Wiki of _python-telegram-bot_\n[{w[0]}]({w[1]})</a>'.format(w=wiki_page)
+                    message_text=f'Wiki of _python-telegram-bot_\n'
+                                 f'[{wiki_pages[0]}]({wiki_pages[1]})'
                 ))
 
         # "No results" entry
         if len(results_list) == 0:
             results_list.append(article(
                 title='❌ No results.',
-                description="",
-                message_text="[GitHub wiki]({}) of _python-telegram-bot_".format(WIKI_URL),
+                description='',
+                message_text=f'[GitHub wiki]({WIKI_URL}) of _python-telegram-bot_',
             ))
 
     else:  # no query input
@@ -271,16 +274,17 @@ def inlinequery(bot, update, threshold=60):
             results_list.append(article(
                 title=name,
                 description="Wiki of python-telegram-bot",
-                message_text="Wiki of _python-telegram-bot_\n[{}]({})".format(escape_markdown(name), link),
+                message_text=f'Wiki of _python-telegram-bot_\n'
+                             f'[{escape_markdown(name)}]({link})',
             ))
 
     bot.answerInlineQuery(update.inline_query.id, results=results_list, switch_pm_text='Help',
                           switch_pm_parameter='inline-help')
 
 
-def error(bot, update, error):
+def error(bot, update, err):
     """Log all errors"""
-    logger.warning('Update "%s" caused error "%s"' % (update, error))
+    logger.warning(f'Update "{update}" caused error "{err}"')
 
 
 def main():
@@ -291,7 +295,7 @@ def main():
     dispatcher = updater.dispatcher
 
     global SELF_CHAT_ID
-    SELF_CHAT_ID = '@' + updater.bot.get_me().username
+    SELF_CHAT_ID = f'@{updater.bot.get_me().username}'
 
     start_handler = CommandHandler('start', start, pass_args=True)
     rules_handler = CommandHandler('rules', rules)

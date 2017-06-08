@@ -4,7 +4,7 @@ from urllib.request import urlopen
 
 from bs4 import BeautifulSoup
 from fuzzywuzzy import fuzz
-from sphinx.ext.intersphinx import read_inventory_v2
+from sphinx.util.inventory import InventoryFile
 
 DOCS_URL = "https://python-telegram-bot.readthedocs.io/en/latest/"
 OFFICIAL_URL = "https://core.telegram.org/bots/api"
@@ -13,6 +13,8 @@ PROJECT_URL = urljoin(GITHUB_URL, "python-telegram-bot/python-telegram-bot/")
 WIKI_URL = urljoin(PROJECT_URL, "wiki/")
 WIKI_CODE_SNIPPETS_URL = urljoin(WIKI_URL, "Code-snippets")
 EXAMPLES_URL = urljoin(PROJECT_URL, 'tree/master/examples/')
+
+ARROW_CHARACTER = '➜'
 
 Doc = namedtuple('Doc', 'short_name, full_name, type, url, tg_name, tg_url')
 
@@ -44,8 +46,7 @@ class Search:
 
     def parse_docs(self):
         docs_data = urlopen(urljoin(DOCS_URL, "objects.inv"))
-        docs_data.readline()  # Need to remove first line for some reason
-        self._docs = read_inventory_v2(docs_data, DOCS_URL, urljoin)
+        self._docs = InventoryFile.load(docs_data, DOCS_URL, urljoin)
 
     def parse_official(self):
         official_soup = BeautifulSoup(urlopen(OFFICIAL_URL), "html.parser")
@@ -61,13 +62,13 @@ class Search:
             category = ol.find_previous_sibling('h2').text.strip()
             for li in ol.select('li'):
                 if li.a['href'] != '#':
-                    name = '{} 🡺 {}'.format(category, li.a.text.strip())
+                    name = f'{category} {ARROW_CHARACTER} {li.a.text.strip()}'
                     self._wiki[name] = urljoin(WIKI_URL, li.a['href'])
 
     def parse_wiki_code_snippets(self):
         code_snippet_soup = BeautifulSoup(urlopen(WIKI_CODE_SNIPPETS_URL), 'html.parser')
         for h4 in code_snippet_soup.select('div.wiki-body h4'):
-            name = 'Code snippets 🡺 ' + h4.text.strip()
+            name = f'Code snippets {ARROW_CHARACTER} {h4.text.strip()}'
             self._wiki[name] = urljoin(WIKI_CODE_SNIPPETS_URL, h4.a['href'])
 
     def parse_examples(self):
@@ -77,7 +78,7 @@ class Search:
 
         for a in example_soup.select('.files td.content a'):
             if a.text not in ['LICENSE.txt', 'README.md']:
-                name = 'Examples 🡺 ' + a.text.strip()
+                name = f'Examples {ARROW_CHARACTER} {a.text.strip()}'
                 self._wiki[name] = urljoin(EXAMPLES_URL, a['href'])
 
     def docs(self, query, threshold=80):
