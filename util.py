@@ -1,6 +1,8 @@
 from telegram import ParseMode
 
 ARROW_CHARACTER = '➜'
+GITHUB_URL = "https://github.com/"
+DEFAULT_REPO = 'python-telegram-bot/python-telegram-bot'
 
 
 def get_reply_id(update):

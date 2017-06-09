@@ -6,12 +6,11 @@ from bs4 import BeautifulSoup
 from fuzzywuzzy import fuzz
 from sphinx.util.inventory import InventoryFile
 
-from util import ARROW_CHARACTER
+from util import ARROW_CHARACTER, GITHUB_URL, DEFAULT_REPO
 
 DOCS_URL = "https://python-telegram-bot.readthedocs.io/en/latest/"
 OFFICIAL_URL = "https://core.telegram.org/bots/api"
-GITHUB_URL = "https://github.com/"
-PROJECT_URL = urljoin(GITHUB_URL, "python-telegram-bot/python-telegram-bot/")
+PROJECT_URL = urljoin(GITHUB_URL, DEFAULT_REPO + '/')
 WIKI_URL = urljoin(PROJECT_URL, "wiki/")
 WIKI_CODE_SNIPPETS_URL = urljoin(WIKI_URL, "Code-snippets")
 EXAMPLES_URL = urljoin(PROJECT_URL, 'tree/master/examples/')
@@ -37,7 +36,6 @@ class Search:
         self._docs = {}
         self._official = {}
         self._wiki = OrderedDict()  # also examples
-        return
         self.parse_docs()
         self.parse_official()
         # Order matters since we use an ordered dict

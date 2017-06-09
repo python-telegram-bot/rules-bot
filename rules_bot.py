@@ -8,7 +8,7 @@ from search import search, WIKI_URL
 from telegram import InlineQueryResultArticle, InputTextMessageContent, ParseMode
 from telegram.ext import InlineQueryHandler, Updater, CommandHandler, RegexHandler
 from telegram.utils.helpers import escape_markdown
-from util import reply_or_edit, get_reply_id, ARROW_CHARACTER
+from util import reply_or_edit, get_reply_id, ARROW_CHARACTER, GITHUB_URL, DEFAULT_REPO
 
 if os.environ.get('ROOLSBOT_DEBUG'):
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -57,7 +57,10 @@ GITHUB_PATTERN = re.compile(r'''
         (?:/(?P<repo>[^\s/\#@]+))?      # Optionally matches repo, with a slash in front
     )?                                  # End optional non-capture group
     (?:                                 # Match either
-        ((?:\#|GH-)(?P<number>\d*))     # hashtag or "GH-" followed by numbers
+        (
+            (?P<number_type>\#|GH-|PR-) # Hashtag or "GH-" or "PR-"
+            (?P<number>\d*)             # followed by numbers
+        )
     |                                   # Or
         (?:@?(?P<sha>[0-9a-f]{40}))     # at sign followed by 40 hexadecimal characters
     )
@@ -175,8 +178,33 @@ def sandwich(bot, update, groups):
         else:
             update.message.reply_text("What? Make it yourself.", quote=True)
 
-def github(bot, update):
-    pass
+
+def github(bot, update, groupdict):
+    # TODO: Handle multiple references in the same message
+    user, repo, number, number_type, sha = [groupdict[x] for x in ('user', 'repo', 'number', 'number_type', 'sha')]
+    url = GITHUB_URL
+    name = ''
+    if number:
+        if user and repo:
+            url += f'{user}/{repo}'
+            name += f'{user}/{repo}'
+        else:
+            url += DEFAULT_REPO
+        url += f'/issues/{number}'
+        name += f'{number_type}{number}'
+    else:
+        if user:
+            name += user
+            if repo:
+                url += f'{user}/{repo}'
+                name += f'/{repo}'
+            name += '@'
+        if not repo:
+            url += DEFAULT_REPO
+        name += sha[:7]
+        url += f'/commit/{sha}'
+    update.message.reply_text(f'[{name}]({url})', disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
+
 
 def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
     """ Replaces the enclosed characters in the query string with hyperlinks to the documentations """
@@ -316,8 +344,7 @@ def main():
     wiki_handler = CommandHandler('wiki', wiki, pass_args=True, allow_edited=True, pass_chat_data=True)
     sandwich_handler = RegexHandler(r'(?i)[\s\S]*?((sudo )?make me a sandwich)[\s\S]*?', sandwich, pass_groups=True)
     off_on_topic_handler = RegexHandler(r'(?i)\b(?<!["\\])(off|on)[- _]?topic\b', off_on_topic, pass_groups=True)
-
-    github_handler = RegexHandler(GITHUB_PATTERN, github)
+    github_handler = RegexHandler(GITHUB_PATTERN, github, pass_groupdict=True)
 
     dispatcher.add_handler(start_handler)
     dispatcher.add_handler(rules_handler)
@@ -325,7 +352,7 @@ def main():
     dispatcher.add_handler(wiki_handler)
     dispatcher.add_handler(sandwich_handler)
     dispatcher.add_handler(off_on_topic_handler)
-    dispatcher.add_handler(github)
+    dispatcher.add_handler(github_handler)
 
     dispatcher.add_handler(InlineQueryHandler(inline_query))
     dispatcher.add_error_handler(error)
