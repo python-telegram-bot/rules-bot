@@ -6,9 +6,8 @@ from uuid import uuid4
 
 from search import search, WIKI_URL
 from telegram import InlineQueryResultArticle, InputTextMessageContent, ParseMode
-from telegram.ext import InlineQueryHandler, Updater, CommandHandler, MessageHandler, Filters
+from telegram.ext import InlineQueryHandler, Updater, CommandHandler, RegexHandler
 from telegram.utils.helpers import escape_markdown
-
 from util import reply_or_edit, get_reply_id, ARROW_CHARACTER
 
 if os.environ.get('ROOLSBOT_DEBUG'):
@@ -50,6 +49,19 @@ OFFTOPIC_RULES = """<b>Topics:</b>
 - Use a pastebin to share code
 - No <a href="https://telegram.me/joinchat/A6kAm0EeUdd0SciQStb9cg">shitposting, flamewars or excessive trolling</a>
 - Max. 1 meme per user per day"""
+
+GITHUB_PATTERN = re.compile(r'''
+    (?i)                                # Case insensitivity
+    (?:                                 # Optional non-capture group for username/repo
+        (?P<user>[^\s/\#@]+)            # Matches username (any char but whitespace, slash, hashtag and at)
+        (?:/(?P<repo>[^\s/\#@]+))?      # Optionally matches repo, with a slash in front
+    )?                                  # End optional non-capture group
+    (?:                                 # Match either
+        ((?:\#|GH-)(?P<number>\d*))     # hashtag or "GH-" followed by numbers
+    |                                   # Or
+        (?:@?(?P<sha>[0-9a-f]{40}))     # at sign followed by 40 hexadecimal characters
+    )
+''', re.VERBOSE)
 
 
 def start(bot, update, args=None):
@@ -121,50 +133,50 @@ def wiki(bot, update, args, chat_data, threshold=80):
         reply_or_edit(bot, update, chat_data, text)
 
 
-def other_plaintext(bot, update):
-    """Easter Eggs and utilities"""
-
+def off_on_topic(bot, update, groups):
     chat_username = update.message.chat.username
+    if chat_username == ONTOPIC_USERNAME and groups[0] == 'off':
+        reply = update.message.reply_to_message
+        if reply and reply.text:
+            issued_reply = get_reply_id(update)
 
-    if chat_username == ONTOPIC_USERNAME:
-        if any(ot in update.message.text.lower() for ot in ('off-topic', 'off topic', 'offtopic')):
-            if update.message.reply_to_message and update.message.reply_to_message.text:
-                issued_reply = get_reply_id(update)
+            update.message.reply_text('I moved this discussion to the '
+                                      '[off-topic Group](https://telegram.me/pythontelegrambottalk).',
+                                      disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN,
+                                      reply_to_message_id=issued_reply)
 
-                update.message.reply_text('I moved this discussion to the '
-                                          '[off-topic Group](https://telegram.me/pythontelegrambottalk).',
-                                          disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN,
-                                          reply_to_message_id=issued_reply)
-
-                if update.message.reply_to_message.from_user.username:
-                    name = '@' + update.message.reply_to_message.from_user.username
-                else:
-                    name = update.message.reply_to_message.from_user.first_name
-
-                replied_message_text = update.message.reply_to_message.text
-
-                text = (f'{name} _wrote:_\n'
-                        f'{replied_message_text}\n\n'
-                        f'⬇️ ᴘʟᴇᴀsᴇ ᴄᴏɴᴛɪɴᴜᴇ ʜᴇʀᴇ ⬇️')
-
-                bot.sendMessage(OFFTOPIC_CHAT_ID, text, disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
+            if reply.from_user.username:
+                name = '@' + reply.from_user.username
             else:
-                update.message.reply_text('The off-topic group is [here](https://telegram.me/pythontelegrambottalk). '
-                                          'Come join us!',
-                                          disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
+                name = reply.from_user.first_name
 
-    elif chat_username == OFFTOPIC_USERNAME:
-        if any(ot in update.message.text.lower() for ot in ('on-topic', 'on topic', 'ontopic')):
-            update.message.reply_text('The on-topic group is [here](https://telegram.me/pythontelegrambotgroup). '
+            replied_message_text = reply.text
+
+            text = (f'{name} _wrote:_\n'
+                    f'{replied_message_text}\n\n'
+                    f'⬇️ ᴘʟᴇᴀsᴇ ᴄᴏɴᴛɪɴᴜᴇ ʜᴇʀᴇ ⬇️')
+
+            bot.sendMessage(OFFTOPIC_CHAT_ID, text, disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
+        else:
+            update.message.reply_text('The off-topic group is [here](https://telegram.me/pythontelegrambottalk). '
                                       'Come join us!',
                                       disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
 
-        # Easteregg
-        if "sudo make me a sandwich" in update.message.text:
+    elif chat_username == OFFTOPIC_USERNAME and groups[0] == 'on':
+        update.message.reply_text('The on-topic group is [here](https://telegram.me/pythontelegrambotgroup). '
+                                  'Come join us!',
+                                  disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
+
+
+def sandwich(bot, update, groups):
+    if update.message.chat.username == OFFTOPIC_USERNAME:
+        if 'sudo' in groups[0]:
             update.message.reply_text("Okay.", quote=True)
-        elif "make me a sandwich" in update.message.text:
+        else:
             update.message.reply_text("What? Make it yourself.", quote=True)
 
+def github(bot, update):
+    pass
 
 def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
     """ Replaces the enclosed characters in the query string with hyperlinks to the documentations """
@@ -302,13 +314,18 @@ def main():
     rules_handler = CommandHandler('rules', rules)
     docs_handler = CommandHandler('docs', docs, pass_args=True, allow_edited=True, pass_chat_data=True)
     wiki_handler = CommandHandler('wiki', wiki, pass_args=True, allow_edited=True, pass_chat_data=True)
-    other_handler = MessageHandler(Filters.text, other_plaintext)
+    sandwich_handler = RegexHandler(r'(?i)[\s\S]*?((sudo )?make me a sandwich)[\s\S]*?', sandwich, pass_groups=True)
+    off_on_topic_handler = RegexHandler(r'(?i)\b(?<!["\\])(off|on)[- _]?topic\b', off_on_topic, pass_groups=True)
+
+    github_handler = RegexHandler(GITHUB_PATTERN, github)
 
     dispatcher.add_handler(start_handler)
     dispatcher.add_handler(rules_handler)
     dispatcher.add_handler(docs_handler)
     dispatcher.add_handler(wiki_handler)
-    dispatcher.add_handler(other_handler)
+    dispatcher.add_handler(sandwich_handler)
+    dispatcher.add_handler(off_on_topic_handler)
+    dispatcher.add_handler(github)
 
     dispatcher.add_handler(InlineQueryHandler(inline_query))
     dispatcher.add_error_handler(error)

@@ -37,6 +37,7 @@ class Search:
         self._docs = {}
         self._official = {}
         self._wiki = OrderedDict()  # also examples
+        return
         self.parse_docs()
         self.parse_official()
         # Order matters since we use an ordered dict
