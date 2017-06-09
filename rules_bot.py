@@ -52,6 +52,7 @@ OFFTOPIC_RULES = """<b>Topics:</b>
 
 GITHUB_PATTERN = re.compile(r'''
     (?i)                                # Case insensitivity
+    [\s\S]*?                            # Any characters
     (?:                                 # Optional non-capture group for username/repo
         (?P<user>[^\s/\#@]+)            # Matches username (any char but whitespace, slash, hashtag and at)
         (?:/(?P<repo>[^\s/\#@]+))?      # Optionally matches repo, with a slash in front
@@ -343,7 +344,7 @@ def main():
     docs_handler = CommandHandler('docs', docs, pass_args=True, allow_edited=True, pass_chat_data=True)
     wiki_handler = CommandHandler('wiki', wiki, pass_args=True, allow_edited=True, pass_chat_data=True)
     sandwich_handler = RegexHandler(r'(?i)[\s\S]*?((sudo )?make me a sandwich)[\s\S]*?', sandwich, pass_groups=True)
-    off_on_topic_handler = RegexHandler(r'(?i)\b(?<!["\\])(off|on)[- _]?topic\b', off_on_topic, pass_groups=True)
+    off_on_topic_handler = RegexHandler(r'(?i)[\s\S]*?\b(?<!["\\])(off|on)[- _]?topic\b', off_on_topic, pass_groups=True)
     github_handler = RegexHandler(GITHUB_PATTERN, github, pass_groupdict=True)
 
     dispatcher.add_handler(start_handler)
