@@ -204,7 +204,7 @@ def github(bot, update, groupdict):
             url += DEFAULT_REPO
         name += sha[:7]
         url += f'/commit/{sha}'
-    update.message.reply_text(f'[{name}]({url})', disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
+    update.message.reply_text(f'[{name}]({url})', parse_mode=ParseMode.MARKDOWN)
 
 
 def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
