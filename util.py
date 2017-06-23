@@ -1,3 +1,8 @@
+from urllib.error import HTTPError
+from urllib.request import urlopen
+
+from bs4 import BeautifulSoup
+
 from telegram import ParseMode
 
 ARROW_CHARACTER = '➜'
@@ -25,3 +30,11 @@ def reply_or_edit(bot, update, chat_data, text):
             chat_data[update.message.message_id] = update.message.reply_text(text,
                                                                              parse_mode=ParseMode.MARKDOWN,
                                                                              disable_web_page_preview=True)
+
+
+def get_web_page_title(url):
+    try:
+        soup = BeautifulSoup(urlopen(url), "html.parser")
+        return soup.title.string
+    except HTTPError:
+        return 'PR or issue not found'

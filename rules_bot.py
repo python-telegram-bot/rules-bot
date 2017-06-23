@@ -5,10 +5,10 @@ import re
 from uuid import uuid4
 
 from search import search, WIKI_URL
-from telegram import InlineQueryResultArticle, InputTextMessageContent, ParseMode
-from telegram.ext import InlineQueryHandler, Updater, CommandHandler, RegexHandler
+from telegram import InlineQueryResultArticle, InputTextMessageContent, ParseMode, ChatAction
+from telegram.ext import InlineQueryHandler, Updater, CommandHandler, RegexHandler, MessageHandler, Filters
 from telegram.utils.helpers import escape_markdown
-from util import reply_or_edit, get_reply_id, ARROW_CHARACTER, GITHUB_URL, DEFAULT_REPO
+from util import reply_or_edit, get_reply_id, ARROW_CHARACTER, GITHUB_URL, DEFAULT_REPO, get_web_page_title
 
 if os.environ.get('ROOLSBOT_DEBUG'):
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -52,15 +52,14 @@ OFFTOPIC_RULES = """<b>Topics:</b>
 
 GITHUB_PATTERN = re.compile(r'''
     (?i)                                # Case insensitivity
-    [\s\S]*?                            # Any characters
     (?:                                 # Optional non-capture group for username/repo
         (?P<user>[^\s/\#@]+)            # Matches username (any char but whitespace, slash, hashtag and at)
         (?:/(?P<repo>[^\s/\#@]+))?      # Optionally matches repo, with a slash in front
     )?                                  # End optional non-capture group
     (?:                                 # Match either
-        (
-            (?P<number_type>\#|GH-|PR-) # Hashtag or "GH-" or "PR-"
-            (?P<number>\d*)             # followed by numbers
+        (?:
+            (?:\#|GH-|PR-)              # Hashtag or "GH-" or "PR-"
+            (?P<number>\d+)             # followed by numbers
         )
     |                                   # Or
         (?:@?(?P<sha>[0-9a-f]{40}))     # at sign followed by 40 hexadecimal characters
@@ -180,31 +179,47 @@ def sandwich(bot, update, groups):
             update.message.reply_text("What? Make it yourself.", quote=True)
 
 
-def github(bot, update, groupdict):
-    # TODO: Handle multiple references in the same message
-    user, repo, number, number_type, sha = [groupdict[x] for x in ('user', 'repo', 'number', 'number_type', 'sha')]
-    url = GITHUB_URL
-    name = ''
-    if number:
-        if user and repo:
-            url += f'{user}/{repo}'
-            name += f'{user}/{repo}'
-        else:
-            url += DEFAULT_REPO
-        url += f'/issues/{number}'
-        name += f'{number_type}{number}'
-    else:
-        if user:
-            name += user
-            if repo:
+def _get_github_title_and_type(url):
+    title = get_web_page_title(url)
+    if not title:
+        return
+    split = title.split(' · ')
+    return split[0], 'PR' if 'Pull Request' in split[1] else 'Issue'
+
+
+def github(bot, update):
+    replacements = []
+    for match in GITHUB_PATTERN.finditer(update.message.text):
+        update.effective_chat.send_action(ChatAction.TYPING)
+        logging.debug(match.groupdict())
+        user, repo, number, sha = [match.groupdict()[x] for x in ('user', 'repo', 'number', 'sha')]
+        url = GITHUB_URL
+        name = ''
+        if number:
+            if user and repo:
                 url += f'{user}/{repo}'
-                name += f'/{repo}'
-            name += '@'
-        if not repo:
-            url += DEFAULT_REPO
-        name += sha[:7]
-        url += f'/commit/{sha}'
-    update.message.reply_text(f'[{name}]({url})', parse_mode=ParseMode.MARKDOWN)
+                name += f'{user}/{repo}'
+            else:
+                url += DEFAULT_REPO
+            url += f'/issues/{number}'
+            name += f'#{number}'
+        else:
+            if user:
+                name += user
+                if repo:
+                    url += f'{user}/{repo}'
+                    name += f'/{repo}'
+                name += '@'
+            if not repo:
+                url += DEFAULT_REPO
+            name += sha[:7]
+            url += f'/commit/{sha}'
+        gh = _get_github_title_and_type(url)
+        if not gh:
+            continue
+        name = f'{gh[1]} {name}: {gh[0]}'
+        replacements.append(f'[{name}]({url})')
+    update.message.reply_text('\n'.join(replacements), parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True)
 
 
 def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
@@ -345,7 +360,12 @@ def main():
     wiki_handler = CommandHandler('wiki', wiki, pass_args=True, allow_edited=True, pass_chat_data=True)
     sandwich_handler = RegexHandler(r'(?i)[\s\S]*?((sudo )?make me a sandwich)[\s\S]*?', sandwich, pass_groups=True)
     off_on_topic_handler = RegexHandler(r'(?i)[\s\S]*?\b(?<!["\\])(off|on)[- _]?topic\b', off_on_topic, pass_groups=True)
-    github_handler = RegexHandler(GITHUB_PATTERN, github, pass_groupdict=True)
+
+    # We need several matches so RegexHandler is basically useless
+    # therefore we catch everything and do regex ourselves
+    # This should probably be in another dispatcher group
+    # but I kept getting SystemErrors...
+    github_handler = MessageHandler(Filters.all, github, allow_edited=True)
 
     dispatcher.add_handler(start_handler)
     dispatcher.add_handler(rules_handler)
