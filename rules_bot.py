@@ -4,11 +4,14 @@ import os
 import re
 from uuid import uuid4
 
+import time
+
 from search import search, WIKI_URL
-from telegram import InlineQueryResultArticle, InputTextMessageContent, ParseMode, ChatAction
+from telegram import InlineQueryResultArticle, InputTextMessageContent, ParseMode, ChatAction, MessageEntity
 from telegram.ext import InlineQueryHandler, Updater, CommandHandler, RegexHandler, MessageHandler, Filters
 from telegram.utils.helpers import escape_markdown
-from util import reply_or_edit, get_reply_id, ARROW_CHARACTER, GITHUB_URL, DEFAULT_REPO, get_web_page_title
+from util import (reply_or_edit, get_reply_id, ARROW_CHARACTER, GITHUB_URL, DEFAULT_REPO, get_web_page_title,
+                  get_text_not_in_entities)
 
 if os.environ.get('ROOLSBOT_DEBUG'):
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -53,8 +56,8 @@ OFFTOPIC_RULES = """<b>Topics:</b>
 GITHUB_PATTERN = re.compile(r'''
     (?i)                                # Case insensitivity
     (?:                                 # Optional non-capture group for username/repo
-        (?P<user>[^\s/\#@]+)            # Matches username (any char but whitespace, slash, hashtag and at)
-        (?:/(?P<repo>[^\s/\#@]+))?      # Optionally matches repo, with a slash in front
+        (?P<user>[^\s/\#@><]+)          # Matches username (any char but whitespace, slash, hashtag and at)
+        (?:/(?P<repo>[^\s/\#@><]+))?    # Optionally matches repo, with a slash in front
     )?                                  # End optional non-capture group
     (?:                                 # Match either
         (?:
@@ -179,19 +182,39 @@ def sandwich(bot, update, groups):
             update.message.reply_text("What? Make it yourself.", quote=True)
 
 
-def _get_github_title_and_type(url):
+def keep_typing(last, chat, action):
+    now = time.time()
+    if (now - last) > 1:
+        chat.send_action(action)
+    return now
+
+
+def _get_github_title_and_type(url, sha=None):
     title = get_web_page_title(url)
     if not title:
         return
     split = title.split(' · ')
-    return split[0], 'PR' if 'Pull Request' in split[1] else 'Issue'
+    t = 'PR' if 'Pull Request' in split[1] else 'Issue'
+    if sha:
+        t = 'Commit'
+    return split[0], t
 
 
-def github(bot, update):
-    replacements = []
-    for match in GITHUB_PATTERN.finditer(update.message.text):
-        update.effective_chat.send_action(ChatAction.TYPING)
+def github(bot, update, chat_data):
+    message = update.message or update.edited_message
+    last = 0
+    things = []
+
+    # Due to bug in ptb we need to convert entities of type URL to TEXT_LINK for them to be converted to html
+    for entity in message.entities:
+        if entity.type == MessageEntity.URL:
+            entity.type = MessageEntity.TEXT_LINK
+            entity.url = update.message.parse_entity(entity)
+
+    for match in GITHUB_PATTERN.finditer(get_text_not_in_entities(message.text_html)):
+        last = keep_typing(last, update.effective_chat, ChatAction.TYPING)
         logging.debug(match.groupdict())
+
         user, repo, number, sha = [match.groupdict()[x] for x in ('user', 'repo', 'number', 'sha')]
         url = GITHUB_URL
         name = ''
@@ -214,12 +237,16 @@ def github(bot, update):
                 url += DEFAULT_REPO
             name += sha[:7]
             url += f'/commit/{sha}'
-        gh = _get_github_title_and_type(url)
+
+        gh = _get_github_title_and_type(url, sha)
         if not gh:
             continue
+
         name = f'{gh[1]} {name}: {gh[0]}'
-        replacements.append(f'[{name}]({url})')
-    update.message.reply_text('\n'.join(replacements), parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True)
+        things.append(f'[{name}]({url})')
+
+    if things:
+        reply_or_edit(bot, update, chat_data, '\n'.join(things))
 
 
 def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
@@ -365,7 +392,7 @@ def main():
     # therefore we catch everything and do regex ourselves
     # This should probably be in another dispatcher group
     # but I kept getting SystemErrors...
-    github_handler = MessageHandler(Filters.all, github, allow_edited=True)
+    github_handler = MessageHandler(Filters.all, github, allow_edited=True, pass_chat_data=True)
 
     dispatcher.add_handler(start_handler)
     dispatcher.add_handler(rules_handler)
