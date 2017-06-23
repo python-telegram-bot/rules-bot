@@ -209,7 +209,7 @@ def github(bot, update, chat_data):
     for entity in message.entities:
         if entity.type == MessageEntity.URL:
             entity.type = MessageEntity.TEXT_LINK
-            entity.url = update.message.parse_entity(entity)
+            entity.url = message.parse_entity(entity)
 
     for match in GITHUB_PATTERN.finditer(get_text_not_in_entities(message.text_html)):
         last = keep_typing(last, update.effective_chat, ChatAction.TYPING)
