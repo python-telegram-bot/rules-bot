@@ -2,6 +2,7 @@ import configparser
 import logging
 import os
 import re
+from functools import lru_cache
 from uuid import uuid4
 
 import time
@@ -189,6 +190,7 @@ def keep_typing(last, chat, action):
     return now
 
 
+@lru_cache()
 def _get_github_title_and_type(url, sha=None):
     title = get_web_page_title(url)
     if not title:
