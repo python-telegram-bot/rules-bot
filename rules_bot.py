@@ -203,7 +203,7 @@ def _get_github_title_and_type(url, sha=None):
 def github(bot, update, chat_data):
     message = update.message or update.edited_message
     last = 0
-    things = []
+    things = {}
 
     # Due to bug in ptb we need to convert entities of type URL to TEXT_LINK for them to be converted to html
     for entity in message.entities:
@@ -224,8 +224,8 @@ def github(bot, update, chat_data):
                 name += f'{user}/{repo}'
             else:
                 url += DEFAULT_REPO
-            url += f'/issues/{number}'
             name += f'#{number}'
+            url += f'/issues/{number}'
         else:
             if user:
                 name += user
@@ -238,15 +238,18 @@ def github(bot, update, chat_data):
             name += sha[:7]
             url += f'/commit/{sha}'
 
+        if url in things.keys():
+            continue
+
         gh = _get_github_title_and_type(url, sha)
         if not gh:
             continue
 
         name = f'{gh[1]} {name}: {gh[0]}'
-        things.append(f'[{name}]({url})')
+        things[url] = name
 
     if things:
-        reply_or_edit(bot, update, chat_data, '\n'.join(things))
+        reply_or_edit(bot, update, chat_data, '\n'.join([f'[{name}]({url})' for url, name in things.items()]))
 
 
 def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
