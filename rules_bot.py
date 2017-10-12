@@ -40,7 +40,7 @@ ONTOPIC_RULES = """This group is for questions, answers and discussions around t
 - Use a pastebin when you have a question about your code, like <a href="https://www.codepile.net">this one</a>.
 - Use <code>/wiki</code> and <code>/docs</code> in a private chat if possible.
 
-Before asking, please take a look at our <a href="https://github.com/python-telegram-bot/python-telegram-bot/wiki">wiki</a> and <a href="https://github.com/python-telegram-bot/python-telegram-bot/tree/master/examples">example bots</a> or, depending on your question, the <a href="https://core.telegram.org/bots/api">official API docs</a> and <a href="http://pythonhosted.org/python-telegram-bot/py-modindex.html">python-telegram-bot docs</a>).
+Before asking, please take a look at our <a href="https://github.com/python-telegram-bot/python-telegram-bot/wiki">wiki</a> and <a href="https://github.com/python-telegram-bot/python-telegram-bot/tree/master/examples">example bots</a> or, depending on your question, the <a href="https://core.telegram.org/bots/api">official API docs</a> and <a href="http://python-telegram-bot.readthedocs.io/en/stable/">python-telegram-bot docs</a>).
 For off-topic discussions, please use our <a href="https://telegram.me/pythontelegrambottalk">off-topic group</a>."""
 
 OFFTOPIC_RULES = """<b>Topics:</b>
