@@ -110,15 +110,23 @@ def rules(bot, update):
 
 def docs(bot, update):
     """ Documentation link """
-    text = "You can find our documentation at [Read the Docs](http://python-telegram-bot.readthedocs.io/en/stable/)"
-    update.message.reply_text(text, parse_mode='Markdown', quote=False, disable_web_page_preview=True)
+    text = "You can find our documentation at [Read the Docs](https://python-telegram-bot.readthedocs.io/en/stable/)"
+    if update.message.reply_to_message:
+        reply_id = update.message.reply_to_message.message_id
+    else:
+        reply_id = None
+    update.message.reply_text(text, parse_mode='Markdown', quote=False, disable_web_page_preview=True, reply_to_message_id=reply_id)
     update.message.delete()
 
 
 def wiki(bot, update):
     """ Wiki link """
     text = "You can find our wiki on [GitHub](https://github.com/python-telegram-bot/python-telegram-bot/wiki)"
-    update.message.reply_text(text, parse_mode='Markdown', quote=False, disable_web_page_preview=True)
+    if update.message.reply_to_message:
+        reply_id = update.message.reply_to_message.message_id
+    else:
+        reply_id = None
+    update.message.reply_text(text, parse_mode='Markdown', quote=False, disable_web_page_preview=True, reply_to_message_id=reply_id)
     update.message.delete()
 
 
