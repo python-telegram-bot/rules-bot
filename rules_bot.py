@@ -114,7 +114,7 @@ def docs(bot, update):
     if update.message.reply_to_message:
         reply_id = update.message.reply_to_message.message_id
     else:
-        repy_id = None
+        reply_id = None
     update.message.reply_text(text, parse_mode='Markdown', quote=False, disable_web_page_preview=True, reply_to_message_id=reply_id)
     update.message.delete()
 
@@ -125,7 +125,7 @@ def wiki(bot, update):
     if update.message.reply_to_message:
         reply_id = update.message.reply_to_message.message_id
     else:
-        repy_id = None
+        reply_id = None
     update.message.reply_text(text, parse_mode='Markdown', quote=False, disable_web_page_preview=True, reply_to_message_id=reply_id)
     update.message.delete()
 
