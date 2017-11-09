@@ -108,36 +108,18 @@ def rules(bot, update):
                                   "and I don't know the rules around here.")
 
 
-def docs(bot, update, args, chat_data):
-    """ Documentation search """
-    if len(args) > 0:
-        doc = search.docs(' '.join(args))
-        if doc:
-            text = (f'*{doc.short_name}*\n'
-                    f'_python-telegram-bot_ documentation for this {doc.type}:\n'
-                    f'[{doc.full_name}]({doc.url})')
-
-            if doc.tg_name:
-                text += f'\n\nThe official documentation has more info about [{doc.tg_name}]({doc.tg_url}).'
-        else:
-            text = "Sorry, your search term didn't match anything, please edit your message to search again."
-
-        reply_or_edit(bot, update, chat_data, text)
+def docs(bot, update):
+    """ Documentation link """
+    text = "You can find our documentation on [Read the docs](http://python-telegram-bot.readthedocs.io/en/stable/)"
+    update.message.reply_text(text, parse_mode='HTML', quote=False)
+    update.message.delete()
 
 
-def wiki(bot, update, args, chat_data, threshold=80):
-    """ Wiki search """
-    query = ' '.join(args)
-    if search != '':
-        best = search.wiki(query, amount=1, threshold=threshold)
-
-        if best:
-            text = (f'Github wiki for _python-telegram-bot_\n'
-                    f'[{best[0][0]}]({best[0][1]})')
-        else:
-            text = "Sorry, your search term didn't match anything, please edit your message to search again."
-
-        reply_or_edit(bot, update, chat_data, text)
+def wiki(bot, update):
+    """ Wiki link """
+    text = "You can find our wiki on [github](https://github.com/python-telegram-bot/python-telegram-bot/wiki)"
+    update.message.reply_text(text, parse_mode='HTML', quote=False)
+    update.message.delete()
 
 
 def off_on_topic(bot, update, groups):
@@ -388,8 +370,8 @@ def main():
 
     start_handler = CommandHandler('start', start, pass_args=True)
     rules_handler = CommandHandler('rules', rules)
-    docs_handler = CommandHandler('docs', docs, pass_args=True, allow_edited=True, pass_chat_data=True)
-    wiki_handler = CommandHandler('wiki', wiki, pass_args=True, allow_edited=True, pass_chat_data=True)
+    docs_handler = CommandHandler('docs', docs, allow_edited=True)
+    wiki_handler = CommandHandler('wiki', wiki, allow_edited=True)
     sandwich_handler = RegexHandler(r'(?i)[\s\S]*?((sudo )?make me a sandwich)[\s\S]*?', sandwich, pass_groups=True)
     off_on_topic_handler = RegexHandler(r'(?i)[\s\S]*?\b(?<!["\\])(off|on)[- _]?topic\b', off_on_topic, pass_groups=True)
 
