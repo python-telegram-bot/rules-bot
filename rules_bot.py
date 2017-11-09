@@ -111,14 +111,14 @@ def rules(bot, update):
 def docs(bot, update):
     """ Documentation link """
     text = "You can find our documentation on [Read the docs](http://python-telegram-bot.readthedocs.io/en/stable/)"
-    update.message.reply_text(text, parse_mode='HTML', quote=False)
+    update.message.reply_text(text, parse_mode='Markdown', quote=False)
     update.message.delete()
 
 
 def wiki(bot, update):
     """ Wiki link """
     text = "You can find our wiki on [github](https://github.com/python-telegram-bot/python-telegram-bot/wiki)"
-    update.message.reply_text(text, parse_mode='HTML', quote=False)
+    update.message.reply_text(text, parse_mode='Markdown', quote=False)
     update.message.delete()
 
 
