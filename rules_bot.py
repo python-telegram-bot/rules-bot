@@ -2,16 +2,19 @@ import configparser
 import logging
 import os
 import re
+import time
 from functools import lru_cache
 from uuid import uuid4
 
-import time
+from telegram import InlineQueryResultArticle, InputTextMessageContent, ParseMode, ChatAction, \
+    MessageEntity
+from telegram.ext import InlineQueryHandler, Updater, CommandHandler, RegexHandler, MessageHandler, \
+    Filters
+from telegram.utils.helpers import escape_markdown
 
 from search import search, WIKI_URL
-from telegram import InlineQueryResultArticle, InputTextMessageContent, ParseMode, ChatAction, MessageEntity
-from telegram.ext import InlineQueryHandler, Updater, CommandHandler, RegexHandler, MessageHandler, Filters
-from telegram.utils.helpers import escape_markdown
-from util import (reply_or_edit, get_reply_id, ARROW_CHARACTER, GITHUB_URL, DEFAULT_REPO, get_web_page_title,
+from util import (reply_or_edit, get_reply_id, ARROW_CHARACTER, GITHUB_URL, DEFAULT_REPO,
+                  get_web_page_title,
                   get_text_not_in_entities)
 
 if os.environ.get('ROOLSBOT_DEBUG'):
@@ -102,7 +105,8 @@ def rules(bot, update):
         update.message.reply_text(ONTOPIC_RULES, parse_mode=ParseMode.HTML,
                                   disable_web_page_preview=True)
     elif update.message.chat.username == OFFTOPIC_USERNAME:
-        update.message.reply_text(OFFTOPIC_RULES, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+        update.message.reply_text(OFFTOPIC_RULES, parse_mode=ParseMode.HTML,
+                                  disable_web_page_preview=True)
     else:
         update.message.reply_text("Hmm. You're not in a python-telegram-bot group, "
                                   "and I don't know the rules around here.")
@@ -115,7 +119,8 @@ def docs(bot, update):
         reply_id = update.message.reply_to_message.message_id
     else:
         reply_id = None
-    update.message.reply_text(text, parse_mode='Markdown', quote=False, disable_web_page_preview=True, reply_to_message_id=reply_id)
+    update.message.reply_text(text, parse_mode='Markdown', quote=False,
+                              disable_web_page_preview=True, reply_to_message_id=reply_id)
     update.message.delete()
 
 
@@ -126,7 +131,8 @@ def wiki(bot, update):
         reply_id = update.message.reply_to_message.message_id
     else:
         reply_id = None
-    update.message.reply_text(text, parse_mode='Markdown', quote=False, disable_web_page_preview=True, reply_to_message_id=reply_id)
+    update.message.reply_text(text, parse_mode='Markdown', quote=False,
+                              disable_web_page_preview=True, reply_to_message_id=reply_id)
     update.message.delete()
 
 
@@ -134,13 +140,16 @@ def off_on_topic(bot, update, groups):
     chat_username = update.message.chat.username
     if chat_username == ONTOPIC_USERNAME and groups[0] == 'off':
         reply = update.message.reply_to_message
+        moved_notification = 'I moved this discussion to the ' \
+                             '[off-topic Group]({}).'
         if reply and reply.text:
             issued_reply = get_reply_id(update)
 
-            update.message.reply_text('I moved this discussion to the '
-                                      '[off-topic Group](https://telegram.me/pythontelegrambottalk).',
-                                      disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN,
-                                      reply_to_message_id=issued_reply)
+            main_group_msg = update.message.reply_text(
+                moved_notification.format('https://telegram.me/pythontelegrambottalk'),
+                disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN,
+                reply_to_message_id=issued_reply
+            )
 
             if reply.from_user.username:
                 name = '@' + reply.from_user.username
@@ -153,16 +162,29 @@ def off_on_topic(bot, update, groups):
                     f'{replied_message_text}\n\n'
                     f'⬇️ ᴘʟᴇᴀsᴇ ᴄᴏɴᴛɪɴᴜᴇ ʜᴇʀᴇ ⬇️')
 
-            bot.sendMessage(OFFTOPIC_CHAT_ID, text, disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
+            offtopic_msg = bot.sendMessage(OFFTOPIC_CHAT_ID, text, disable_web_page_preview=True,
+                            parse_mode=ParseMode.MARKDOWN)
+            # After the conversation was continued in the offtopic group, update the main group
+            # message with a direct link to the message, not just a link to the chat.
+            bot.edit_message_text(
+                text=moved_notification.format('https://telegram.me/pythontelegrambottalk/' +
+                                               offtopic_msg.message_id),
+                chat_id=update.message.chat_id,
+                message_id=main_group_msg.message_id,
+                parse_mode=ParseMode.MARKDOWN
+            )
+
         else:
-            update.message.reply_text('The off-topic group is [here](https://telegram.me/pythontelegrambottalk). '
-                                      'Come join us!',
-                                      disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
+            update.message.reply_text(
+                'The off-topic group is [here](https://telegram.me/pythontelegrambottalk). '
+                'Come join us!',
+                disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
 
     elif chat_username == OFFTOPIC_USERNAME and groups[0] == 'on':
-        update.message.reply_text('The on-topic group is [here](https://telegram.me/pythontelegrambotgroup). '
-                                  'Come join us!',
-                                  disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
+        update.message.reply_text(
+            'The on-topic group is [here](https://telegram.me/pythontelegrambotgroup). '
+            'Come join us!',
+            disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
 
 
 def sandwich(bot, update, groups):
@@ -241,7 +263,8 @@ def github(bot, update, chat_data):
         things[url] = name
 
     if things:
-        reply_or_edit(bot, update, chat_data, '\n'.join([f'[{name}]({url})' for url, name in things.items()]))
+        reply_or_edit(bot, update, chat_data,
+                      '\n'.join([f'[{name}]({url})' for url, name in things.items()]))
 
 
 def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
@@ -380,8 +403,10 @@ def main():
     rules_handler = CommandHandler('rules', rules)
     docs_handler = CommandHandler('docs', docs, allow_edited=True)
     wiki_handler = CommandHandler('wiki', wiki, allow_edited=True)
-    sandwich_handler = RegexHandler(r'(?i)[\s\S]*?((sudo )?make me a sandwich)[\s\S]*?', sandwich, pass_groups=True)
-    off_on_topic_handler = RegexHandler(r'(?i)[\s\S]*?\b(?<!["\\])(off|on)[- _]?topic\b', off_on_topic, pass_groups=True)
+    sandwich_handler = RegexHandler(r'(?i)[\s\S]*?((sudo )?make me a sandwich)[\s\S]*?', sandwich,
+                                    pass_groups=True)
+    off_on_topic_handler = RegexHandler(r'(?i)[\s\S]*?\b(?<!["\\])(off|on)[- _]?topic\b',
+                                        off_on_topic, pass_groups=True)
 
     # We need several matches so RegexHandler is basically useless
     # therefore we catch everything and do regex ourselves
