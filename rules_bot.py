@@ -161,7 +161,7 @@ def off_on_topic(bot, update, groups):
 
             update.message.reply_text(
                 moved_notification.format('https://telegram.me/pythontelegrambottalk/' +
-                                          offtopic_msg.message_id),
+                                          str(offtopic_msg.message_id)),
                 disable_web_page_preview=True,
                 parse_mode=ParseMode.MARKDOWN,
                 reply_to_message_id=issued_reply
