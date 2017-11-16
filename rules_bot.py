@@ -145,12 +145,6 @@ def off_on_topic(bot, update, groups):
         if reply and reply.text:
             issued_reply = get_reply_id(update)
 
-            main_group_msg = update.message.reply_text(
-                moved_notification.format('https://telegram.me/pythontelegrambottalk'),
-                disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN,
-                reply_to_message_id=issued_reply
-            )
-
             if reply.from_user.username:
                 name = '@' + reply.from_user.username
             else:
@@ -162,16 +156,15 @@ def off_on_topic(bot, update, groups):
                     f'{replied_message_text}\n\n'
                     f'⬇️ ᴘʟᴇᴀsᴇ ᴄᴏɴᴛɪɴᴜᴇ ʜᴇʀᴇ ⬇️')
 
-            offtopic_msg = bot.sendMessage(OFFTOPIC_CHAT_ID, text, disable_web_page_preview=True,
-                            parse_mode=ParseMode.MARKDOWN)
-            # After the conversation was continued in the offtopic group, update the main group
-            # message with a direct link to the message, not just a link to the chat.
-            bot.edit_message_text(
-                text=moved_notification.format('https://telegram.me/pythontelegrambottalk/' +
-                                               offtopic_msg.message_id),
-                chat_id=update.message.chat_id,
-                message_id=main_group_msg.message_id,
-                parse_mode=ParseMode.MARKDOWN
+            offtopic_msg = bot.send_message(OFFTOPIC_CHAT_ID, text, disable_web_page_preview=True,
+                                            parse_mode=ParseMode.MARKDOWN)
+
+            update.message.reply_text(
+                moved_notification.format('https://telegram.me/pythontelegrambottalk' +
+                                          offtopic_msg.message_id),
+                disable_web_page_preview=True,
+                parse_mode=ParseMode.MARKDOWN,
+                reply_to_message_id=issued_reply
             )
 
         else:
