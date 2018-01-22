@@ -1,4 +1,4 @@
-from collections import namedtuple, OrderedDict
+from collections import OrderedDict, namedtuple
 from urllib.parse import urljoin
 from urllib.request import urlopen
 
@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from fuzzywuzzy import fuzz
 from sphinx.util.inventory import InventoryFile
 
-from util import ARROW_CHARACTER, GITHUB_URL, DEFAULT_REPO
+from util import ARROW_CHARACTER, DEFAULT_REPO, GITHUB_URL
 
 DOCS_URL = "https://python-telegram-bot.readthedocs.io/en/latest/"
 OFFICIAL_URL = "https://core.telegram.org/bots/api"
@@ -137,5 +137,6 @@ class Search:
                 best.add(score, (name, link))
 
         return best.to_list(amount, threshold)
+
 
 search = Search()

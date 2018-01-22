@@ -25,3 +25,15 @@ def reply_or_edit(bot, update, chat_data, text):
             chat_data[update.message.message_id] = update.message.reply_text(text,
                                                                              parse_mode=ParseMode.MARKDOWN,
                                                                              disable_web_page_preview=True)
+
+
+def build_menu(buttons,
+               n_cols,
+               header_buttons=None,
+               footer_buttons=None):
+    menu = [buttons[i:i + n_cols] for i in range(0, len(buttons), n_cols)]
+    if header_buttons:
+        menu.insert(0, header_buttons)
+    if footer_buttons:
+        menu.append(footer_buttons)
+    return menu
