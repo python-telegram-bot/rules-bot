@@ -2,6 +2,8 @@ import configparser
 import logging
 import os
 import re
+import time
+from functools import lru_cache
 from uuid import uuid4
 
 from telegram import Bot, InlineQueryResultArticle, InputTextMessageContent, ParseMode
@@ -84,55 +86,45 @@ def rules(bot, update):
         update.message.reply_text(ONTOPIC_RULES, parse_mode=ParseMode.HTML,
                                   disable_web_page_preview=True)
     elif update.message.chat.username == OFFTOPIC_USERNAME:
-        update.message.reply_text(OFFTOPIC_RULES, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+        update.message.reply_text(OFFTOPIC_RULES, parse_mode=ParseMode.HTML,
+                                  disable_web_page_preview=True)
     else:
         update.message.reply_text("Hmm. You're not in a python-telegram-bot group, "
                                   "and I don't know the rules around here.")
 
 
-def docs(bot, update, args, chat_data):
-    """ Documentation search """
-    if len(args) > 0:
-        doc = search.docs(' '.join(args))
-        if doc:
-            text = (f'*{doc.short_name}*\n'
-                    f'_python-telegram-bot_ documentation for this {doc.type}:\n'
-                    f'[{doc.full_name}]({doc.url})')
-
-            if doc.tg_name:
-                text += f'\n\nThe official documentation has more info about [{doc.tg_name}]({doc.tg_url}).'
-        else:
-            text = "Sorry, your search term didn't match anything, please edit your message to search again."
-
-        reply_or_edit(bot, update, chat_data, text)
+def docs(bot, update):
+    """ Documentation link """
+    text = "You can find our documentation at [Read the Docs](https://python-telegram-bot.readthedocs.io/en/stable/)"
+    if update.message.reply_to_message:
+        reply_id = update.message.reply_to_message.message_id
+    else:
+        reply_id = None
+    update.message.reply_text(text, parse_mode='Markdown', quote=False,
+                              disable_web_page_preview=True, reply_to_message_id=reply_id)
+    update.message.delete()
 
 
-def wiki(bot, update, args, chat_data, threshold=80):
-    """ Wiki search """
-    query = ' '.join(args)
-    if search != '':
-        best = search.wiki(query, amount=1, threshold=threshold)
-
-        if best:
-            text = (f'Github wiki for _python-telegram-bot_\n'
-                    f'[{best[0][0]}]({best[0][1]})')
-        else:
-            text = "Sorry, your search term didn't match anything, please edit your message to search again."
-
-        reply_or_edit(bot, update, chat_data, text)
+def wiki(bot, update):
+    """ Wiki link """
+    text = "You can find our wiki on [GitHub](https://github.com/python-telegram-bot/python-telegram-bot/wiki)"
+    if update.message.reply_to_message:
+        reply_id = update.message.reply_to_message.message_id
+    else:
+        reply_id = None
+    update.message.reply_text(text, parse_mode='Markdown', quote=False,
+                              disable_web_page_preview=True, reply_to_message_id=reply_id)
+    update.message.delete()
 
 
 def off_on_topic(bot, update, groups):
     chat_username = update.message.chat.username
-    if chat_username == ONTOPIC_USERNAME and groups[0] == 'off':
+    if chat_username == ONTOPIC_USERNAME and groups[0].lower() == 'off':
         reply = update.message.reply_to_message
+        moved_notification = 'I moved this discussion to the ' \
+                             '[off-topic Group]({}).'
         if reply and reply.text:
             issued_reply = get_reply_id(update)
-
-            update.message.reply_text('I moved this discussion to the '
-                                      '[off-topic Group](https://telegram.me/pythontelegrambottalk).',
-                                      disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN,
-                                      reply_to_message_id=issued_reply)
 
             if reply.from_user.username:
                 name = '@' + reply.from_user.username
@@ -145,16 +137,28 @@ def off_on_topic(bot, update, groups):
                     f'{replied_message_text}\n\n'
                     f'⬇️ ᴘʟᴇᴀsᴇ ᴄᴏɴᴛɪɴᴜᴇ ʜᴇʀᴇ ⬇️')
 
-            bot.sendMessage(OFFTOPIC_CHAT_ID, text, disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
-        else:
-            update.message.reply_text('The off-topic group is [here](https://telegram.me/pythontelegrambottalk). '
-                                      'Come join us!',
-                                      disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
+            offtopic_msg = bot.send_message(OFFTOPIC_CHAT_ID, text, disable_web_page_preview=True,
+                                            parse_mode=ParseMode.MARKDOWN)
 
-    elif chat_username == OFFTOPIC_USERNAME and groups[0] == 'on':
-        update.message.reply_text('The on-topic group is [here](https://telegram.me/pythontelegrambotgroup). '
-                                  'Come join us!',
-                                  disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
+            update.message.reply_text(
+                moved_notification.format('https://telegram.me/pythontelegrambottalk/' +
+                                          str(offtopic_msg.message_id)),
+                disable_web_page_preview=True,
+                parse_mode=ParseMode.MARKDOWN,
+                reply_to_message_id=issued_reply
+            )
+
+        else:
+            update.message.reply_text(
+                'The off-topic group is [here](https://telegram.me/pythontelegrambottalk). '
+                'Come join us!',
+                disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
+
+    elif chat_username == OFFTOPIC_USERNAME and groups[0].lower() == 'on':
+        update.message.reply_text(
+            'The on-topic group is [here](https://telegram.me/pythontelegrambotgroup). '
+            'Come join us!',
+            disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
 
 
 def sandwich(bot, update, groups):
@@ -165,31 +169,76 @@ def sandwich(bot, update, groups):
             update.message.reply_text("What? Make it yourself.", quote=True)
 
 
-def github(bot, update, groupdict):
-    # TODO: Handle multiple references in the same message
-    user, repo, number, number_type, sha = [groupdict[x] for x in ('user', 'repo', 'number', 'number_type', 'sha')]
-    url = GITHUB_URL
-    name = ''
-    if number:
-        if user and repo:
-            url += f'{user}/{repo}'
-            name += f'{user}/{repo}'
-        else:
-            url += DEFAULT_REPO
-        url += f'/issues/{number}'
-        name += f'{number_type}{number}'
-    else:
-        if user:
-            name += user
-            if repo:
+def keep_typing(last, chat, action):
+    now = time.time()
+    if (now - last) > 1:
+        chat.send_action(action)
+    return now
+
+
+@lru_cache()
+def _get_github_title_and_type(url, sha=None):
+    title = get_web_page_title(url)
+    if not title:
+        return
+    split = title.split(' · ')
+    t = 'PR' if 'Pull Request' in split[1] else 'Issue'
+    if sha:
+        t = 'Commit'
+    return split[0], t
+
+
+def github(bot, update, chat_data):
+    message = update.message or update.edited_message
+    last = 0
+    things = {}
+
+    # Due to bug in ptb we need to convert entities of type URL to TEXT_LINK for them to be converted to html
+    for entity in message.entities:
+        if entity.type == MessageEntity.URL:
+            entity.type = MessageEntity.TEXT_LINK
+            entity.url = message.parse_entity(entity)
+
+    for match in GITHUB_PATTERN.finditer(get_text_not_in_entities(message.text_html)):
+        last = keep_typing(last, update.effective_chat, ChatAction.TYPING)
+        logging.debug(match.groupdict())
+
+        user, repo, number, sha = [match.groupdict()[x] for x in ('user', 'repo', 'number', 'sha')]
+        url = GITHUB_URL
+        name = ''
+        if number:
+            if user and repo:
                 url += f'{user}/{repo}'
-                name += f'/{repo}'
-            name += '@'
-        if not repo:
-            url += DEFAULT_REPO
-        name += sha[:7]
-        url += f'/commit/{sha}'
-    update.message.reply_text(f'[{name}]({url})', parse_mode=ParseMode.MARKDOWN)
+                name += f'{user}/{repo}'
+            else:
+                url += DEFAULT_REPO
+            name += f'#{number}'
+            url += f'/issues/{number}'
+        else:
+            if user:
+                name += user
+                if repo:
+                    url += f'{user}/{repo}'
+                    name += f'/{repo}'
+                name += '@'
+            if not repo:
+                url += DEFAULT_REPO
+            name += sha[:7]
+            url += f'/commit/{sha}'
+
+        if url in things.keys():
+            continue
+
+        gh = _get_github_title_and_type(url, sha)
+        if not gh:
+            continue
+
+        name = f'{gh[1]} {name}: {gh[0]}'
+        things[url] = name
+
+    if things:
+        reply_or_edit(bot, update, chat_data,
+                      '\n'.join([f'[{name}]({url})' for url, name in things.items()]))
 
 
 def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
@@ -255,18 +304,25 @@ def main():
     updater = Updater(token=config['KEYS']['bot_api'])
     dispatcher = updater.dispatcher
 
-    global self_chat_id
-    self_chat_id = f'@{updater.bot.get_me().username}'
+    global SELF_CHAT_ID
+    SELF_CHAT_ID = f'@{updater.bot.get_me().username}'
 
     start_handler = CommandHandler('start', start, pass_args=True)
     rules_handler = CommandHandler('rules', rules)
     rules_handler_hashtag = RegexHandler(r'.*#rules.*', rules)
-    docs_handler = CommandHandler('docs', docs, pass_args=True, allow_edited=True, pass_chat_data=True)
-    wiki_handler = CommandHandler('wiki', wiki, pass_args=True, allow_edited=True, pass_chat_data=True)
-    sandwich_handler = RegexHandler(r'(?i)[\s\S]*?((sudo )?make me a sandwich)[\s\S]*?', sandwich, pass_groups=True)
-    off_on_topic_handler = RegexHandler(r'(?i)[\s\S]*?\b(?<!["\\])(off|on)[- _]?topic\b', off_on_topic,
+    docs_handler = CommandHandler('docs', docs, allow_edited=True)
+    wiki_handler = CommandHandler('wiki', wiki, allow_edited=True)
+    sandwich_handler = RegexHandler(r'(?i)[\s\S]*?((sudo )?make me a sandwich)[\s\S]*?', sandwich,
+                                    pass_groups=True)
+    off_on_topic_handler = RegexHandler(r'(?i)[\s\S]*?\b(?<!["\\])(off|on)[- _]?topic\b',
+                                        off_on_topic,
                                         pass_groups=True)
-    github_handler = RegexHandler(GITHUB_PATTERN, github, pass_groupdict=True)
+
+    # We need several matches so RegexHandler is basically useless
+    # therefore we catch everything and do regex ourselves
+    # This should probably be in another dispatcher group
+    # but I kept getting SystemErrors...
+    github_handler = MessageHandler(Filters.all, github, allow_edited=True, pass_chat_data=True)
     forward_faq_handler = RegexHandler(r'(?i).*#faq.*', forward_faq)
 
     taghints.register(dispatcher)

@@ -114,7 +114,7 @@ class Search:
 
                     if tg_test in self._official.keys():
                         tg_name = self._official[tg_test]
-                        tg_url = urljoin(OFFICIAL_URL, '#' + tg_name)
+                        tg_url = urljoin(OFFICIAL_URL, '#' + tg_name.lower())
 
                     short_name = name_bits[1:]
 

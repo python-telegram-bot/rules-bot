@@ -1,3 +1,8 @@
+from urllib.error import HTTPError
+from urllib.request import urlopen
+
+from bs4 import BeautifulSoup
+
 from telegram import ParseMode
 
 ARROW_CHARACTER = '➜'
@@ -13,7 +18,9 @@ def get_reply_id(update):
 
 def reply_or_edit(bot, update, chat_data, text):
     if update.edited_message:
-        chat_data[update.edited_message.message_id].edit_text(text, parse_mode=ParseMode.MARKDOWN)
+        chat_data[update.edited_message.message_id].edit_text(text,
+                                                              parse_mode=ParseMode.MARKDOWN,
+                                                              disable_web_page_preview=True)
     else:
         issued_reply = get_reply_id(update)
         if issued_reply:
@@ -25,6 +32,20 @@ def reply_or_edit(bot, update, chat_data, text):
             chat_data[update.message.message_id] = update.message.reply_text(text,
                                                                              parse_mode=ParseMode.MARKDOWN,
                                                                              disable_web_page_preview=True)
+
+
+def get_web_page_title(url):
+    try:
+        soup = BeautifulSoup(urlopen(url), "html.parser")
+        return soup.title.string
+    except HTTPError:
+        return None
+
+
+def get_text_not_in_entities(html):
+    soup = BeautifulSoup(html, 'html.parser')
+    return ' '.join(soup.find_all(text=True, recursive=False))
+
 
 
 def build_menu(buttons,
