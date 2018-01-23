@@ -6,16 +6,17 @@ import time
 from functools import lru_cache
 from uuid import uuid4
 
-from telegram import InlineQueryResultArticle, InputTextMessageContent, ParseMode, ChatAction, \
-    MessageEntity
-from telegram.ext import InlineQueryHandler, Updater, CommandHandler, RegexHandler, MessageHandler, \
-    Filters
+from telegram import Bot, InlineQueryResultArticle, InputTextMessageContent, ParseMode
+from telegram.error import BadRequest
+from telegram.ext import CommandHandler, RegexHandler, Updater
 from telegram.utils.helpers import escape_markdown
 
-from search import search, WIKI_URL
-from util import (reply_or_edit, get_reply_id, ARROW_CHARACTER, GITHUB_URL, DEFAULT_REPO,
-                  get_web_page_title,
-                  get_text_not_in_entities)
+import const
+from components import inlinequeries, taghints
+from const import ENCLOSED_REGEX, ENCLOSING_REPLACEMENT_CHARACTER, GITHUB_PATTERN, OFFTOPIC_CHAT_ID, OFFTOPIC_RULES, \
+    OFFTOPIC_USERNAME, ONTOPIC_RULES, ONTOPIC_USERNAME, TELEGRAM_SUPERSCRIPT
+from search import search
+from util import ARROW_CHARACTER, DEFAULT_REPO, GITHUB_URL, get_reply_id, reply_or_edit
 
 if os.environ.get('ROOLSBOT_DEBUG'):
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -26,52 +27,7 @@ else:
 
 logger = logging.getLogger(__name__)
 
-SELF_CHAT_ID = '@'  # For now, gets updated in main()
-ENCLOSING_REPLACEMENT_CHARACTER = '+'
-ENCLOSED_REGEX = rf'\{ENCLOSING_REPLACEMENT_CHARACTER}([a-zA-Z_.0-9]*)\{ENCLOSING_REPLACEMENT_CHARACTER}'
-OFFTOPIC_USERNAME = 'pythontelegrambottalk'
-ONTOPIC_USERNAME = 'pythontelegrambotgroup'
-OFFTOPIC_CHAT_ID = '@' + OFFTOPIC_USERNAME
-TELEGRAM_SUPERSCRIPT = 'ᵀᴱᴸᴱᴳᴿᴬᴹ'
-
-ONTOPIC_RULES = """This group is for questions, answers and discussions around the <a href="https://python-telegram-bot.org/">python-telegram-bot library</a> and, to some extent, Telegram bots in general.
-
-<b>Rules:</b>
-- The group language is English
-- Stay on topic
-- No meta questions (eg. <i>"Can I ask something?"</i>)
-- Use a pastebin when you have a question about your code, like <a href="https://www.codepile.net">this one</a>.
-- Use <code>/wiki</code> and <code>/docs</code> in a private chat if possible.
-
-Before asking, please take a look at our <a href="https://github.com/python-telegram-bot/python-telegram-bot/wiki">wiki</a> and <a href="https://github.com/python-telegram-bot/python-telegram-bot/tree/master/examples">example bots</a> or, depending on your question, the <a href="https://core.telegram.org/bots/api">official API docs</a> and <a href="http://python-telegram-bot.readthedocs.io/en/stable/">python-telegram-bot docs</a>).
-For off-topic discussions, please use our <a href="https://telegram.me/pythontelegrambottalk">off-topic group</a>."""
-
-OFFTOPIC_RULES = """<b>Topics:</b>
-- Discussions about Python in general
-- Meta discussions about <code>python-telegram-bot</code>
-- Friendly, respectful talking about non-tech topics
-
-<b>Rules:</b>
-- The group language is English
-- Use a pastebin to share code
-- No <a href="https://telegram.me/joinchat/A6kAm0EeUdd0SciQStb9cg">shitposting, flamewars or excessive trolling</a>
-- Max. 1 meme per user per day"""
-
-GITHUB_PATTERN = re.compile(r'''
-    (?i)                                # Case insensitivity
-    (?:                                 # Optional non-capture group for username/repo
-        (?P<user>[^\s/\#@><]+)          # Matches username (any char but whitespace, slash, hashtag and at)
-        (?:/(?P<repo>[^\s/\#@><]+))?    # Optionally matches repo, with a slash in front
-    )?                                  # End optional non-capture group
-    (?:                                 # Match either
-        (?:
-            (?:\#|GH-|PR-)              # Hashtag or "GH-" or "PR-"
-            (?P<number>\d+)             # followed by numbers
-        )
-    |                                   # Or
-        (?:@?(?P<sha>[0-9a-f]{40}))     # at sign followed by 40 hexadecimal characters
-    )
-''', re.VERBOSE)
+self_chat_id = '@'  # Updated in main()
 
 
 def start(bot, update, args=None):
@@ -97,6 +53,31 @@ def inlinequery_help(bot, update):
             f"Some wiki pages have spaces in them. Please replace such spaces with underscores. "
             f"The bot will automatically change them back desired space.")
     bot.sendMessage(chat_id, text, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True)
+
+
+def forward_faq(bot: Bot, update):
+    if update.message.chat.username not in [ONTOPIC_USERNAME, OFFTOPIC_USERNAME]:
+        return
+
+    admins = bot.get_chat_administrators(ONTOPIC_USERNAME)
+
+    if update.effective_user.id not in [x.user.id for x in admins]:
+        return
+
+    if not update.message:
+        return
+
+    reply_to = update.message.reply_to_message
+    if not reply_to:
+        return
+
+    try:
+        update.message.delete()
+    except BadRequest:
+        pass
+
+    # Forward message to FAQ channel
+    reply_to.forward(const.FAQ_CHANNEL_ID, disable_notification=True)
 
 
 def rules(bot, update):
@@ -311,72 +292,6 @@ def article(title='', description='', message_text=''):
     )
 
 
-def inline_query(bot, update, threshold=20):
-    query = update.inline_query.query
-    results_list = list()
-
-    if len(query) > 0:
-        modified, replaced = fuzzy_replacements_markdown(query, official_api_links=True)
-        if modified:
-            results_list.append(article(
-                title="Replace links and show official Bot API documentation",
-                description=', '.join(modified),
-                message_text=replaced))
-
-        modified, replaced = fuzzy_replacements_markdown(query, official_api_links=False)
-        if modified:
-            results_list.append(article(
-                title="Replace links",
-                description=', '.join(modified),
-                message_text=replaced))
-
-        wiki_pages = search.wiki(query, amount=4, threshold=threshold)
-        doc = search.docs(query, threshold=threshold)
-
-        if doc:
-            text = f'*{doc.short_name}*\n' \
-                   f'_python-telegram-bot_ documentation for this {doc.type}:\n' \
-                   f'[{doc.full_name}]({doc.url})'
-            if doc.tg_name:
-                text += f'\n\nThe official documentation has more info about [{doc.tg_name}]({doc.tg_url}).'
-
-            results_list.append(article(
-                title=f'{doc.full_name}',
-                description="python-telegram-bot documentation",
-                message_text=text,
-            ))
-
-        if wiki_pages:
-            for wiki_page in wiki_pages:
-                results_list.append(article(
-                    title=f'{wiki_page[0]}',
-                    description="Github wiki for python-telegram-bot",
-                    message_text=f'Wiki of _python-telegram-bot_\n'
-                                 f'[{wiki_page[0]}]({wiki_page[1]})'
-                ))
-
-        # "No results" entry
-        if len(results_list) == 0:
-            results_list.append(article(
-                title='❌ No results.',
-                description='',
-                message_text=f'[GitHub wiki]({WIKI_URL}) of _python-telegram-bot_',
-            ))
-
-    else:  # no query input
-        # add all wiki pages
-        for name, link in search._wiki.items():
-            results_list.append(article(
-                title=name,
-                description='Wiki of python-telegram-bot',
-                message_text=f'Wiki of _python-telegram-bot_\n'
-                             f'[{escape_markdown(name)}]({link})',
-            ))
-
-    bot.answerInlineQuery(update.inline_query.id, results=results_list, switch_pm_text='Help',
-                          switch_pm_parameter='inline-help')
-
-
 def error(bot, update, err):
     """Log all errors"""
     logger.warning(f'Update "{update}" caused error "{err}"')
@@ -394,28 +309,34 @@ def main():
 
     start_handler = CommandHandler('start', start, pass_args=True)
     rules_handler = CommandHandler('rules', rules)
+    rules_handler_hashtag = RegexHandler(r'.*#rules.*', rules)
     docs_handler = CommandHandler('docs', docs, allow_edited=True)
     wiki_handler = CommandHandler('wiki', wiki, allow_edited=True)
     sandwich_handler = RegexHandler(r'(?i)[\s\S]*?((sudo )?make me a sandwich)[\s\S]*?', sandwich,
                                     pass_groups=True)
     off_on_topic_handler = RegexHandler(r'(?i)[\s\S]*?\b(?<!["\\])(off|on)[- _]?topic\b',
-                                        off_on_topic, pass_groups=True)
+                                        off_on_topic,
+                                        pass_groups=True)
 
     # We need several matches so RegexHandler is basically useless
     # therefore we catch everything and do regex ourselves
     # This should probably be in another dispatcher group
     # but I kept getting SystemErrors...
     github_handler = MessageHandler(Filters.all, github, allow_edited=True, pass_chat_data=True)
+    forward_faq_handler = RegexHandler(r'(?i).*#faq.*', forward_faq)
 
+    taghints.register(dispatcher)
+    dispatcher.add_handler(forward_faq_handler)
     dispatcher.add_handler(start_handler)
     dispatcher.add_handler(rules_handler)
+    dispatcher.add_handler(rules_handler_hashtag)
     dispatcher.add_handler(docs_handler)
     dispatcher.add_handler(wiki_handler)
     dispatcher.add_handler(sandwich_handler)
     dispatcher.add_handler(off_on_topic_handler)
     dispatcher.add_handler(github_handler)
 
-    dispatcher.add_handler(InlineQueryHandler(inline_query))
+    inlinequeries.register(dispatcher)
     dispatcher.add_error_handler(error)
 
     updater.start_polling()

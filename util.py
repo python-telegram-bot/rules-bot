@@ -45,3 +45,16 @@ def get_web_page_title(url):
 def get_text_not_in_entities(html):
     soup = BeautifulSoup(html, 'html.parser')
     return ' '.join(soup.find_all(text=True, recursive=False))
+
+
+
+def build_menu(buttons,
+               n_cols,
+               header_buttons=None,
+               footer_buttons=None):
+    menu = [buttons[i:i + n_cols] for i in range(0, len(buttons), n_cols)]
+    if header_buttons:
+        menu.insert(0, header_buttons)
+    if footer_buttons:
+        menu.append(footer_buttons)
+    return menu
