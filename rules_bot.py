@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from telegram import Bot, InlineQueryResultArticle, InputTextMessageContent, ParseMode
 from telegram.error import BadRequest
-from telegram.ext import CommandHandler, RegexHandler, Updater
+from telegram.ext import CommandHandler, RegexHandler, Updater, MessageHandler
 from telegram.utils.helpers import escape_markdown
 
 import const
