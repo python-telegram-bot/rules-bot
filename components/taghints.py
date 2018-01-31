@@ -1,6 +1,6 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import BadRequest
-from telegram.ext import RegexHandler, run_async, CommandHandler
+from telegram.ext import CommandHandler, RegexHandler, run_async
 
 import const
 import util
@@ -44,8 +44,16 @@ HINTS = {
 
 It shows you what attributes are available in an update. Alternatively, use a json dumping bot like @JsonDumpBot or @JsonDumpBetaBot for a general overview, but keep in mind that this method won't be entirely consistent with your bot's updates (different file\_ids for example).""",
         'help': "Explain how to pretty-print an update"
+    },
+    '#meta': {
+        'message': """No need for meta questions. Just ask! 🤗
+_"Has anyone done .. before?"_
+Probably. *Just ask your question and somebody will help!* 
+        """,
+        'help': "Show our stance on meta-questions"
     }
 }
+
 
 @run_async
 def list_available_hints(bot, update):
@@ -58,6 +66,7 @@ def list_available_hints(bot, update):
     message += "\n\nMake sure to reply to another message, so I know who to refer to."
     update.effective_message.reply_text(message, parse_mode='markdown',
                                         disable_web_page_preview=True)
+
 
 def get_hint_data(text):
     for k, v in HINTS.items():
