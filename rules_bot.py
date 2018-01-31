@@ -132,8 +132,9 @@ def off_on_topic(bot, update, groups):
                 name = reply.from_user.first_name
 
             replied_message_text = reply.text
+            replied_message_id = reply.message_id
 
-            text = (f'{name} _wrote:_\n'
+            text = (f'{name} [wrote](t.me/pythontelegrambotgroup/{replied_message_id}):\n'
                     f'{replied_message_text}\n\n'
                     f'⬇️ ᴘʟᴇᴀsᴇ ᴄᴏɴᴛɪɴᴜᴇ ʜᴇʀᴇ ⬇️')
 
