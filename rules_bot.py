@@ -4,11 +4,10 @@ import os
 import re
 import time
 from functools import lru_cache
-from uuid import uuid4
 
-from telegram import Bot, InlineQueryResultArticle, InputTextMessageContent, ParseMode
+from telegram import Bot, ParseMode, MessageEntity, ChatAction
 from telegram.error import BadRequest
-from telegram.ext import CommandHandler, RegexHandler, Updater
+from telegram.ext import CommandHandler, RegexHandler, Updater, MessageHandler, Filters
 from telegram.utils.helpers import escape_markdown
 
 import const
@@ -16,7 +15,8 @@ from components import inlinequeries, taghints
 from const import ENCLOSED_REGEX, ENCLOSING_REPLACEMENT_CHARACTER, GITHUB_PATTERN, OFFTOPIC_CHAT_ID, OFFTOPIC_RULES, \
     OFFTOPIC_USERNAME, ONTOPIC_RULES, ONTOPIC_USERNAME, TELEGRAM_SUPERSCRIPT
 from search import search
-from util import ARROW_CHARACTER, DEFAULT_REPO, GITHUB_URL, get_reply_id, reply_or_edit
+from util import ARROW_CHARACTER, DEFAULT_REPO, GITHUB_URL, get_reply_id, reply_or_edit, get_web_page_title, \
+    get_text_not_in_entities
 
 if os.environ.get('ROOLSBOT_DEBUG'):
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -278,18 +278,6 @@ def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
 
     result_changed = [x[0] for x in replacements]
     return result_changed, result
-
-
-def article(title='', description='', message_text=''):
-    return InlineQueryResultArticle(
-        id=uuid4(),
-        title=title,
-        description=description,
-        input_message_content=InputTextMessageContent(
-            message_text=message_text,
-            parse_mode=ParseMode.MARKDOWN,
-            disable_web_page_preview=True)
-    )
 
 
 def error(bot, update, err):

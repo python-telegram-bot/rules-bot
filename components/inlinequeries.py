@@ -1,10 +1,24 @@
-from telegram import InlineQueryResultArticle, InputTextMessageContent
+from uuid import uuid4
+
+from telegram import InlineQueryResultArticle, InputTextMessageContent, ParseMode
 from telegram.ext import InlineQueryHandler
 from telegram.utils.helpers import escape_markdown
 
 from components import taghints
-from rules_bot import article, fuzzy_replacements_markdown
-from search import search, WIKI_URL
+from rules_bot import fuzzy_replacements_markdown
+from search import WIKI_URL, search
+
+
+def article(title='', description='', message_text=''):
+    return InlineQueryResultArticle(
+        id=uuid4(),
+        title=title,
+        description=description,
+        input_message_content=InputTextMessageContent(
+            message_text=message_text,
+            parse_mode=ParseMode.MARKDOWN,
+            disable_web_page_preview=True)
+    )
 
 
 def hint_article(msg, reply_markup, key):
@@ -82,13 +96,18 @@ def inline_query(bot, update, threshold=20):
 
     else:  # no query input
         # add all wiki pages
+        # TODO: Use slicing to limit items (somehow)
+        count = 0
         for name, link in search._wiki.items():
+            if count == 50:
+                break
             results_list.append(article(
                 title=name,
                 description='Wiki of python-telegram-bot',
                 message_text=f'Wiki of _python-telegram-bot_\n'
                              f'[{escape_markdown(name)}]({link})',
             ))
+            count += 1
 
     bot.answerInlineQuery(update.inline_query.id, results=results_list, switch_pm_text='Help',
                           switch_pm_parameter='inline-help')
