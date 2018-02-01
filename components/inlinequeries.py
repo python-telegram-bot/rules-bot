@@ -74,10 +74,10 @@ def inline_query(bot, update, threshold=20):
                 message_text=text,
             ))
 
-        # Limit number of search results to maximum
-        wiki_pages = wiki_pages[:50 - len(results_list)]
 
         if wiki_pages:
+            # Limit number of search results to maximum
+            wiki_pages = wiki_pages[:49 - len(results_list)]
             for wiki_page in wiki_pages:
                 results_list.append(article(
                     title=f'{wiki_page[0]}',
