@@ -58,6 +58,14 @@ Probably. *Just ask your question and somebody will help!*
 [As Programmer](https://wiki.python.org/moin/BeginnersGuide/Programmers)
         """,
         'help': "How to find a Python tutorial"
+    },
+    '#wronglib':{
+        'message':"""Hey, I think you're wrong 🧐
+It looks like you're not using the python-telegram-bot library. If you insist on using that other one, please go where you belong:
+[pyTelegramBotApi](https://telegram.me/joinchat/Bn4ixj84FIZVkwhk2jag6A)
+[Telepot](https://github.com/nickoala/telepot)
+        """,
+        'help': "Other Python wrappers for Telegram"
     }
 }
 
