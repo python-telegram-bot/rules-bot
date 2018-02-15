@@ -51,6 +51,13 @@ _"Has anyone done .. before?"_
 Probably. *Just ask your question and somebody will help!* 
         """,
         'help': "Show our stance on meta-questions"
+    },
+    '#tutorial': {
+        'message': """Oh, hey! There's a new guy joining our awesome community of Python developers ❤️ We have compiled a list of learning resources _just for you_:
+[As Beginner](https://wiki.python.org/moin/BeginnersGuide/NonProgrammers)
+[As Programmer](https://wiki.python.org/moin/BeginnersGuide/Programmers)
+        """,
+        'help': "How to find a Python tutorial"
     }
 }
 
