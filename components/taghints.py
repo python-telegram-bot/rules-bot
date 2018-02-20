@@ -56,6 +56,7 @@ Probably. *Just ask your question and somebody will help!*
         'message': """Oh, hey! There's a new guy joining our awesome community of Python developers ❤️ We have compiled a list of learning resources _just for you_:
 [As Beginner](https://wiki.python.org/moin/BeginnersGuide/NonProgrammers)
 [As Programmer](https://wiki.python.org/moin/BeginnersGuide/Programmers)
+[Official Tutorial](https://docs.python.org/3/tutorial/)
         """,
         'help': "How to find a Python tutorial"
     },
