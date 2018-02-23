@@ -51,6 +51,22 @@ _"Has anyone done .. before?"_
 Probably. *Just ask your question and somebody will help!* 
         """,
         'help': "Show our stance on meta-questions"
+    },
+    '#tutorial': {
+        'message': """Oh, hey! There's a new guy joining our awesome community of Python developers ❤️ We have compiled a list of learning resources _just for you_:
+[As Beginner](https://wiki.python.org/moin/BeginnersGuide/NonProgrammers)
+[As Programmer](https://wiki.python.org/moin/BeginnersGuide/Programmers)
+[Official Tutorial](https://docs.python.org/3/tutorial/)
+        """,
+        'help': "How to find a Python tutorial"
+    },
+    '#wronglib':{
+        'message':"""Hey, I think you're wrong 🧐
+It looks like you're not using the python-telegram-bot library. If you insist on using that other one, please go where you belong:
+[pyTelegramBotApi](https://telegram.me/joinchat/Bn4ixj84FIZVkwhk2jag6A)
+[Telepot](https://github.com/nickoala/telepot)
+        """,
+        'help': "Other Python wrappers for Telegram"
     }
 }
 
