@@ -25,6 +25,13 @@ HINTS = {
         }],
         'help': 'Tell a member to stop spamming and switch to a private chat',
     },
+    '#issue': {
+        'message': "Hi,\n\nThis is not an issue with the library's code, but a usage question. "
+                   "Feel free to ask it in our [telegram group](https://t.me/pythontelegrambotgroup). "
+                   "Or (if you can't reach our group) our [IRC channel](https://webchat.freenode.net/?channels=##python-telegram-bot).\n{query}",
+        'default': '',
+        'help': 'Send issue template',
+    },
     '#userbot': {
         'message': "Refer to [this article](http://telegra.ph/How-a-"
                    "Userbot-superacharges-your-Telegram-Bot-07-09) to learn more about *Userbots*.",
