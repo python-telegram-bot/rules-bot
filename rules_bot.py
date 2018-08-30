@@ -85,9 +85,11 @@ def rules(bot, update):
     if update.message.chat.username == ONTOPIC_USERNAME:
         update.message.reply_text(ONTOPIC_RULES, parse_mode=ParseMode.HTML,
                                   disable_web_page_preview=True)
+        update.message.delete()
     elif update.message.chat.username == OFFTOPIC_USERNAME:
         update.message.reply_text(OFFTOPIC_RULES, parse_mode=ParseMode.HTML,
                                   disable_web_page_preview=True)
+        update.message.delete()
     else:
         update.message.reply_text("Hmm. You're not in a python-telegram-bot group, "
                                   "and I don't know the rules around here.")
