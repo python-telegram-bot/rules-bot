@@ -84,11 +84,11 @@ def rules(bot, update):
     """Load and send the appropiate rules based on which group we're in"""
     if update.message.chat.username == ONTOPIC_USERNAME:
         update.message.reply_text(ONTOPIC_RULES, parse_mode=ParseMode.HTML,
-                                  disable_web_page_preview=True)
+                                  disable_web_page_preview=True, quote=False)
         update.message.delete()
     elif update.message.chat.username == OFFTOPIC_USERNAME:
         update.message.reply_text(OFFTOPIC_RULES, parse_mode=ParseMode.HTML,
-                                  disable_web_page_preview=True)
+                                  disable_web_page_preview=True, quote=False)
         update.message.delete()
     else:
         update.message.reply_text("Hmm. You're not in a python-telegram-bot group, "
