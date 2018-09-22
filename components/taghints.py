@@ -61,10 +61,17 @@ Probably. *Just ask your question and somebody will help!*
     },
     '#tutorial': {
         'message': """Oh, hey! There's a new guy joining our awesome community of Python developers ❤️ We have compiled a list of learning resources _just for you_:
-[As Beginner](https://wiki.python.org/moin/BeginnersGuide/NonProgrammers)
-[As Programmer](https://wiki.python.org/moin/BeginnersGuide/Programmers)
-[Official Tutorial](https://docs.python.org/3/tutorial/)
-        """,
+• [As Beginner](https://wiki.python.org/moin/BeginnersGuide/NonProgrammers)
+• [As Programmer](https://wiki.python.org/moin/BeginnersGuide/Programmers)
+• [Official Tutorial](https://docs.python.org/3/tutorial/)
+• [Dive into Python](http://www.diveintopython3.net/)
+• [Learn Python](https://www.learnpython.org/)
+• [Computer Science Circles](https://cscircles.cemc.uwaterloo.ca/)
+• [MIT OpenCourse](https://ocw.mit.edu/courses/electrical-engineering-and-computer-science/6-0001-introduction-to-computer-science-and-programming-in-python-fall-2016/)
+• [Hitchhiker’s Guide to Python](https://docs.python-guide.org/)
+• The @PythonRes Telegram Channel.
+• Corey Schafer videos for [beginners](https://www.youtube.com/watch?v=YYXdXT2l-Gg&list=PL-osiE80TeTskrapNbzXhwoFUiLCjGgY7) and in [general](https://www.youtube.com/watch?v=YYXdXT2l-Gg&list=PL-osiE80TeTt2d9bfVyTiXJA-UTHn6WwU)
+• [Project Python](http://projectpython.net/chapter00/)""",
         'help': "How to find a Python tutorial"
     },
     '#wronglib':{
