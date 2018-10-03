@@ -1,3 +1,4 @@
+import re
 from uuid import uuid4
 
 from telegram import InlineQueryResultArticle, InputTextMessageContent, ParseMode
@@ -5,33 +6,61 @@ from telegram.ext import InlineQueryHandler
 from telegram.utils.helpers import escape_markdown
 
 from components import taghints
-from rules_bot import fuzzy_replacements_markdown
+from const import ENCLOSED_REGEX, TELEGRAM_SUPERSCRIPT, ENCLOSING_REPLACEMENT_CHARACTER
 from search import WIKI_URL, search
+from util import ARROW_CHARACTER
 
 
-def article(title='', description='', message_text=''):
+def article(title='', description='', message_text='', key=None, reply_markup=None):
     return InlineQueryResultArticle(
-        id=uuid4(),
+        id=key or uuid4(),
         title=title,
         description=description,
         input_message_content=InputTextMessageContent(
             message_text=message_text,
             parse_mode=ParseMode.MARKDOWN,
-            disable_web_page_preview=True)
-    )
-
-
-def hint_article(msg, reply_markup, key):
-    return InlineQueryResultArticle(
-        id=key,
-        title='Send hint on {}'.format(key.capitalize()),
-        input_message_content=InputTextMessageContent(
-            message_text=msg,
-            parse_mode="Markdown",
-            disable_web_page_preview=True
-        ),
+            disable_web_page_preview=True),
         reply_markup=reply_markup
     )
+
+
+def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
+    """ Replaces the enclosed characters in the query string with hyperlinks to the documentations """
+    symbols = re.findall(ENCLOSED_REGEX, query)
+
+    if not symbols:
+        return None, None
+
+    replacements = list()
+    for s in symbols:
+        # Wiki first, cause with docs you can always prepend telegram. for better precision
+        wiki = search.wiki(s.replace('_', ' '), amount=1, threshold=threshold)
+        if wiki:
+            name = wiki[0][0].split(ARROW_CHARACTER)[-1].strip()
+            text = f'[{name}]({wiki[0][1]})'
+            replacements.append((wiki[0][0], s, text))
+            continue
+
+        doc = search.docs(s, threshold=threshold)
+        if doc:
+            text = f'[{doc.short_name}]({doc.url})'
+
+            if doc.tg_url and official_api_links:
+                text += f' [{TELEGRAM_SUPERSCRIPT}]({doc.tg_url})'
+
+            replacements.append((doc.short_name, s, text))
+            continue
+
+        # not found
+        replacements.append((s + '❓', s, escape_markdown(s)))
+
+    result = query
+    for name, symbol, text in replacements:
+        char = ENCLOSING_REPLACEMENT_CHARACTER
+        result = result.replace(f'{char}{symbol}{char}', text)
+
+    result_changed = [x[0] for x in replacements]
+    return result_changed, result
 
 
 def inline_query(bot, update, threshold=20):
@@ -39,10 +68,13 @@ def inline_query(bot, update, threshold=20):
     results_list = list()
 
     if len(query) > 0:
-
-        msg, reply_markup, key = taghints.get_hint_data(query)
-        if msg is not None:
-            results_list.append(hint_article(msg, reply_markup, key))
+        if query.startswith('#'):
+            hints = taghints.get_hints(query)
+            results_list.extend([article(f'Send hint on {key.capitalize()}',
+                                         hint.help,
+                                         hint.msg,
+                                         key=key,
+                                         reply_markup=hint.reply_markup) for key, hint in hints.items()])
 
         modified, replaced = fuzzy_replacements_markdown(query, official_api_links=True)
         if modified:
@@ -73,7 +105,6 @@ def inline_query(bot, update, threshold=20):
                 description="python-telegram-bot documentation",
                 message_text=text,
             ))
-
 
         if wiki_pages:
             # Limit number of search results to maximum
@@ -109,8 +140,8 @@ def inline_query(bot, update, threshold=20):
             ))
             count += 1
 
-    bot.answerInlineQuery(update.inline_query.id, results=results_list, switch_pm_text='Help',
-                          switch_pm_parameter='inline-help')
+    bot.answer_inline_query(update.inline_query.id, results=results_list, switch_pm_text='Help',
+                            switch_pm_parameter='inline-help')
 
 
 def register(dispatcher):

@@ -1,22 +1,18 @@
 import configparser
 import logging
 import os
-import re
 import time
 from functools import lru_cache
 
 from telegram import Bot, ParseMode, MessageEntity, ChatAction
 from telegram.error import BadRequest
 from telegram.ext import CommandHandler, RegexHandler, Updater, MessageHandler, Filters
-from telegram.utils.helpers import escape_markdown
 
 import const
 from components import inlinequeries, taghints
-from const import ENCLOSED_REGEX, ENCLOSING_REPLACEMENT_CHARACTER, GITHUB_PATTERN, OFFTOPIC_CHAT_ID, OFFTOPIC_RULES, \
-    OFFTOPIC_USERNAME, ONTOPIC_RULES, ONTOPIC_USERNAME, TELEGRAM_SUPERSCRIPT
-from search import search
-from util import ARROW_CHARACTER, DEFAULT_REPO, GITHUB_URL, get_reply_id, reply_or_edit, get_web_page_title, \
-    get_text_not_in_entities
+from const import (ENCLOSING_REPLACEMENT_CHARACTER, GITHUB_PATTERN, OFFTOPIC_CHAT_ID, OFFTOPIC_RULES,
+                   OFFTOPIC_USERNAME, ONTOPIC_RULES, ONTOPIC_USERNAME)
+from util import DEFAULT_REPO, GITHUB_URL, get_reply_id, reply_or_edit, get_web_page_title, get_text_not_in_entities
 
 if os.environ.get('ROOLSBOT_DEBUG'):
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -242,45 +238,6 @@ def github(bot, update, chat_data):
     if things:
         reply_or_edit(bot, update, chat_data,
                       '\n'.join([f'[{name}]({url})' for url, name in things.items()]))
-
-
-def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
-    """ Replaces the enclosed characters in the query string with hyperlinks to the documentations """
-    symbols = re.findall(ENCLOSED_REGEX, query)
-
-    if not symbols:
-        return None, None
-
-    replacements = list()
-    for s in symbols:
-        # Wiki first, cause with docs you can always prepend telegram. for better precision
-        wiki = search.wiki(s.replace('_', ' '), amount=1, threshold=threshold)
-        if wiki:
-            name = wiki[0][0].split(ARROW_CHARACTER)[-1].strip()
-            text = f'[{name}]({wiki[0][1]})'
-            replacements.append((wiki[0][0], s, text))
-            continue
-
-        doc = search.docs(s, threshold=threshold)
-        if doc:
-            text = f'[{doc.short_name}]({doc.url})'
-
-            if doc.tg_url and official_api_links:
-                text += f' [{TELEGRAM_SUPERSCRIPT}]({doc.tg_url})'
-
-            replacements.append((doc.short_name, s, text))
-            continue
-
-        # not found
-        replacements.append((s + '❓', s, escape_markdown(s)))
-
-    result = query
-    for name, symbol, text in replacements:
-        char = ENCLOSING_REPLACEMENT_CHARACTER
-        result = result.replace(f'{char}{symbol}{char}', text)
-
-    result_changed = [x[0] for x in replacements]
-    return result_changed, result
 
 
 def error(bot, update, err):
