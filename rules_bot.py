@@ -251,6 +251,14 @@ def main():
 
     updater.start_polling()
     logger.info('Listening...')
+
+    try:
+        github_issues.set_auth(config['KEYS']['github_client_id'], config['KEYS']['github_client_secret'])
+    except KeyError:
+        logging.info('No github auth set. Rate-limit is 60 requests/hour without auth.')
+
+    github_issues.init_issues(dispatcher.job_queue)
+
     updater.idle()
 
 

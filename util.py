@@ -70,6 +70,12 @@ class GitHubIssues:
         self.etag = None
         self.issues = {}
 
+    def set_auth(self, client_id, client_secret):
+        self.s.params = {
+            'client_id': client_id,
+            'client_secret': client_secret
+        }
+
     def _get_json(self, url, data=None, headers=None):
         # Add base_url if needed
         url = url if url.startswith('https://') or url.startswith('http') else self.base_url + url
