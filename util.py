@@ -7,7 +7,9 @@ from telegram import ParseMode
 
 ARROW_CHARACTER = '➜'
 GITHUB_URL = "https://github.com/"
-DEFAULT_REPO = 'python-telegram-bot/python-telegram-bot'
+DEFAULT_REPO_OWNER = 'python-telegram-bot'
+DEFAULT_REPO_NAME = 'python-telegram-bot'
+DEFAULT_REPO = f'{DEFAULT_REPO_OWNER}/{DEFAULT_REPO_NAME}'
 
 
 def get_reply_id(update):
@@ -56,7 +58,7 @@ Commit = namedtuple('Commit', 'owner, repo, sha, url, title, author')
 
 
 class GitHubIssues:
-    def __init__(self, default_owner='python-telegram-bot', default_repo='python-telegram-bot'):
+    def __init__(self, default_owner=DEFAULT_REPO_OWNER, default_repo=DEFAULT_REPO_NAME):
         self.s = Session()
         self.s.headers.update({'user-agent': 'bvanrijn/rules-bot'})
         self.base_url = 'https://api.github.com/'
@@ -129,6 +131,8 @@ class GitHubIssues:
                       author=data['commit']['author']['name'] if ok else 'Unknown')
 
     def _job(self, url, job_queue, first=True):
+        logging.debug('Getting issues from %s', url)
+
         # Load 100 issues
         # We pass the ETag if we have one (not called from init_issues)
         ok, data, (modified, headers, links) = self._get_json(url, {
@@ -141,7 +145,7 @@ class GitHubIssues:
             return
 
         if not ok:
-            print('Something went broke :(')
+            logging.error('Something went broke :(')
             return
 
         # Add to issue cache
@@ -171,4 +175,4 @@ class GitHubIssues:
         self._job(f'repos/{self.default_owner}/{self.default_repo}/issues', job_queue, first=True)
 
 
-github_issues = GitHubIssues('jsmnbom', 'definitelytyped-firefox-webext-browser')
+github_issues = GitHubIssues()
