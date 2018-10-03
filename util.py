@@ -78,6 +78,7 @@ class GitHubIssues:
         return r.ok, None if r.status_code == 304 else r.json(), (r.headers, r.links)
 
     def pretty_format_issue(self, issue):
+        # PR OwnerIfNotDefault/RepoIfNotDefault#9999: Title by Author
         return (f'{issue.type} '
                 f'{"" if issue.owner == self.default_owner else issue.owner+"/"}'
                 f'{"" if issue.repo == self.default_repo else issue.repo}'
@@ -85,10 +86,11 @@ class GitHubIssues:
                 f'{issue.title} by {issue.author}')
 
     def pretty_format_commit(self, commit):
+        # Commit OwnerIfNotDefault/RepoIfNotDefault@abcdf123456789: Title by Author
         return (f'Commit '
                 f'{"" if commit.owner == self.default_owner else commit.owner+"/"}'
                 f'{"" if commit.repo == self.default_repo else commit.repo}'
-                f'{commit.sha}: '
+                f'@{commit.sha}: '
                 f'{commit.title} by {commit.author}')
 
     def get_issue(self,
