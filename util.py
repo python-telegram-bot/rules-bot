@@ -130,7 +130,10 @@ class GitHubIssues:
                          author=data['user']['login'] if ok else 'Unknown')
 
         # Look the issue up, or if not found, fall back on above code
-        return self.issues.get(number, self.get_issue(number, owner=self.default_owner, repo=self.default_repo))
+        try:
+            return self.issues[number]
+        except KeyError:
+            return self.get_issue(number, owner=self.default_owner, repo=self.default_repo)
 
     def get_commit(self,
                    sha: int,
@@ -151,7 +154,7 @@ class GitHubIssues:
 
         # Load 100 issues
         # We pass the ETag if we have one (not called from init_issues)
-        ok, data, (modified, headers, links) = self._get_json(url, {
+        ok, data, (headers, links) = self._get_json(url, {
             'per_page': 100,
             'state': 'all'
         }, {'If-None-Match': self.etag} if self.etag else None)
@@ -177,11 +180,12 @@ class GitHubIssues:
         # If more issues
         if 'next' in links:
             # Process next page after 5 sec to not get rate-limited
-            job_queue.run_once(lambda: self._job(links['next']['url'], job_queue), 5)
+            job_queue.run_once(lambda _, __: self._job(links['next']['url'], job_queue), 5)
         # No more issues
         else:
             # Add a job that every 10 min checks if the 100 first issues changed, and update them in our cache if needed
-            job_queue.run_repeating(lambda: self._job(links['first']['url'], job_queue, first=True), interval=10 * 60)
+            job_queue.run_repeating(lambda _, __: self._job(links['first']['url'],
+                                                            job_queue, first=True), interval=10 * 60)
 
         # If this is on page one (first) then we wanna save the header
         if first:
