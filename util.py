@@ -2,6 +2,7 @@ import logging
 from collections import namedtuple
 
 from bs4 import BeautifulSoup
+from fuzzywuzzy import process, fuzz
 from requests import Session
 from telegram import ParseMode
 
@@ -85,21 +86,30 @@ class GitHubIssues:
         # Only try .json() if we actually got new data
         return r.ok, None if r.status_code == 304 else r.json(), (r.headers, r.links)
 
-    def pretty_format_issue(self, issue):
-        # PR OwnerIfNotDefault/RepoIfNotDefault#9999: Title by Author
-        return (f'{issue.type} '
-                f'{"" if issue.owner == self.default_owner else issue.owner+"/"}'
-                f'{"" if issue.repo == self.default_repo else issue.repo}'
-                f'#{issue.number}: '
-                f'{issue.title} by {issue.author}')
+    def pretty_format(self, thing, short=False):
+        if isinstance(thing, Issue):
+            return self.pretty_format_issue(thing, short=short)
+        return self.pretty_format_commit(thing, short=short)
 
-    def pretty_format_commit(self, commit):
+    def pretty_format_issue(self, issue, short=False):
+        # PR OwnerIfNotDefault/RepoIfNotDefault#9999: Title by Author
+        # OwnerIfNotDefault/RepoIfNotDefault#9999 if short=True
+        s = (f'{"" if issue.owner == self.default_owner else issue.owner+"/"}'
+                f'{"" if issue.repo == self.default_repo else issue.repo}'
+                f'#{issue.number}')
+        if short:
+            return s
+        return f'{issue.type} {s}: {issue.title} by {issue.author}'
+
+    def pretty_format_commit(self, commit, short=False):
         # Commit OwnerIfNotDefault/RepoIfNotDefault@abcdf123456789: Title by Author
-        return (f'Commit '
-                f'{"" if commit.owner == self.default_owner else commit.owner+"/"}'
+        # OwnerIfNotDefault/RepoIfNotDefault@abcdf123456789 if short=True
+        s = (f'{"" if commit.owner == self.default_owner else commit.owner+"/"}'
                 f'{"" if commit.repo == self.default_repo else commit.repo}'
-                f'@{commit.sha}: '
-                f'{commit.title} by {commit.author}')
+                f'@{commit.sha[:7]}')
+        if short:
+            return s
+        return f'Commit {s}: {commit.title} by {commit.author}'
 
     def get_issue(self,
                   number: int,
@@ -179,6 +189,14 @@ class GitHubIssues:
 
     def init_issues(self, job_queue):
         self._job(f'repos/{self.default_owner}/{self.default_repo}/issues', job_queue, first=True)
+
+    def search(self, query):
+        def processor(x):
+            if isinstance(x, Issue):
+                x = x.title
+            return x.strip().lower()
+
+        return process.extract(query, self.issues, scorer=fuzz.partial_ratio, processor=processor, limit=5)
 
 
 github_issues = GitHubIssues()

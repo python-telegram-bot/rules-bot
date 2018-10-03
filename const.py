@@ -34,21 +34,23 @@ OFFTOPIC_RULES = """<b>Topics:</b>
 GITHUB_PATTERN = re.compile(r'''
     (?i)                                # Case insensitivity
     [\s\S]*?                            # Any characters
-    (?:                                 # Optional non-capture group for username/repo
-        (?P<owner>[^\s/\#@]+)            # Matches username/org (any char but whitespace, slash, hashtag and at)
-        (?:/(?P<repo>[^\s/\#@]+))?      # Optionally matches repo, with a slash in front
-    )?                                  # End optional non-capture group
-    (?:                                 # Match either
-        (
-            (?P<number_type>\#|GH-|PR-)     # Hashtag or "GH-" or "PR-"
-            (?:                             # Followed by either
-                (?P<number>\d+)                 # Numbers
-                |                           # Or
-                (?P<query>\S+)                  # A search query (without spaces) (only works inline)
+    (?P<full>                           # Capture for the the whole thing
+        (?:                                 # Optional non-capture group for username/repo
+            (?P<owner>[^\s/\#@]+)            # Matches username/org (any char but whitespace, slash, hashtag and at)
+            (?:/(?P<repo>[^\s/\#@]+))?      # Optionally matches repo, with a slash in front
+        )?                                  # End optional non-capture group
+        (?:                                 # Match either
+            (
+                (?P<number_type>\#|GH-|PR-)     # Hashtag or "GH-" or "PR-"
+                (?:                             # Followed by either
+                    (?P<number>\d+)                 # Numbers
+                    |                           # Or
+                    (?P<query>\S+)                  # A search query (without spaces) (only works inline)
+                )
             )
+        |                                   # Or
+            (?:@?(?P<sha>[0-9a-f]{40}))         # at sign followed by 40 hexadecimal characters
         )
-    |                                   # Or
-        (?:@?(?P<sha>[0-9a-f]{40}))         # at sign followed by 40 hexadecimal characters
     )
 ''', re.VERBOSE)
 

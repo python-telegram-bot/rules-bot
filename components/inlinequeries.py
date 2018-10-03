@@ -1,4 +1,5 @@
 import re
+from collections import OrderedDict
 from uuid import uuid4
 
 from telegram import InlineQueryResultArticle, InputTextMessageContent, ParseMode
@@ -6,9 +7,9 @@ from telegram.ext import InlineQueryHandler
 from telegram.utils.helpers import escape_markdown
 
 from components import taghints
-from const import ENCLOSED_REGEX, TELEGRAM_SUPERSCRIPT, ENCLOSING_REPLACEMENT_CHARACTER
+from const import ENCLOSED_REGEX, TELEGRAM_SUPERSCRIPT, ENCLOSING_REPLACEMENT_CHARACTER, GITHUB_PATTERN
 from search import WIKI_URL, search
-from util import ARROW_CHARACTER
+from util import ARROW_CHARACTER, github_issues
 
 
 def article(title='', description='', message_text='', key=None, reply_markup=None):
@@ -63,6 +64,68 @@ def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
     return result_changed, result
 
 
+def inline_github(query):
+    # Issues/PRs/Commits
+    things = OrderedDict()
+    search_query = None
+    results = []
+
+    for match in GITHUB_PATTERN.finditer(query):
+        owner, repo, number, sha, search_query, full = [match.groupdict()[x] for x in ('owner', 'repo', 'number',
+                                                                                       'sha', 'query', 'full')]
+        # If it's an issue
+        if number:
+            issue = github_issues.get_issue(int(number), owner, repo)
+            things[full] = issue
+        # If it's a commit
+        elif sha:
+            commit = github_issues.get_commit(sha, owner, repo)
+            things[full] = commit
+
+    # If the last thing from the for loop above was a search
+    if search_query:
+        choices = []
+        # Output a separate choice for each search result
+        for search_result in github_issues.search(search_query):
+            tmp = things.copy()
+            tmp['#' + search_query] = search_result[0]
+            choices.append(tmp)
+    else:
+        choices = [things]
+
+    # Loop over all the choices we should send to the client
+    # Each choice (things) is a dict of things (issues/PRs/commits) to show in that choice
+    for things in choices:
+        # For the title we wanna add the title of the last 'thing'
+        title = things[next(reversed(things))].title
+        # If longer than 30 cut it off
+        if len(title) > 30:
+            title = title[:29] + '…'
+        # Add ' & others' if multiple
+        if len(things) > 1:
+            title += ' & others'
+
+        # Description is the short formats combined with ', '
+        description = ', '.join(github_issues.pretty_format(thing, short=True) for thing in things.values())
+
+        text = ''
+
+        # Check if there's other stuff than issues/PRs etc. in the query
+        if re.sub(r'|'.join(re.escape(thing) for thing in things.keys()), '', query).strip():
+            # Replace every 'thing' with a link to said thing *all at once*
+            # Needs to all at once because otherwise 'blah/blah#2 #2' would break
+            text = re.sub(r'|'.join(re.escape(thing) for thing in things.keys()),
+                          lambda x: f'[{github_issues.pretty_format(things[x.group(0)], short=True)}]'
+                                    f'({things[x.group(0)].url})', query)
+
+        # Add full format to bottom of message
+        text += '\n\n' + '\n'.join(f'[{github_issues.pretty_format(thing)}]({thing.url})' for thing in things.values())
+
+        results.append(article(title=title, description=description, message_text=text))
+
+    return results
+
+
 def inline_query(bot, update, threshold=20):
     query = update.inline_query.query
     results_list = list()
@@ -75,6 +138,9 @@ def inline_query(bot, update, threshold=20):
                                          hint.msg,
                                          key=key,
                                          reply_markup=hint.reply_markup) for key, hint in hints.items()])
+
+        if '#' in query:
+            results_list.extend(inline_github(query))
 
         if ENCLOSING_REPLACEMENT_CHARACTER in query:
             modified, replaced = fuzzy_replacements_markdown(query, official_api_links=True)
