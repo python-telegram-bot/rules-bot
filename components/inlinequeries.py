@@ -76,69 +76,66 @@ def inline_query(bot, update, threshold=20):
                                          key=key,
                                          reply_markup=hint.reply_markup) for key, hint in hints.items()])
 
-        modified, replaced = fuzzy_replacements_markdown(query, official_api_links=True)
-        if modified:
-            results_list.append(article(
-                title="Replace links and show official Bot API documentation",
-                description=', '.join(modified),
-                message_text=replaced))
-
-        modified, replaced = fuzzy_replacements_markdown(query, official_api_links=False)
-        if modified:
-            results_list.append(article(
-                title="Replace links",
-                description=', '.join(modified),
-                message_text=replaced))
-
-        wiki_pages = search.wiki(query, amount=4, threshold=threshold)
-        doc = search.docs(query, threshold=threshold)
-
-        if doc:
-            text = f'*{doc.short_name}*\n' \
-                   f'_python-telegram-bot_ documentation for this {doc.type}:\n' \
-                   f'[{doc.full_name}]({doc.url})'
-            if doc.tg_name:
-                text += f'\n\nThe official documentation has more info about [{doc.tg_name}]({doc.tg_url}).'
-
-            results_list.append(article(
-                title=f'{doc.full_name}',
-                description="python-telegram-bot documentation",
-                message_text=text,
-            ))
-
-        if wiki_pages:
-            # Limit number of search results to maximum
-            wiki_pages = wiki_pages[:49 - len(results_list)]
-            for wiki_page in wiki_pages:
+        if ENCLOSING_REPLACEMENT_CHARACTER in query:
+            modified, replaced = fuzzy_replacements_markdown(query, official_api_links=True)
+            if modified:
                 results_list.append(article(
-                    title=f'{wiki_page[0]}',
-                    description="Github wiki for python-telegram-bot",
-                    message_text=f'Wiki of _python-telegram-bot_\n'
-                                 f'[{wiki_page[0]}]({wiki_page[1]})'
+                    title="Replace links and show official Bot API documentation",
+                    description=', '.join(modified),
+                    message_text=replaced))
+
+            modified, replaced = fuzzy_replacements_markdown(query, official_api_links=False)
+            if modified:
+                results_list.append(article(
+                    title="Replace links",
+                    description=', '.join(modified),
+                    message_text=replaced))
+
+        # If no results so far then search wiki and docs
+        if not results_list:
+            doc = search.docs(query, threshold=threshold)
+            if doc:
+                text = f'*{doc.short_name}*\n' \
+                       f'_python-telegram-bot_ documentation for this {doc.type}:\n' \
+                       f'[{doc.full_name}]({doc.url})'
+                if doc.tg_name:
+                    text += f'\n\nThe official documentation has more info about [{doc.tg_name}]({doc.tg_url}).'
+
+                results_list.append(article(
+                    title=f'{doc.full_name}',
+                    description="python-telegram-bot documentation",
+                    message_text=text,
                 ))
 
-        # "No results" entry
-        if len(results_list) == 0:
+            wiki_pages = search.wiki(query, amount=4, threshold=threshold)
+            if wiki_pages:
+                # Limit number of search results to maximum (-1 cause we might have added a doc above)
+                wiki_pages = wiki_pages[:49]
+                for wiki_page in wiki_pages:
+                    results_list.append(article(
+                        title=f'{wiki_page[0]}',
+                        description="Github wiki for python-telegram-bot",
+                        message_text=f'Wiki of _python-telegram-bot_\n'
+                                     f'[{wiki_page[0]}]({wiki_page[1]})'
+                    ))
+
+        # If no results even after searching wiki and docs
+        if not results_list:
             results_list.append(article(
                 title='❌ No results.',
                 description='',
                 message_text=f'[GitHub wiki]({WIKI_URL}) of _python-telegram-bot_',
             ))
 
-    else:  # no query input
-        # add all wiki pages
-        # TODO: Use slicing to limit items (somehow)
-        count = 0
-        for name, link in search._wiki.items():
-            if count == 50:
-                break
+    else:
+        # If no query then add all wiki pages (max 50)
+        for name, link in search.all_wiki_pages()[:50]:
             results_list.append(article(
                 title=name,
                 description='Wiki of python-telegram-bot',
                 message_text=f'Wiki of _python-telegram-bot_\n'
                              f'[{escape_markdown(name)}]({link})',
             ))
-            count += 1
 
     bot.answer_inline_query(update.inline_query.id, results=results_list, switch_pm_text='Help',
                             switch_pm_parameter='inline-help')

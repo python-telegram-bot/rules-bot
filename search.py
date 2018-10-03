@@ -138,5 +138,8 @@ class Search:
 
         return best.to_list(amount, threshold)
 
+    def all_wiki_pages(self):
+        return list(self._wiki.items())
+
 
 search = Search()
