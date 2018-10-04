@@ -183,9 +183,8 @@ class GitHubIssues:
             job_queue.run_once(lambda _, __: self._job(links['next']['url'], job_queue), 5)
         # No more issues
         else:
-            # Add a job that every 10 min checks if the 100 first issues changed, and update them in our cache if needed
-            job_queue.run_repeating(lambda _, __: self._job(links['first']['url'],
-                                                            job_queue, first=True), interval=10 * 60)
+            # In 10 min check if the 100 first issues changed, and update them in our cache if needed
+            job_queue.run_once(lambda _, __: self._job(links['first']['url'], job_queue, first=True), 10 * 60)
 
         # If this is on page one (first) then we wanna save the header
         if first:
