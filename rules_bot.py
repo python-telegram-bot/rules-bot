@@ -6,6 +6,7 @@ import time
 from telegram import Bot, ParseMode, MessageEntity, ChatAction
 from telegram.error import BadRequest
 from telegram.ext import CommandHandler, RegexHandler, Updater, MessageHandler, Filters
+from telegram.utils.helpers import escape_markdown
 
 import const
 from components import inlinequeries, taghints
@@ -40,7 +41,8 @@ def inlinequery_help(bot, update):
     text = (f"Use the `{char}`-character in your inline queries and I will replace "
             f"them with a link to the corresponding article from the documentation or wiki.\n\n"
             f"*Example:*\n"
-            f"{SELF_CHAT_ID} I 💙 {char}InlineQueries{char}, but you need an {char}InlineQueryHandler{char} for it.\n\n"
+            f"{escape_markdown(SELF_CHAT_ID)} I 💙 {char}InlineQueries{char}, "
+            f"but you need an {char}InlineQueryHandler{char} for it.\n\n"
             f"*becomes:*\n"
             f"I 💙 [InlineQueries](https://python-telegram-bot.readthedocs.io/en/latest/telegram.html#telegram"
             f".InlineQuery), but you need an [InlineQueryHandler](https://python-telegram-bot.readthedocs.io/en"
