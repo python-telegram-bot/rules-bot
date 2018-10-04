@@ -1,6 +1,7 @@
 import logging
 from collections import namedtuple
 
+import requests
 from bs4 import BeautifulSoup
 from fuzzywuzzy import process, fuzz
 from requests import Session
@@ -85,8 +86,14 @@ class GitHubIssues:
         # Add base_url if needed
         url = url if url.startswith('https://') or url.startswith('http') else self.base_url + url
         self.logger.info('Getting %s', url)
-        r = self.s.get(url, params=data, headers=headers)
+        try:
+            r = self.s.get(url, params=data, headers=headers)
+        except requests.exceptions.RequestException as e:
+            self.logger.exception('While getting %s with data %s', url, data, exec_info=e)
+            return False, None, (None, None)
         self.logger.debug('status_code=%d', r.status_code)
+        if not r.ok:
+            self.logger.error('Not OK: %s', r.text)
         # Only try .json() if we actually got new data
         return r.ok, None if r.status_code == 304 else r.json(), (r.headers, r.links)
 
@@ -173,23 +180,20 @@ class GitHubIssues:
             'state': 'all'
         }, {'If-None-Match': self.etag} if self.etag else None)
 
-        # If we got status_code 304 not modified
-        if not data:
+        if ok and data:
+            # Add to issue cache
+            for issue in data:
+                self.issues[issue['number']] = Issue(type='PR' if 'pull_request' in issue else 'Issue',
+                                                     owner=self.default_owner,
+                                                     repo=self.default_repo,
+                                                     url=issue['html_url'],
+                                                     number=issue['number'],
+                                                     title=issue['title'],
+                                                     author=issue['user']['login'])
+        elif not ok:
+            # Retry in 5 sec
+            job_queue.run_once(lambda _, __: self._job(url, job_queue), 5)
             return
-
-        if not ok:
-            logging.error('Something went broke :(')
-            return
-
-        # Add to issue cache
-        for issue in data:
-            self.issues[issue['number']] = Issue(type='PR' if 'pull_request' in issue else 'Issue',
-                                                 owner=self.default_owner,
-                                                 repo=self.default_repo,
-                                                 url=issue['html_url'],
-                                                 number=issue['number'],
-                                                 title=issue['title'],
-                                                 author=issue['user']['login'])
 
         # If more issues
         if 'next' in links:
