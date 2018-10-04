@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 from telegram.error import BadRequest
 from telegram.ext import CommandHandler, RegexHandler, run_async
 
@@ -122,16 +122,15 @@ def get_hints(query):
 
 @run_async
 def hint_handler(bot, update):
-    text = update.message.text
     reply_to = update.message.reply_to_message
 
-    msg, reply_markup, _ = get_hint_data(text)
+    hint = get_hints(update.message.text).popitem()[1]
 
-    if msg is not None:
-        update.effective_message.reply_text(msg,
-                                            reply_markup=reply_markup,
+    if hint is not None:
+        update.effective_message.reply_text(hint.msg,
+                                            reply_markup=hint.reply_markup,
                                             reply_to_message_id=reply_to.message_id if reply_to else None,
-                                            parse_mode='Markdown',
+                                            parse_mode=ParseMode.MARKDOWN,
                                             disable_web_page_preview=True)
         try:
             update.effective_message.delete()
@@ -140,6 +139,5 @@ def hint_handler(bot, update):
 
 
 def register(dispatcher):
-    for hashtag in HINTS.keys():
-        dispatcher.add_handler(RegexHandler(r'{}.*'.format(hashtag), hint_handler))
+    dispatcher.add_handler(RegexHandler(rf'{"|".join(HINTS.keys())}.*', hint_handler))
     dispatcher.add_handler(CommandHandler(('hints', 'listhints'), list_available_hints))
