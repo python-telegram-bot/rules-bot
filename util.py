@@ -54,6 +54,10 @@ def build_menu(buttons,
     return menu
 
 
+def truncate_str(str, max):
+    return (str[:max] + '…') if len(str) > max else str
+
+
 Issue = namedtuple('Issue', 'type, owner, repo, number, url, title, author')
 Commit = namedtuple('Commit', 'owner, repo, sha, url, title, author')
 
@@ -86,29 +90,39 @@ class GitHubIssues:
         # Only try .json() if we actually got new data
         return r.ok, None if r.status_code == 304 else r.json(), (r.headers, r.links)
 
-    def pretty_format(self, thing, short=False):
+    def pretty_format(self, thing, short=False, short_with_title=False, title_max_length=15):
         if isinstance(thing, Issue):
-            return self.pretty_format_issue(thing, short=short)
-        return self.pretty_format_commit(thing, short=short)
+            return self.pretty_format_issue(thing,
+                                            short=short,
+                                            short_with_title=short_with_title,
+                                            title_max_length=title_max_length)
+        return self.pretty_format_commit(thing,
+                                         short=short,
+                                         short_with_title=short_with_title,
+                                         title_max_length=title_max_length)
 
-    def pretty_format_issue(self, issue, short=False):
+    def pretty_format_issue(self, issue, short=False, short_with_title=False, title_max_length=15):
         # PR OwnerIfNotDefault/RepoIfNotDefault#9999: Title by Author
         # OwnerIfNotDefault/RepoIfNotDefault#9999 if short=True
         s = (f'{"" if issue.owner == self.default_owner else issue.owner+"/"}'
-                f'{"" if issue.repo == self.default_repo else issue.repo}'
-                f'#{issue.number}')
+             f'{"" if issue.repo == self.default_repo else issue.repo}'
+             f'#{issue.number}')
         if short:
             return s
+        elif short_with_title:
+            return f'{s}: {truncate_str(issue.title, title_max_length)}'
         return f'{issue.type} {s}: {issue.title} by {issue.author}'
 
-    def pretty_format_commit(self, commit, short=False):
+    def pretty_format_commit(self, commit, short=False, short_with_title=False, title_max_length=15):
         # Commit OwnerIfNotDefault/RepoIfNotDefault@abcdf123456789: Title by Author
         # OwnerIfNotDefault/RepoIfNotDefault@abcdf123456789 if short=True
         s = (f'{"" if commit.owner == self.default_owner else commit.owner+"/"}'
-                f'{"" if commit.repo == self.default_repo else commit.repo}'
-                f'@{commit.sha[:7]}')
+             f'{"" if commit.repo == self.default_repo else commit.repo}'
+             f'@{commit.sha[:7]}')
         if short:
             return s
+        elif short_with_title:
+            return f'{s}: {truncate_str(commit.title, title_max_length)}'
         return f'Commit {s}: {commit.title} by {commit.author}'
 
     def get_issue(self,
