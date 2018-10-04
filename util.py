@@ -1,4 +1,5 @@
 import logging
+import threading
 from collections import namedtuple
 
 import requests
@@ -75,6 +76,7 @@ class GitHubIssues:
 
         self.etag = None
         self.issues = {}
+        self.issues_lock = threading.Lock()
 
     def set_auth(self, client_id, client_secret):
         self.s.params = {
@@ -182,14 +184,16 @@ class GitHubIssues:
 
         if ok and data:
             # Add to issue cache
-            for issue in data:
-                self.issues[issue['number']] = Issue(type='PR' if 'pull_request' in issue else 'Issue',
-                                                     owner=self.default_owner,
-                                                     repo=self.default_repo,
-                                                     url=issue['html_url'],
-                                                     number=issue['number'],
-                                                     title=issue['title'],
-                                                     author=issue['user']['login'])
+            # Acquire lock so we don't add while a func (like self.search) is iterating over it
+            with self.issues_lock:
+                for issue in data:
+                    self.issues[issue['number']] = Issue(type='PR' if 'pull_request' in issue else 'Issue',
+                                                         owner=self.default_owner,
+                                                         repo=self.default_repo,
+                                                         url=issue['html_url'],
+                                                         number=issue['number'],
+                                                         title=issue['title'],
+                                                         author=issue['user']['login'])
         elif not ok:
             # Retry in 5 sec
             job_queue.run_once(lambda _, __: self._job(url, job_queue), 5)
@@ -218,8 +222,10 @@ class GitHubIssues:
             return x.strip().lower()
 
         # We don't care about the score, so return first element
-        return [result[0] for result in process.extract(query, self.issues, scorer=fuzz.partial_ratio,
-                                                        processor=processor, limit=5)]
+        # This must not happen while updating the self.issues dict so acquire the lock
+        with self.issues_lock:
+            return [result[0] for result in process.extract(query, self.issues, scorer=fuzz.partial_ratio,
+                                                            processor=processor, limit=5)]
 
 
 github_issues = GitHubIssues()
