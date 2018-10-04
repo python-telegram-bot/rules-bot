@@ -86,7 +86,7 @@ class GitHubIssues:
 
     def _get_json(self, url, data=None, headers=None):
         # Add base_url if needed
-        url = url if url.startswith('https://') or url.startswith('http') else self.base_url + url
+        url = url if url.startswith('https://') else self.base_url + url
         self.logger.info('Getting %s', url)
         try:
             r = self.s.get(url, params=data, headers=headers)
