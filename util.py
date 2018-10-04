@@ -199,7 +199,9 @@ class GitHubIssues:
                 x = x.title
             return x.strip().lower()
 
-        return process.extract(query, self.issues, scorer=fuzz.partial_ratio, processor=processor, limit=5)
+        # We don't care about the score, so return first element
+        return [result[0] for result in process.extract(query, self.issues, scorer=fuzz.partial_ratio,
+                                                        processor=processor, limit=5)]
 
 
 github_issues = GitHubIssues()
