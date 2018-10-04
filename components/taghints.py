@@ -1,4 +1,6 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from collections import namedtuple
+
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 from telegram.error import BadRequest
 from telegram.ext import CommandHandler, RegexHandler, run_async
 
@@ -74,8 +76,8 @@ Probably. *Just ask your question and somebody will help!*
 • [Project Python](http://projectpython.net/chapter00/)""",
         'help': "How to find a Python tutorial"
     },
-    '#wronglib':{
-        'message':"""Hey, I think you're wrong 🧐
+    '#wronglib': {
+        'message': """Hey, I think you're wrong 🧐
 It looks like you're not using the python-telegram-bot library. If you insist on using that other one, please go where you belong:
 [pyTelegramBotApi](https://telegram.me/joinchat/Bn4ixj84FIZVkwhk2jag6A)
 [Telepot](https://github.com/nickoala/telepot)
@@ -98,41 +100,37 @@ def list_available_hints(bot, update):
                                         disable_web_page_preview=True)
 
 
-def get_hint_data(text):
+Hint = namedtuple('Hint', 'help, msg, reply_markup')
+
+
+def get_hints(query):
+    results = {}
+    hashtag, _, query = query.partition(' ')
+
     for k, v in HINTS.items():
-        if k not in text:
-            continue
-
-        text = text.replace(k, '')
-        query = text.strip()
-
-        reply_markup = None
-        if v.get('buttons'):
-            # Replace 'query' placeholder and expand kwargs
-            buttons = [InlineKeyboardButton(
+        if k.startswith(hashtag):
+            reply_markup = InlineKeyboardMarkup(util.build_menu([InlineKeyboardButton(
                 **{k: v.format(query=query) for k, v in b.items()}
-            ) for b in v.get('buttons')]
-            reply_markup = InlineKeyboardMarkup(util.build_menu(buttons, 1))
+            ) for b in v['buttons']], 1)) if 'buttons' in v else None
 
-        # Add default value if necessary
-        msg = v['message'].format(
-            query=query if query else v['default'] if v.get('default') else '')
-        return msg, reply_markup, k
-    return None, None, None
+            msg = v['message'].format(query=query if query else v.get('default', ''))
+
+            results[k] = Hint(help=v.get('help', ''), msg=msg, reply_markup=reply_markup)
+
+    return results
 
 
 @run_async
 def hint_handler(bot, update):
-    text = update.message.text
     reply_to = update.message.reply_to_message
 
-    msg, reply_markup, _ = get_hint_data(text)
+    hint = get_hints(update.message.text).popitem()[1]
 
-    if msg is not None:
-        update.effective_message.reply_text(msg,
-                                            reply_markup=reply_markup,
+    if hint is not None:
+        update.effective_message.reply_text(hint.msg,
+                                            reply_markup=hint.reply_markup,
                                             reply_to_message_id=reply_to.message_id if reply_to else None,
-                                            parse_mode='Markdown',
+                                            parse_mode=ParseMode.MARKDOWN,
                                             disable_web_page_preview=True)
         try:
             update.effective_message.delete()
@@ -141,6 +139,5 @@ def hint_handler(bot, update):
 
 
 def register(dispatcher):
-    for hashtag in HINTS.keys():
-        dispatcher.add_handler(RegexHandler(r'{}.*'.format(hashtag), hint_handler))
+    dispatcher.add_handler(RegexHandler(rf'{"|".join(HINTS.keys())}.*', hint_handler))
     dispatcher.add_handler(CommandHandler(('hints', 'listhints'), list_available_hints))

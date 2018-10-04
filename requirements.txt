@@ -3,3 +3,4 @@ fuzzywuzzy
 python-Levenshtein
 python-telegram-bot
 Sphinx
+requests

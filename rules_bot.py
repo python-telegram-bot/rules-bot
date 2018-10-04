@@ -1,9 +1,7 @@
 import configparser
 import logging
 import os
-import re
 import time
-from functools import lru_cache
 
 from telegram import Bot, ParseMode, MessageEntity, ChatAction
 from telegram.error import BadRequest
@@ -12,11 +10,9 @@ from telegram.utils.helpers import escape_markdown
 
 import const
 from components import inlinequeries, taghints
-from const import ENCLOSED_REGEX, ENCLOSING_REPLACEMENT_CHARACTER, GITHUB_PATTERN, OFFTOPIC_CHAT_ID, OFFTOPIC_RULES, \
-    OFFTOPIC_USERNAME, ONTOPIC_RULES, ONTOPIC_USERNAME, TELEGRAM_SUPERSCRIPT
-from search import search
-from util import ARROW_CHARACTER, DEFAULT_REPO, GITHUB_URL, get_reply_id, reply_or_edit, get_web_page_title, \
-    get_text_not_in_entities
+from const import (ENCLOSING_REPLACEMENT_CHARACTER, GITHUB_PATTERN, OFFTOPIC_CHAT_ID, OFFTOPIC_RULES,
+                   OFFTOPIC_USERNAME, ONTOPIC_RULES, ONTOPIC_USERNAME)
+from util import get_reply_id, reply_or_edit, get_text_not_in_entities, github_issues
 
 if os.environ.get('ROOLSBOT_DEBUG'):
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -45,7 +41,8 @@ def inlinequery_help(bot, update):
     text = (f"Use the `{char}`-character in your inline queries and I will replace "
             f"them with a link to the corresponding article from the documentation or wiki.\n\n"
             f"*Example:*\n"
-            f"{SELF_CHAT_ID} I 💙 {char}InlineQueries{char}, but you need an {char}InlineQueryHandler{char} for it.\n\n"
+            f"{escape_markdown(SELF_CHAT_ID)} I 💙 {char}InlineQueries{char}, "
+            f"but you need an {char}InlineQueryHandler{char} for it.\n\n"
             f"*becomes:*\n"
             f"I 💙 [InlineQueries](https://python-telegram-bot.readthedocs.io/en/latest/telegram.html#telegram"
             f".InlineQuery), but you need an [InlineQueryHandler](https://python-telegram-bot.readthedocs.io/en"
@@ -179,18 +176,6 @@ def keep_typing(last, chat, action):
     return now
 
 
-@lru_cache()
-def _get_github_title_and_type(url, sha=None):
-    title = get_web_page_title(url)
-    if not title:
-        return
-    split = title.split(' · ')
-    t = 'PR' if 'Pull Request' in split[1] else 'Issue'
-    if sha:
-        t = 'Commit'
-    return split[0], t
-
-
 def github(bot, update, chat_data):
     message = update.message or update.edited_message
     last = 0
@@ -206,81 +191,17 @@ def github(bot, update, chat_data):
         last = keep_typing(last, update.effective_chat, ChatAction.TYPING)
         logging.debug(match.groupdict())
 
-        user, repo, number, sha = [match.groupdict()[x] for x in ('user', 'repo', 'number', 'sha')]
-        url = GITHUB_URL
-        name = ''
+        owner, repo, number, sha = [match.groupdict()[x] for x in ('owner', 'repo', 'number', 'sha')]
         if number:
-            if user and repo:
-                url += f'{user}/{repo}'
-                name += f'{user}/{repo}'
-            else:
-                url += DEFAULT_REPO
-            name += f'#{number}'
-            url += f'/issues/{number}'
-        else:
-            if user:
-                name += user
-                if repo:
-                    url += f'{user}/{repo}'
-                    name += f'/{repo}'
-                name += '@'
-            if not repo:
-                url += DEFAULT_REPO
-            name += sha[:7]
-            url += f'/commit/{sha}'
-
-        if url in things.keys():
-            continue
-
-        gh = _get_github_title_and_type(url, sha)
-        if not gh:
-            continue
-
-        name = f'{gh[1]} {name}: {gh[0]}'
-        things[url] = name
+            issue = github_issues.get_issue(int(number), owner, repo)
+            things[issue.url] = github_issues.pretty_format_issue(issue)
+        elif sha:
+            commit = github_issues.get_commit(sha, owner, repo)
+            things[commit.url] = github_issues.pretty_format_commit(commit)
 
     if things:
         reply_or_edit(bot, update, chat_data,
                       '\n'.join([f'[{name}]({url})' for url, name in things.items()]))
-
-
-def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
-    """ Replaces the enclosed characters in the query string with hyperlinks to the documentations """
-    symbols = re.findall(ENCLOSED_REGEX, query)
-
-    if not symbols:
-        return None, None
-
-    replacements = list()
-    for s in symbols:
-        # Wiki first, cause with docs you can always prepend telegram. for better precision
-        wiki = search.wiki(s.replace('_', ' '), amount=1, threshold=threshold)
-        if wiki:
-            name = wiki[0][0].split(ARROW_CHARACTER)[-1].strip()
-            text = f'[{name}]({wiki[0][1]})'
-            replacements.append((wiki[0][0], s, text))
-            continue
-
-        doc = search.docs(s, threshold=threshold)
-        if doc:
-            text = f'[{doc.short_name}]({doc.url})'
-
-            if doc.tg_url and official_api_links:
-                text += f' [{TELEGRAM_SUPERSCRIPT}]({doc.tg_url})'
-
-            replacements.append((doc.short_name, s, text))
-            continue
-
-        # not found
-        replacements.append((s + '❓', s, escape_markdown(s)))
-
-    result = query
-    for name, symbol, text in replacements:
-        char = ENCLOSING_REPLACEMENT_CHARACTER
-        result = result.replace(f'{char}{symbol}{char}', text)
-
-    result_changed = [x[0] for x in replacements]
-    return result_changed, result
 
 
 def error(bot, update, err):
@@ -332,6 +253,14 @@ def main():
 
     updater.start_polling()
     logger.info('Listening...')
+
+    try:
+        github_issues.set_auth(config['KEYS']['github_client_id'], config['KEYS']['github_client_secret'])
+    except KeyError:
+        logging.info('No github auth set. Rate-limit is 60 requests/hour without auth.')
+
+    github_issues.init_issues(dispatcher.job_queue)
+
     updater.idle()
 
 
