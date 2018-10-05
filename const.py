@@ -36,8 +36,8 @@ GITHUB_PATTERN = re.compile(r'''
     [\s\S]*?                            # Any characters
     (?P<full>                           # Capture for the the whole thing
         (?:                                 # Optional non-capture group for username/repo
-            (?P<owner>[^\s/\#@]+)            # Matches username/org (any char but whitespace, slash, hashtag and at)
-            (?:/(?P<repo>[^\s/\#@]+))?      # Optionally matches repo, with a slash in front
+            (?:(?P<owner>[^\s/\#@]+)/)?     # Matches username/org - only if ends with slash
+            (?P<repo>[^\s/\#@]+)?           # Optionally matches repo
         )?                                  # End optional non-capture group
         (?:                                 # Match either
             (
