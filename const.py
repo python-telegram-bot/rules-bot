@@ -32,7 +32,7 @@ OFFTOPIC_RULES = """
 <b>Rules:</b>
 - The group language is English
 - Use a pastebin to share code
-- No <a href="https://telegram.me/joinchat/A6kAm0EeUdd0SciQStb9cg">shitposting, flamewars or excessive trolling</a>
+- No shitposting, flamewars or excessive trolling
 - Max. 1 meme per user per day
 - Please abide by our <a href="https://github.com/python-telegram-bot/python-telegram-bot/blob/master/CODE_OF_CONDUCT.md">Code of Conduct</a>
 """
