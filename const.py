@@ -8,7 +8,8 @@ OFFTOPIC_CHAT_ID = '@' + OFFTOPIC_USERNAME
 TELEGRAM_SUPERSCRIPT = 'ᵀᴱᴸᴱᴳᴿᴬᴹ'
 FAQ_CHANNEL_ID = '@ptbfaq'
 SELF_BOT_NAME = 'roolsbot'
-ONTOPIC_RULES = """This group is for questions, answers and discussions around the <a href="https://python-telegram-bot.org/">python-telegram-bot library</a> and, to some extent, Telegram bots in general.
+ONTOPIC_RULES = """
+This group is for questions, answers and discussions around the <a href="https://python-telegram-bot.org/">python-telegram-bot library</a> and, to some extent, Telegram bots in general.
 
 <b>Rules:</b>
 - The group language is English
@@ -16,11 +17,14 @@ ONTOPIC_RULES = """This group is for questions, answers and discussions around t
 - No meta questions (eg. <i>"Can I ask something?"</i>)
 - Use a pastebin when you have a question about your code, like <a href="https://www.codepile.net">this one</a>.
 - Use <code>/wiki</code> and <code>/docs</code> in a private chat if possible.
+- Please abide by our <a href="https://github.com/python-telegram-bot/python-telegram-bot/blob/master/CODE_OF_CONDUCT.md">Code of Conduct</a>
 
 Before asking, please take a look at our <a href="https://github.com/python-telegram-bot/python-telegram-bot/wiki">wiki</a> and <a href="https://github.com/python-telegram-bot/python-telegram-bot/tree/master/examples">example bots</a> or, depending on your question, the <a href="https://core.telegram.org/bots/api">official API docs</a> and <a href="https://python-telegram-bot.readthedocs.io">python-telegram-bot docs</a>).
-For off-topic discussions, please use our <a href="https://telegram.me/pythontelegrambottalk">off-topic group</a>."""
+For off-topic discussions, please use our <a href="https://telegram.me/pythontelegrambottalk">off-topic group</a>.
+"""
 
-OFFTOPIC_RULES = """<b>Topics:</b>
+OFFTOPIC_RULES = """
+<b>Topics:</b>
 - Discussions about Python in general
 - Meta discussions about <code>python-telegram-bot</code>
 - Friendly, respectful talking about non-tech topics
@@ -29,7 +33,9 @@ OFFTOPIC_RULES = """<b>Topics:</b>
 - The group language is English
 - Use a pastebin to share code
 - No <a href="https://telegram.me/joinchat/A6kAm0EeUdd0SciQStb9cg">shitposting, flamewars or excessive trolling</a>
-- Max. 1 meme per user per day"""
+- Max. 1 meme per user per day
+- Please abide by our <a href="https://github.com/python-telegram-bot/python-telegram-bot/blob/master/CODE_OF_CONDUCT.md">Code of Conduct</a>
+"""
 
 GITHUB_PATTERN = re.compile(r'''
     (?i)                                # Case insensitivity
