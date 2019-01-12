@@ -37,13 +37,27 @@ OFFTOPIC_RULES = """
 - Please abide by our <a href="https://github.com/python-telegram-bot/python-telegram-bot/blob/master/CODE_OF_CONDUCT.md">Code of Conduct</a>
 """
 
+# Github username
+# Per https://github.com/join
+# Github username may only contain alphanumeric characters or hyphens.
+# Github username cannot have multiple consecutive hyphens.
+# Github username cannot begin or end with a hyphen.
+# Maximum is 39 characters.
+# Therefore we use:
+# [a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}
+
+# Repo names seem to allow alphanumeric, -, . and _
+# And the form at https://github.com/new has a maxlength of 100
+# Therefore we use
+# [A-Za-z0-9-_]{0,100}
+
 GITHUB_PATTERN = re.compile(r'''
     (?i)                                # Case insensitivity
     [\s\S]*?                            # Any characters
     (?P<full>                           # Capture for the the whole thing
         (?:                                 # Optional non-capture group for username/repo
-            (?:(?P<owner>[^\s/\#@]+)/)?     # Matches username/org - only if ends with slash
-            (?P<repo>[^\s/\#@]+)?           # Optionally matches repo
+            (?:(?P<owner>[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38})/)?  # Matches username or org - only if ends with slash
+            (?P<repo>[A-Za-z0-9-_]{0,100})?           # Optionally matches repo
         )?                                  # End optional non-capture group
         (?:                                 # Match either
             (
