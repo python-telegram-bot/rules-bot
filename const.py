@@ -49,7 +49,7 @@ OFFTOPIC_RULES = """
 # Repo names seem to allow alphanumeric, -, . and _
 # And the form at https://github.com/new has a maxlength of 100
 # Therefore we use
-# [A-Za-z0-9-_]{0,100}
+# [A-Za-z0-9-._]{0,100}
 
 GITHUB_PATTERN = re.compile(r'''
     (?i)                                # Case insensitivity
@@ -57,7 +57,7 @@ GITHUB_PATTERN = re.compile(r'''
     (?P<full>                           # Capture for the the whole thing
         (?:                                 # Optional non-capture group for username/repo
             (?:(?P<owner>[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38})/)?  # Matches username or org - only if ends with slash
-            (?P<repo>[A-Za-z0-9-_]{0,100})?           # Optionally matches repo
+            (?P<repo>[A-Za-z0-9-._]{0,100})?           # Optionally matches repo
         )?                                  # End optional non-capture group
         (?:                                 # Match either
             (
