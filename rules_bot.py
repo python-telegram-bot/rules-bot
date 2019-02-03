@@ -25,6 +25,89 @@ logger = logging.getLogger(__name__)
 
 self_chat_id = '@'  # Updated in main()
 
+def convertformatting(sending_message : str, entities):
+
+    typelist = []
+
+    #print(update.effective_message)
+
+    for x in entities:
+        typelist.append((x.offset,x.length,x.url,x.type))
+
+    prioroffset = 0
+    #print(typelist)
+
+    for x in typelist:
+        if x[3] == "url":
+            sending_message = sending_message
+            continue
+
+        startp = x[0] + prioroffset
+        endp = x[0] + x[1] + prioroffset
+
+        if x[3] == "text_link":
+            url_1 = '<a href="{}">'.format(x[2])
+            url_2 = "</a>"
+            sending_message = "{}{}{}{}{}".format(sending_message[:(startp)],
+                                                    url_1,
+                                                    sending_message[startp:endp],
+                                                    url_2,
+                                                    sending_message[endp:])
+            prioroffset += len(url_1) + len(url_2)
+            #print(sending_message)
+            continue
+
+        if x[3] == "italic":
+            italic_1 = "<i>"
+            italic_2 = "</i>"
+            sending_message = "{}{}{}{}{}".format(sending_message[:(startp)],
+                                                    italic_1,
+                                                    sending_message[startp:endp],
+                                                    italic_2,
+                                                    sending_message[endp:])
+            prioroffset += len(italic_1) + len(italic_2)
+            #print(sending_message)
+            continue
+
+        if x[3] == "bold":
+            bold_1 = "<b>"
+            bold_2 = "</b>"
+            sending_message = "{}{}{}{}{}".format(sending_message[:(startp)],
+                                                    bold_1,
+                                                    sending_message[startp:endp],
+                                                    bold_2,
+                                                    sending_message[endp:])
+            prioroffset += len(bold_1) + len(bold_2)
+            #print(prioroffset)
+            #print(sending_message)
+            continue
+
+        if x[3] == "code":
+            code_1 = "<code>"
+            code_2 = "</code>"
+            sending_message = "{}{}{}{}{}".format(sending_message[:(startp)],
+                                                    code_1,
+                                                    sending_message[startp:endp],
+                                                    code_2,
+                                                    sending_message[endp:])
+            prioroffset += len(code_1) + len(code_2)
+            #print(sending_message)
+            continue
+            
+        if x[3] == "pre":
+            pre_1 = "<pre>"
+            pre_2 = "</pre>"
+            sending_message = "{}{}{}{}{}".format(sending_message[:(startp)],
+                                                    pre_1,
+                                                    sending_message[startp:endp],
+                                                    pre_2,
+                                                    sending_message[endp:])
+            prioroffset += len(pre_1) + len(pre_2)
+            #print(sending_message)
+            continue
+
+    return (sending_message)
+
 
 def start(bot, update, args=None):
     if args:
@@ -121,7 +204,7 @@ def off_on_topic(bot, update, groups):
     if chat_username == ONTOPIC_USERNAME and groups[0].lower() == 'off':
         reply = update.message.reply_to_message
         moved_notification = 'I moved this discussion to the ' \
-                             '[off-topic Group]({}).'
+                             '<a href = "{}>off-topic Group</a>.'
         if reply and reply.text:
             issued_reply = get_reply_id(update)
 
@@ -130,35 +213,35 @@ def off_on_topic(bot, update, groups):
             else:
                 name = reply.from_user.first_name
 
-            replied_message_text = reply.text
+            replied_message_text = convertformatting(reply.text, reply.entities)
             replied_message_id = reply.message_id
 
-            text = (f'{name} [wrote](t.me/pythontelegrambotgroup/{replied_message_id}):\n'
+           text = (f'{name} <a href = "t.me/pythontelegrambotgroup/{replied_message_id}">wrote</a>:\n'
                     f'{replied_message_text}\n\n'
                     f'⬇️ ᴘʟᴇᴀsᴇ ᴄᴏɴᴛɪɴᴜᴇ ʜᴇʀᴇ ⬇️')
 
             offtopic_msg = bot.send_message(OFFTOPIC_CHAT_ID, text, disable_web_page_preview=True,
-                                            parse_mode=ParseMode.MARKDOWN)
+                                            parse_mode=ParseMode.HTML)
 
             update.message.reply_text(
                 moved_notification.format('https://telegram.me/pythontelegrambottalk/' +
                                           str(offtopic_msg.message_id)),
                 disable_web_page_preview=True,
-                parse_mode=ParseMode.MARKDOWN,
+                parse_mode=ParseMode.HTML,
                 reply_to_message_id=issued_reply
             )
 
         else:
             update.message.reply_text(
-                'The off-topic group is [here](https://telegram.me/pythontelegrambottalk). '
+                'The off-topic group is <a href = "https://telegram.me/pythontelegrambottalk">here</a>. '
                 'Come join us!',
-                disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
+                disable_web_page_preview=True, parse_mode=ParseMode.HTML)
 
     elif chat_username == OFFTOPIC_USERNAME and groups[0].lower() == 'on':
         update.message.reply_text(
-            'The on-topic group is [here](https://telegram.me/pythontelegrambotgroup). '
+            'The on-topic group is <a href = "https://telegram.me/pythontelegrambotgroup">here</a>. '
             'Come join us!',
-            disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
+            disable_web_page_preview=True, parse_mode=ParseMode.HTML)
 
 
 def sandwich(bot, update, groups):
