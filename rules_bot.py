@@ -143,7 +143,7 @@ def off_on_topic(bot, update, groups):
                     f'{replied_message_text}\n\n'
                     f'⬇️ ᴘʟᴇᴀsᴇ ᴄᴏɴᴛɪɴᴜᴇ ʜᴇʀᴇ ⬇️')
 
-            if eply.photo:
+            if reply.photo:
                 offtopic_msg = bot.send_photo(chat_id=OFFTOPIC_CHAT_ID,
                                               photo=reply.photo[-1],
                                               caption=text,
