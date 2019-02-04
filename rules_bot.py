@@ -139,23 +139,25 @@ def off_on_topic(bot, update, groups):
 
             replied_message_id = reply.message_id
 
-            text = (f'{name} [wrote](t.me/pythontelegrambotgroup/{replied_message_id}):\n'
+            text = (f'{name} <a href="t.me/pythontelegrambotgroup/{replied_message_id}">wrote</a>:\n'
                     f'{replied_message_text}\n\n'
                     f'⬇️ ᴘʟᴇᴀsᴇ ᴄᴏɴᴛɪɴᴜᴇ ʜᴇʀᴇ ⬇️')
 
             if reply.photo:
                 offtopic_msg = bot.send_photo(chat_id=OFFTOPIC_CHAT_ID,
-                               photo=(reply.photo[-1]),
-                               caption=text,
-                               parse_mode=telegram.ParseMode.HTML)
+                                              photo=reply.photo[-1],
+                                              caption=text,
+                                              parse_mode=telegram.ParseMode.HTML)
             if reply.document:
                 offtopic_msg = bot.send_document(chat_id=OFFTOPIC_CHAT_ID,
-                                  document=(reply.document),
-                                  caption=text,
-                                  parse_mode=telegram.ParseMode.HTML)
+                                                 document=reply.document,
+                                                 caption=text,
+                                                 parse_mode=telegram.ParseMode.HTML)
             if reply.text:
-                offtopic_msg = bot.send_message(OFFTOPIC_CHAT_ID, text, disable_web_page_preview=True,
-                                            parse_mode=telegram.ParseMode.HTML)
+                offtopic_msg = bot.send_message(OFFTOPIC_CHAT_ID, 
+                                                text, 
+                                                disable_web_page_preview=True,
+                                                parse_mode=telegram.ParseMode.HTML)
 
             update.message.reply_text(
                 moved_notification.format('https://telegram.me/pythontelegrambottalk/' +
