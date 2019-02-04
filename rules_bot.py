@@ -123,17 +123,17 @@ def off_on_topic(bot, update, groups):
         moved_notification = 'I moved this discussion to the ' \
                              '[off-topic Group]({}).'
 
-        if reply and (reply.text or reply.caption):
+        if reply and (reply.text or reply.video or reply.photo or reply.document):
             issued_reply = get_reply_id(update)
             if reply.from_user.username:
                 name = '@' + reply.from_user.username
             else:
                 name = reply.from_user.first_name
 
-            if reply.photo:
+            if (reply.photo or reply.document or reply.video):
                 replied_message_text = reply.caption_html
-            elif reply.document:
-                replied_message_text = reply.caption_html
+                if replied_message_text == None:
+                    replied_message_text = "<i>nothing</i>"
             else:
                 replied_message_text = reply.text_html
 
@@ -143,21 +143,27 @@ def off_on_topic(bot, update, groups):
                     f'{replied_message_text}\n\n'
                     f'⬇️ ᴘʟᴇᴀsᴇ ᴄᴏɴᴛɪɴᴜᴇ ʜᴇʀᴇ ⬇️')
 
-            if reply.photo:
+            if eply.photo:
                 offtopic_msg = bot.send_photo(chat_id=OFFTOPIC_CHAT_ID,
                                               photo=reply.photo[-1],
                                               caption=text,
-                                              parse_mode=telegram.ParseMode.HTML)
-            if reply.document:
+                                              parse_mode=ParseMode.HTML)
+            elif reply.document:
                 offtopic_msg = bot.send_document(chat_id=OFFTOPIC_CHAT_ID,
                                                  document=reply.document,
                                                  caption=text,
-                                                 parse_mode=telegram.ParseMode.HTML)
-            if reply.text:
+                                                 parse_mode=ParseMode.HTML)
+                
+            elif reply.video:
+                offtopic_msg = bot.send_video(chat_id=OFFTOPIC_CHAT_ID,
+                                              video=(reply.video),
+                                              caption=text,
+                                              parse_mode=ParseMode.HTML)
+            elif reply.text:
                 offtopic_msg = bot.send_message(OFFTOPIC_CHAT_ID, 
                                                 text, 
                                                 disable_web_page_preview=True,
-                                                parse_mode=telegram.ParseMode.HTML)
+                                                parse_mode=ParseMode.HTML)
 
             update.message.reply_text(
                 moved_notification.format('https://telegram.me/pythontelegrambottalk/' +
@@ -178,6 +184,7 @@ def off_on_topic(bot, update, groups):
             'The on-topic group is [here](https://telegram.me/pythontelegrambotgroup). '
             'Come join us!',
             disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
+        
 
 def sandwich(bot, update, groups):
     if update.message.chat.username == OFFTOPIC_USERNAME:
