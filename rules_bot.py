@@ -122,23 +122,40 @@ def off_on_topic(bot, update, groups):
         reply = update.message.reply_to_message
         moved_notification = 'I moved this discussion to the ' \
                              '[off-topic Group]({}).'
-        if reply and reply.text:
-            issued_reply = get_reply_id(update)
 
+        if reply and (reply.text or reply.caption):
+            issued_reply = get_reply_id(update)
             if reply.from_user.username:
                 name = '@' + reply.from_user.username
             else:
                 name = reply.from_user.first_name
 
-            replied_message_text = reply.text
+            if reply.photo:
+                replied_message_text = reply.caption_html
+            elif reply.document:
+                replied_message_text = reply.caption_html
+            else:
+                replied_message_text = reply.text_html
+
             replied_message_id = reply.message_id
 
             text = (f'{name} [wrote](t.me/pythontelegrambotgroup/{replied_message_id}):\n'
                     f'{replied_message_text}\n\n'
                     f'⬇️ ᴘʟᴇᴀsᴇ ᴄᴏɴᴛɪɴᴜᴇ ʜᴇʀᴇ ⬇️')
 
-            offtopic_msg = bot.send_message(OFFTOPIC_CHAT_ID, text, disable_web_page_preview=True,
-                                            parse_mode=ParseMode.MARKDOWN)
+            if reply.photo:
+                offtopic_msg = bot.send_photo(chat_id=OFFTOPIC_CHAT_ID,
+                               photo=(reply.photo[-1]),
+                               caption=text,
+                               parse_mode=telegram.ParseMode.HTML)
+            if reply.document:
+                offtopic_msg = bot.send_document(chat_id=OFFTOPIC_CHAT_ID,
+                                  document=(reply.document),
+                                  caption=text,
+                                  parse_mode=telegram.ParseMode.HTML)
+            if reply.text:
+                offtopic_msg = bot.send_message(OFFTOPIC_CHAT_ID, text, disable_web_page_preview=True,
+                                            parse_mode=telegram.ParseMode.HTML)
 
             update.message.reply_text(
                 moved_notification.format('https://telegram.me/pythontelegrambottalk/' +
@@ -159,7 +176,6 @@ def off_on_topic(bot, update, groups):
             'The on-topic group is [here](https://telegram.me/pythontelegrambotgroup). '
             'Come join us!',
             disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
-
 
 def sandwich(bot, update, groups):
     if update.message.chat.username == OFFTOPIC_USERNAME:
