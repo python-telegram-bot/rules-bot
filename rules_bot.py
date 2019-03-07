@@ -12,7 +12,7 @@ import const
 from components import inlinequeries, taghints
 from const import (ENCLOSING_REPLACEMENT_CHARACTER, GITHUB_PATTERN, OFFTOPIC_CHAT_ID, OFFTOPIC_RULES,
                    OFFTOPIC_USERNAME, ONTOPIC_RULES, ONTOPIC_USERNAME)
-from util import get_reply_id, reply_or_edit, get_text_not_in_entities, github_issues
+from util import get_reply_id, reply_or_edit, get_text_not_in_entities, github_issues, rate_limit, rate_limit_tracker
 
 if os.environ.get('ROOLSBOT_DEBUG'):
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -78,6 +78,7 @@ def forward_faq(update: Update, context: CallbackContext):
     reply_to.forward(const.FAQ_CHANNEL_ID, disable_notification=True)
 
 
+@rate_limit
 def rules(update: Update, context: CallbackContext):
     """Load and send the appropriate rules based on which group we're in"""
     if update.message.chat.username == ONTOPIC_USERNAME:
@@ -93,6 +94,7 @@ def rules(update: Update, context: CallbackContext):
                                   "and I don't know the rules around here.")
 
 
+@rate_limit
 def docs(update: Update, context: CallbackContext):
     """ Documentation link """
     text = "You can find our documentation at [Read the Docs](https://python-telegram-bot.readthedocs.io/en/stable/)"
@@ -105,6 +107,7 @@ def docs(update: Update, context: CallbackContext):
     update.message.delete()
 
 
+@rate_limit
 def wiki(update: Update, context: CallbackContext):
     """ Wiki link """
     text = "You can find our wiki on [GitHub](https://github.com/python-telegram-bot/python-telegram-bot/wiki)"
@@ -219,6 +222,8 @@ def main():
     global SELF_CHAT_ID
     SELF_CHAT_ID = f'@{updater.bot.get_me().username}'
 
+    rate_limit_tracker_handler = MessageHandler(~Filters.command, rate_limit_tracker)
+
     start_handler = CommandHandler('start', start)
     rules_handler = CommandHandler('rules', rules)
     rules_handler_hashtag = MessageHandler(Filters.regex(r'.*#rules.*'), rules)
@@ -235,6 +240,8 @@ def main():
     # but I kept getting SystemErrors...
     github_handler = MessageHandler(Filters.all, github)
     forward_faq_handler = MessageHandler(Filters.regex(r'(?i).*#faq.*'), forward_faq)
+
+    dispatcher.add_handler(rate_limit_tracker_handler, group=-1)
 
     # Note: Order matters!
     taghints.register(dispatcher)

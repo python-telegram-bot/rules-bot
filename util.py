@@ -1,18 +1,23 @@
 import logging
 import threading
 from collections import namedtuple
+from functools import wraps
 
 import requests
 from bs4 import BeautifulSoup
 from fuzzywuzzy import process, fuzz
 from requests import Session
-from telegram import ParseMode
+from telegram import ParseMode, Update
+from telegram.ext import CallbackContext
 
 ARROW_CHARACTER = '➜'
 GITHUB_URL = "https://github.com/"
 DEFAULT_REPO_OWNER = 'python-telegram-bot'
 DEFAULT_REPO_NAME = 'python-telegram-bot'
 DEFAULT_REPO = f'{DEFAULT_REPO_OWNER}/{DEFAULT_REPO_NAME}'
+
+# Require x non-command messages between each /rules etc.
+RATE_LIMIT_SPACING = 2
 
 
 def get_reply_id(update):
@@ -55,6 +60,37 @@ def build_menu(buttons,
     if footer_buttons:
         menu.append(footer_buttons)
     return menu
+
+
+def rate_limit_tracker(update: Update, context: CallbackContext):
+    data = context.chat_data.get('rate_limit', {})
+
+    for key in data.keys():
+        data[key] += 1
+
+
+def rate_limit(f):
+    """
+    Rate limit command so that RATE_LIMIT_SPACING non-command messages are
+    required between invocations.
+    """
+    @wraps(f)
+    def wrapper(update, context, *args, **kwargs):
+        # Get rate limit data
+        try:
+            data = context.chat_data['rate_limit']
+        except KeyError:
+            data = context.chat_data['rate_limit'] = {}
+
+        # If we have not seen two non-command messages since last of type `f.__name__`
+        if data.get(f.__name__, RATE_LIMIT_SPACING) < RATE_LIMIT_SPACING:
+            return
+
+        data[f.__name__] = 0
+
+        return f(update, context, *args, **kwargs)
+
+    return wrapper
 
 
 def truncate_str(str, max):
