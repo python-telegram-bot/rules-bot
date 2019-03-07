@@ -21,7 +21,8 @@ def get_reply_id(update):
     return None
 
 
-def reply_or_edit(bot, update, chat_data, text):
+def reply_or_edit(update, context, text):
+    chat_data = context.chat_data
     if update.edited_message:
         chat_data[update.edited_message.message_id].edit_text(text,
                                                               parse_mode=ParseMode.MARKDOWN,
@@ -29,10 +30,10 @@ def reply_or_edit(bot, update, chat_data, text):
     else:
         issued_reply = get_reply_id(update)
         if issued_reply:
-            chat_data[update.message.message_id] = bot.sendMessage(update.message.chat_id, text,
-                                                                   reply_to_message_id=issued_reply,
-                                                                   parse_mode=ParseMode.MARKDOWN,
-                                                                   disable_web_page_preview=True)
+            chat_data[update.message.message_id] = context.bot.sendMessage(update.message.chat_id, text,
+                                                                           reply_to_message_id=issued_reply,
+                                                                           parse_mode=ParseMode.MARKDOWN,
+                                                                           disable_web_page_preview=True)
         else:
             chat_data[update.message.message_id] = update.message.reply_text(text,
                                                                              parse_mode=ParseMode.MARKDOWN,
@@ -113,7 +114,7 @@ class GitHubIssues:
     def pretty_format_issue(self, issue, short=False, short_with_title=False, title_max_length=15):
         # PR OwnerIfNotDefault/RepoIfNotDefault#9999: Title by Author
         # OwnerIfNotDefault/RepoIfNotDefault#9999 if short=True
-        s = (f'{"" if issue.owner == self.default_owner else issue.owner+"/"}'
+        s = (f'{"" if issue.owner == self.default_owner else issue.owner + "/"}'
              f'{"" if issue.repo == self.default_repo else issue.repo}'
              f'#{issue.number}')
         if short:
@@ -125,7 +126,7 @@ class GitHubIssues:
     def pretty_format_commit(self, commit, short=False, short_with_title=False, title_max_length=15):
         # Commit OwnerIfNotDefault/RepoIfNotDefault@abcdf123456789: Title by Author
         # OwnerIfNotDefault/RepoIfNotDefault@abcdf123456789 if short=True
-        s = (f'{"" if commit.owner == self.default_owner else commit.owner+"/"}'
+        s = (f'{"" if commit.owner == self.default_owner else commit.owner + "/"}'
              f'{"" if commit.repo == self.default_repo else commit.repo}'
              f'@{commit.sha[:7]}')
         if short:

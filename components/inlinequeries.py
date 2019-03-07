@@ -2,8 +2,8 @@ import re
 from collections import OrderedDict
 from uuid import uuid4
 
-from telegram import InlineQueryResultArticle, InputTextMessageContent, ParseMode
-from telegram.ext import InlineQueryHandler
+from telegram import InlineQueryResultArticle, InputTextMessageContent, ParseMode, Update
+from telegram.ext import InlineQueryHandler, CallbackContext
 from telegram.utils.helpers import escape_markdown
 
 from components import taghints
@@ -192,7 +192,7 @@ def inline_github(query):
             # which isn't even valid markdown
             text = re.sub(pattern,
                           lambda x: f'[{github_issues.pretty_format(things[x.group(0)], short=True)}]'
-                                    f'({things[x.group(0)].url})', query)
+                          f'({things[x.group(0)].url})', query)
 
         # Add full format to bottom of message
         text += '\n\n' + '\n'.join(f'[{github_issues.pretty_format(thing)}]({thing.url})'
@@ -203,7 +203,7 @@ def inline_github(query):
     return results
 
 
-def inline_query(bot, update, threshold=20):
+def inline_query(update: Update, context: CallbackContext, threshold=20):
     query = update.inline_query.query
     results_list = list()
 
@@ -239,8 +239,8 @@ def inline_query(bot, update, threshold=20):
             doc = search.docs(query, threshold=threshold)
             if doc:
                 text = f'*{doc.short_name}*\n' \
-                       f'_python-telegram-bot_ documentation for this {doc.type}:\n' \
-                       f'[{doc.full_name}]({doc.url})'
+                    f'_python-telegram-bot_ documentation for this {doc.type}:\n' \
+                    f'[{doc.full_name}]({doc.url})'
                 if doc.tg_name:
                     text += f'\n\nThe official documentation has more info about [{doc.tg_name}]({doc.tg_url}).'
 
@@ -259,7 +259,7 @@ def inline_query(bot, update, threshold=20):
                         title=f'{wiki_page[0]}',
                         description="Github wiki for python-telegram-bot",
                         message_text=f'Wiki of _python-telegram-bot_\n'
-                                     f'[{wiki_page[0]}]({wiki_page[1]})'
+                        f'[{wiki_page[0]}]({wiki_page[1]})'
                     ))
 
         # If no results even after searching wiki and docs
@@ -277,11 +277,11 @@ def inline_query(bot, update, threshold=20):
                 title=name,
                 description='Wiki of python-telegram-bot',
                 message_text=f'Wiki of _python-telegram-bot_\n'
-                             f'[{escape_markdown(name)}]({link})',
+                f'[{escape_markdown(name)}]({link})',
             ))
 
-    bot.answer_inline_query(update.inline_query.id, results=results_list, switch_pm_text='Help',
-                            switch_pm_parameter='inline-help', cache_time=0)
+    update.inline_query.answer(results=results_list, switch_pm_text='Help',
+                               switch_pm_parameter='inline-help', cache_time=0)
 
 
 def register(dispatcher):

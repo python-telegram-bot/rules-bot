@@ -1,8 +1,8 @@
 from collections import namedtuple
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode, Update
 from telegram.error import BadRequest
-from telegram.ext import CommandHandler, RegexHandler, run_async
+from telegram.ext import CommandHandler, RegexHandler, run_async, Filters, MessageHandler, CallbackContext
 
 import const
 import util
@@ -88,7 +88,7 @@ It looks like you're not using the python-telegram-bot library. If you insist on
 
 
 @run_async
-def list_available_hints(bot, update):
+def list_available_hints(update: Update, context: CallbackContext):
     message = "You can use the following hashtags to guide new members:\n\n"
     message += '\n'.join(
         '🗣 {tag} ➖ {help}'.format(
@@ -121,7 +121,7 @@ def get_hints(query):
 
 
 @run_async
-def hint_handler(bot, update):
+def hint_handler(update: Update, context: CallbackContext):
     reply_to = update.message.reply_to_message
 
     hint = get_hints(update.message.text).popitem()[1]
@@ -139,5 +139,5 @@ def hint_handler(bot, update):
 
 
 def register(dispatcher):
-    dispatcher.add_handler(RegexHandler(rf'{"|".join(HINTS.keys())}.*', hint_handler))
+    dispatcher.add_handler(MessageHandler(Filters.regex(rf'{"|".join(HINTS.keys())}.*'), hint_handler))
     dispatcher.add_handler(CommandHandler(('hints', 'listhints'), list_available_hints))
