@@ -82,11 +82,12 @@ def rate_limit(f):
         except KeyError:
             data = context.chat_data['rate_limit'] = {}
 
-        # If we have not seen two non-command messages since last of type `f.__name__`
-        if data.get(f.__name__, RATE_LIMIT_SPACING) < RATE_LIMIT_SPACING:
+        # If we have not seen two non-command messages since last of type `f`
+        if data.get(f, RATE_LIMIT_SPACING) < RATE_LIMIT_SPACING:
+            logging.debug('Ignoring due to rate limit!')
             return
 
-        data[f.__name__] = 0
+        data[f] = 0
 
         return f(update, context, *args, **kwargs)
 
