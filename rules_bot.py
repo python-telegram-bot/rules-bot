@@ -183,6 +183,7 @@ def keep_typing(last, chat, action):
 def github(update: Update, context: CallbackContext):
     message = update.message or update.edited_message
     last = 0
+    thing_matches = []
     things = {}
 
     # Due to bug in ptb we need to convert entities of type URL to TEXT_LINK for them to be converted to html
@@ -192,10 +193,14 @@ def github(update: Update, context: CallbackContext):
             entity.url = message.parse_entity(entity)
 
     for match in GITHUB_PATTERN.finditer(get_text_not_in_entities(message.text_html)):
-        last = keep_typing(last, update.effective_chat, ChatAction.TYPING)
         logging.debug(match.groupdict())
-
         owner, repo, number, sha = [match.groupdict()[x] for x in ('owner', 'repo', 'number', 'sha')]
+        if number or sha:
+            thing_matches.append((owner, repo, number, sha))
+
+    for thing_match in thing_matches:
+        last = keep_typing(last, update.effective_chat, ChatAction.TYPING)
+        owner, repo, number, sha = thing_match
         if number:
             issue = github_issues.get_issue(int(number), owner, repo)
             things[issue.url] = github_issues.pretty_format_issue(issue)
