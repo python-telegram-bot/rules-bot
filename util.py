@@ -234,17 +234,17 @@ class GitHubIssues:
                                                          author=issue['user']['login'])
         elif not ok:
             # Retry in 5 sec
-            job_queue.run_once(lambda _, __: self._job(url, job_queue), 5)
+            job_queue.run_once(lambda _: self._job(url, job_queue), 5)
             return
 
         # If more issues
         if 'next' in links:
             # Process next page after 5 sec to not get rate-limited
-            job_queue.run_once(lambda _, __: self._job(links['next']['url'], job_queue), 5)
+            job_queue.run_once(lambda _: self._job(links['next']['url'], job_queue), 5)
         # No more issues
         else:
             # In 10 min check if the 100 first issues changed, and update them in our cache if needed
-            job_queue.run_once(lambda _, __: self._job(links['first']['url'], job_queue, first=True), 10 * 60)
+            job_queue.run_once(lambda _: self._job(links['first']['url'], job_queue, first=True), 10 * 60)
 
         # If this is on page one (first) then we wanna save the header
         if first:
