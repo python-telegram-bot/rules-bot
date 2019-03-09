@@ -122,8 +122,8 @@ def wiki(update: Update, context: CallbackContext):
 
 def off_on_topic(update: Update, context: CallbackContext):
     chat_username = update.message.chat.username
-    group_zero = context.match.group(0)
-    if chat_username == ONTOPIC_USERNAME and group_zero.lower() == 'off':
+    group_one = context.match.group(1)
+    if chat_username == ONTOPIC_USERNAME and group_one.lower() == 'off':
         reply = update.message.reply_to_message
         moved_notification = 'I moved this discussion to the [off-topic Group]({}).'
         if reply and reply.text:
@@ -158,7 +158,7 @@ def off_on_topic(update: Update, context: CallbackContext):
                 'Come join us!',
                 disable_web_page_preview=True, parse_mode=ParseMode.MARKDOWN)
 
-    elif chat_username == OFFTOPIC_USERNAME and group_zero.lower() == 'on':
+    elif chat_username == OFFTOPIC_USERNAME and group_one.lower() == 'on':
         update.message.reply_text(
             'The on-topic group is [here](https://telegram.me/pythontelegrambotgroup). '
             'Come join us!',
