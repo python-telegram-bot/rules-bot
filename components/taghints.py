@@ -83,6 +83,12 @@ It looks like you're not using the python-telegram-bot library. If you insist on
 [Telepot](https://github.com/nickoala/telepot)
         """,
         'help': "Other Python wrappers for Telegram"
+    },
+    '#askright': {
+        'message': """Hey.
+        In order for someone to be able to help you, you must ask a *good technical question*. Please read [this short article](http://telegra.ph/How-not-to-ask-technical-questions-05-10) and try again ;)
+        """,
+        'help': "@d_Rickyy_b's article about asking technical questions"
     }
 }
 
