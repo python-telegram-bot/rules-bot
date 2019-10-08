@@ -1,6 +1,6 @@
 beautifulsoup4
 fuzzywuzzy
 python-Levenshtein
-python-telegram-bot=12.0.0b1
+python-telegram-bot==12.0.0b1
 Sphinx
 requests
