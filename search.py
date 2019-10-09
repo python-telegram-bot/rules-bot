@@ -8,7 +8,7 @@ from sphinx.util.inventory import InventoryFile
 
 from util import ARROW_CHARACTER, DEFAULT_REPO, GITHUB_URL
 
-DOCS_URL = "https://python-telegram-bot.readthedocs.io/en/latest/"
+DOCS_URL = "https://python-telegram-bot.readthedocs.io/en/stable/"
 OFFICIAL_URL = "https://core.telegram.org/bots/api"
 PROJECT_URL = urljoin(GITHUB_URL, DEFAULT_REPO + '/')
 WIKI_URL = urljoin(PROJECT_URL, "wiki/")
