@@ -30,18 +30,18 @@ def reply_or_edit(update, context, text):
     chat_data = context.chat_data
     if update.edited_message:
         chat_data[update.edited_message.message_id].edit_text(text,
-                                                              parse_mode=ParseMode.MARKDOWN,
+                                                              parse_mode=ParseMode.HTML,
                                                               disable_web_page_preview=True)
     else:
         issued_reply = get_reply_id(update)
         if issued_reply:
             chat_data[update.message.message_id] = context.bot.sendMessage(update.message.chat_id, text,
                                                                            reply_to_message_id=issued_reply,
-                                                                           parse_mode=ParseMode.MARKDOWN,
+                                                                           parse_mode=ParseMode.HTML,
                                                                            disable_web_page_preview=True)
         else:
             chat_data[update.message.message_id] = update.message.reply_text(text,
-                                                                             parse_mode=ParseMode.MARKDOWN,
+                                                                             parse_mode=ParseMode.HTML,
                                                                              disable_web_page_preview=True)
 
 
