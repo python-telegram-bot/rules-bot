@@ -74,6 +74,7 @@ def rate_limit(f):
     Rate limit command so that RATE_LIMIT_SPACING non-command messages are
     required between invocations.
     """
+
     @wraps(f)
     def wrapper(update, context, *args, **kwargs):
         # Get rate limit data
@@ -117,10 +118,7 @@ class GitHubIssues:
         self.issues_lock = threading.Lock()
 
     def set_auth(self, client_id, client_secret):
-        self.s.params = {
-            'client_id': client_id,
-            'client_secret': client_secret
-        }
+        self.s.auth = (client_id, client_secret)
 
     def _get_json(self, url, data=None, headers=None):
         # Add base_url if needed
