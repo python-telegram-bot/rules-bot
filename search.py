@@ -1,6 +1,6 @@
 from collections import OrderedDict, namedtuple
 from urllib.parse import urljoin
-from urllib.request import urlopen
+from urllib.request import urlopen, Request
 
 from bs4 import BeautifulSoup
 from fuzzywuzzy import fuzz
@@ -14,6 +14,7 @@ PROJECT_URL = urljoin(GITHUB_URL, DEFAULT_REPO + '/')
 WIKI_URL = urljoin(PROJECT_URL, "wiki/")
 WIKI_CODE_SNIPPETS_URL = urljoin(WIKI_URL, "Code-snippets")
 EXAMPLES_URL = urljoin(PROJECT_URL, 'tree/master/examples/')
+USER_AGENT = 'Github: python-telegram-bot/rules-bot'
 
 Doc = namedtuple('Doc', 'short_name, full_name, type, url, tg_name, tg_url')
 
@@ -44,7 +45,9 @@ class Search:
         self.parse_wiki_code_snippets()
 
     def parse_docs(self):
-        docs_data = urlopen(urljoin(DOCS_URL, "objects.inv"))
+        request = Request(urljoin(DOCS_URL, "objects.inv"),
+                          headers={'User-Agent': USER_AGENT})
+        docs_data = urlopen(request)
         self._docs = InventoryFile.load(docs_data, DOCS_URL, urljoin)
 
     def parse_official(self):
