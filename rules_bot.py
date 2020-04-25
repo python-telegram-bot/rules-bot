@@ -209,7 +209,7 @@ def github(update: Update, context: CallbackContext):
             things[commit.url] = github_issues.pretty_format_commit(commit)
 
     if things:
-        reply_or_edit(update, context, '\n'.join([f'[{name}]({url})' for url, name in things.items()]))
+        reply_or_edit(update, context, '\n'.join([f'<a href="{url}">{name}</a>' for url, name in things.items()]))
 
 
 def error(update: Update, context: CallbackContext):
