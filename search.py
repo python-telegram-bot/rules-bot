@@ -14,8 +14,7 @@ PROJECT_URL = urljoin(GITHUB_URL, DEFAULT_REPO + '/')
 WIKI_URL = urljoin(PROJECT_URL, "wiki/")
 WIKI_CODE_SNIPPETS_URL = urljoin(WIKI_URL, "Code-snippets")
 EXAMPLES_URL = urljoin(PROJECT_URL, 'tree/master/examples/')
-CHROME_USER_AGENT = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, '
-                     'like Gecko) Chrome/81.0.4044.122 Safari/537.36')
+USER_AGENT = 'Github: python-telegram-bot/rules-bot'
 
 Doc = namedtuple('Doc', 'short_name, full_name, type, url, tg_name, tg_url')
 
@@ -47,7 +46,7 @@ class Search:
 
     def parse_docs(self):
         request = Request(urljoin(DOCS_URL, "objects.inv"),
-                          headers={'User-Agent': CHROME_USER_AGENT})
+                          headers={'User-Agent': USER_AGENT})
         docs_data = urlopen(request)
         self._docs = InventoryFile.load(docs_data, DOCS_URL, urljoin)
 
