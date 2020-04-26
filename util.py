@@ -10,6 +10,8 @@ from requests import Session
 from telegram import ParseMode, Update
 from telegram.ext import CallbackContext
 
+from const import USER_AGENT
+
 ARROW_CHARACTER = '➜'
 GITHUB_URL = "https://github.com/"
 DEFAULT_REPO_OWNER = 'python-telegram-bot'
@@ -106,7 +108,7 @@ Commit = namedtuple('Commit', 'owner, repo, sha, url, title, author')
 class GitHubIssues:
     def __init__(self, default_owner=DEFAULT_REPO_OWNER, default_repo=DEFAULT_REPO_NAME):
         self.s = Session()
-        self.s.headers.update({'user-agent': 'bvanrijn/rules-bot'})
+        self.s.headers.update({'user-agent': USER_AGENT})
         self.base_url = 'https://api.github.com/'
         self.default_owner = default_owner
         self.default_repo = default_repo

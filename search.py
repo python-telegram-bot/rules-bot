@@ -7,6 +7,7 @@ from fuzzywuzzy import fuzz
 from sphinx.util.inventory import InventoryFile
 
 from util import ARROW_CHARACTER, DEFAULT_REPO, GITHUB_URL
+from const import USER_AGENT
 
 DOCS_URL = "https://python-telegram-bot.readthedocs.io/en/stable/"
 OFFICIAL_URL = "https://core.telegram.org/bots/api"
@@ -14,7 +15,6 @@ PROJECT_URL = urljoin(GITHUB_URL, DEFAULT_REPO + '/')
 WIKI_URL = urljoin(PROJECT_URL, "wiki/")
 WIKI_CODE_SNIPPETS_URL = urljoin(WIKI_URL, "Code-snippets")
 EXAMPLES_URL = urljoin(PROJECT_URL, 'tree/master/examples/')
-USER_AGENT = 'Github: python-telegram-bot/rules-bot'
 
 Doc = namedtuple('Doc', 'short_name, full_name, type, url, tg_name, tg_url')
 
@@ -51,13 +51,15 @@ class Search:
         self._docs = InventoryFile.load(docs_data, DOCS_URL, urljoin)
 
     def parse_official(self):
-        official_soup = BeautifulSoup(urlopen(OFFICIAL_URL), "html.parser")
+        request = Request(OFFICIAL_URL, headers={'User-Agent': USER_AGENT})
+        official_soup = BeautifulSoup(urlopen(request), "html.parser")
         for anchor in official_soup.select('a.anchor'):
             if '-' not in anchor['href']:
                 self._official[anchor['href'][1:]] = anchor.next_sibling
 
     def parse_wiki(self):
-        wiki_soup = BeautifulSoup(urlopen(WIKI_URL), "html.parser")
+        request = Request(OFFICIAL_URL, headers={'User-Agent': USER_AGENT})
+        wiki_soup = BeautifulSoup(urlopen(request), "html.parser")
 
         # Parse main pages from custom sidebar
         for ol in wiki_soup.select("div.wiki-custom-sidebar > ol"):
@@ -68,15 +70,17 @@ class Search:
                     self._wiki[name] = urljoin(WIKI_URL, li.a['href'])
 
     def parse_wiki_code_snippets(self):
-        code_snippet_soup = BeautifulSoup(urlopen(WIKI_CODE_SNIPPETS_URL), 'html.parser')
-        for h4 in code_snippet_soup.select('div.wiki-body h4'):
+        request = Request(WIKI_CODE_SNIPPETS_URL, headers={'User-Agent': USER_AGENT})
+        code_snippet_soup = BeautifulSoup(urlopen(request), 'html.parser')
+        for h4 in code_snippet_soup.select('div#wiki-body h4'):
             name = f'Code snippets {ARROW_CHARACTER} {h4.text.strip()}'
             self._wiki[name] = urljoin(WIKI_CODE_SNIPPETS_URL, h4.a['href'])
 
     def parse_examples(self):
         self._wiki['Examples'] = EXAMPLES_URL
 
-        example_soup = BeautifulSoup(urlopen(EXAMPLES_URL), 'html.parser')
+        request = Request(EXAMPLES_URL, headers={'User-Agent': USER_AGENT})
+        example_soup = BeautifulSoup(urlopen(request), 'html.parser')
 
         for a in example_soup.select('.files td.content a'):
             if a.text not in ['LICENSE.txt', 'README.md']:
