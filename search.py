@@ -1,5 +1,6 @@
-import datetime as dtm
 import functools
+
+from datetime import date
 
 from collections import OrderedDict, namedtuple
 from urllib.parse import urljoin
@@ -38,9 +39,9 @@ class BestHandler:
 def cached_parsing(func):
     @functools.wraps(func)
     def checking_cache_time(self, *args, **kwargs):
-        if dtm.date.today() > self.cache_time:
+        if date.today() > self.last_cache_date:
             self._parse()
-            self.cache_time = dtm.date.today()
+            self.last_cache_date = date.today()
         return func(self, *args, **kwargs)
     return checking_cache_time
 
@@ -50,11 +51,10 @@ class Search:
         self._docs = {}
         self._official = {}
         self._wiki = OrderedDict()  # also examples
-        self.cache_time = dtm.date.today()
+        self.last_cache_date = date.today()
         self._parse()
 
     def _parse(self):
-        print('parsing')
         self.parse_docs()
         self.parse_official()
         # Order matters since we use an ordered dict
