@@ -82,8 +82,9 @@ class Search:
         request = Request(EXAMPLES_URL, headers={'User-Agent': USER_AGENT})
         example_soup = BeautifulSoup(urlopen(request), 'html.parser')
 
-        for a in example_soup.select('.files td.content a'):
-            if a.text not in ['LICENSE.txt', 'README.md']:
+        for div in example_soup.findAll('div', {'role': 'rowheader'}):
+            a = div.a
+            if a.text not in ['LICENSE.txt', 'README.md', '. .']:
                 name = f'Examples {ARROW_CHARACTER} {a.text.strip()}'
                 self._wiki[name] = urljoin(EXAMPLES_URL, a['href'])
 
