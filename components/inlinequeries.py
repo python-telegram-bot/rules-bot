@@ -19,7 +19,7 @@ def article(title='', description='', message_text='', key=None, reply_markup=No
         description=description,
         input_message_content=InputTextMessageContent(
             message_text=message_text,
-            parse_mode=ParseMode.MARKDOWN,
+            parse_mode=ParseMode.HTML,
             disable_web_page_preview=True),
         reply_markup=reply_markup
     )
@@ -38,16 +38,16 @@ def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
         wiki = search.wiki(s.replace('_', ' '), amount=1, threshold=threshold)
         if wiki:
             name = wiki[0][0].split(ARROW_CHARACTER)[-1].strip()
-            text = f'[{name}]({wiki[0][1]})'
+            text = f'<a href="{wiki[0][1]}">{name}</a>'
             replacements.append((wiki[0][0], s, text))
             continue
 
         doc = search.docs(s, threshold=threshold)
         if doc:
-            text = f'[{doc.short_name}]({doc.url})'
+            text = f'<a href="{doc.url}">{doc.short_name}</a>'
 
             if doc.tg_url and official_api_links:
-                text += f' [{TELEGRAM_SUPERSCRIPT}]({doc.tg_url})'
+                text += f' <a href="{doc.tg_url}">{TELEGRAM_SUPERSCRIPT}</a>'
 
             replacements.append((doc.short_name, s, text))
             continue
@@ -191,11 +191,11 @@ def inline_github(query):
             # [blah/blah[#2](LinkFor#2)](LinkForblah/blah[#2](LinkFor#2))
             # which isn't even valid markdown
             text = re.sub(pattern,
-                          lambda x: f'[{github_issues.pretty_format(things[x.group(0)], short=True)}]'
-                          f'({things[x.group(0)].url})', query)
+                          lambda x: f'<a href="{things[x.group(0)].url}">'
+                          f'{github_issues.pretty_format(things[x.group(0)], short=True)}</a>', query)
 
         # Add full format to bottom of message
-        text += '\n\n' + '\n'.join(f'[{github_issues.pretty_format(thing)}]({thing.url})'
+        text += '\n\n' + '\n'.join(f'<a href="{thing.url}">{github_issues.pretty_format(thing)}</a>'
                                    for thing in things.values())
 
         results.append(article(title=title, description=description, message_text=text))
@@ -240,9 +240,9 @@ def inline_query(update: Update, context: CallbackContext, threshold=20):
             if doc:
                 text = f'*{doc.short_name}*\n' \
                     f'_python-telegram-bot_ documentation for this {doc.type}:\n' \
-                    f'[{doc.full_name}]({doc.url})'
+                    f'<a href="{doc.url}">{doc.full_name}</a>'
                 if doc.tg_name:
-                    text += f'\n\nThe official documentation has more info about [{doc.tg_name}]({doc.tg_url}).'
+                    text += f'\n\nThe official documentation has more info about <a href="{doc.tg_url}">{doc.tg_name}</a>.'
 
                 results_list.append(article(
                     title=f'{doc.full_name}',
@@ -259,7 +259,7 @@ def inline_query(update: Update, context: CallbackContext, threshold=20):
                         title=f'{wiki_page[0]}',
                         description="Github wiki for python-telegram-bot",
                         message_text=f'Wiki of _python-telegram-bot_\n'
-                        f'[{wiki_page[0]}]({wiki_page[1]})'
+                        f'<a href="{wiki_page[1]}">{wiki_page[0]}</a>'
                     ))
 
         # If no results even after searching wiki and docs
@@ -267,7 +267,7 @@ def inline_query(update: Update, context: CallbackContext, threshold=20):
             results_list.append(article(
                 title='❌ No results.',
                 description='',
-                message_text=f'[GitHub wiki]({WIKI_URL}) of _python-telegram-bot_',
+                message_text=f'<a href="{WIKI_URL}">GitHub wiki</a> of _python-telegram-bot_',
             ))
 
     else:
@@ -277,7 +277,7 @@ def inline_query(update: Update, context: CallbackContext, threshold=20):
                 title=name,
                 description='Wiki of python-telegram-bot',
                 message_text=f'Wiki of _python-telegram-bot_\n'
-                f'[{escape_markdown(name)}]({link})',
+                f'<a href="{link}">{escape_markdown(name)}</a>',
             ))
 
     update.inline_query.answer(results=results_list, switch_pm_text='Help',
