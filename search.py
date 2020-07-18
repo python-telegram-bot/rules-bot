@@ -1,3 +1,6 @@
+import datetime as dtm
+import functools
+
 from collections import OrderedDict, namedtuple
 from urllib.parse import urljoin
 from urllib.request import urlopen, Request
@@ -32,11 +35,26 @@ class BestHandler:
         return items if len(items) > 0 else None
 
 
+def cached_parsing(func):
+    @functools.wraps(func)
+    def checking_cache_time(self, *args, **kwargs):
+        if dtm.date.today() > self.cache_time:
+            self._parse()
+            self.cache_time = dtm.date.today()
+        return func(self, *args, **kwargs)
+    return checking_cache_time
+
+
 class Search:
     def __init__(self):
         self._docs = {}
         self._official = {}
         self._wiki = OrderedDict()  # also examples
+        self.cache_time = dtm.date.today()
+        self._parse()
+
+    def _parse(self):
+        print('parsing')
         self.parse_docs()
         self.parse_official()
         # Order matters since we use an ordered dict
@@ -83,6 +101,7 @@ class Search:
                 name = f'Examples {ARROW_CHARACTER} {a.text.strip()}'
                 self._wiki[name] = urljoin(EXAMPLES_URL, a['href'])
 
+    @cached_parsing
     def docs(self, query, threshold=80):
         query = list(reversed(query.split('.')))
         best = (0, None)
@@ -131,6 +150,7 @@ class Search:
         if best[0] > threshold:
             return best[1]
 
+    @cached_parsing
     def wiki(self, query, amount=5, threshold=50):
         best = BestHandler()
         best.add(0, ('HOME', WIKI_URL))
@@ -141,6 +161,7 @@ class Search:
 
         return best.to_list(amount, threshold)
 
+    @cached_parsing
     def all_wiki_pages(self):
         return list(self._wiki.items())
 
