@@ -89,6 +89,18 @@ It looks like you're not using the python-telegram-bot library. If you insist on
         In order for someone to be able to help you, you must ask a *good technical question*. Please read [this short article](http://telegra.ph/How-not-to-ask-technical-questions-05-10) and try again ;)
         """,
         'help': "@d_Rickyy_b's article about asking technical questions"
+    },
+    '#broadcast': {
+        'message': """Hey. Broadcasting to users is a common use case. This [short article](https://telegra.ph/Sending-notifications-to-all-users-07-17) summarizes the most important tips for that.""",
+        'help': "@Bibo-Joshi's article about broadcasting to users."
+    },
+    '#mwe': {
+        'message': """Hey. Please provide a minimal working example (MWE). Have a look at [this short article](https://telegra.ph/Minimal-Working-Example-for-PTB-07-18) for information on what a MWE is.""",
+        'help': "@Bibo-Joshi's article about MWEs."
+    },
+    '#pastebin': {
+        'message': """Hey. Please post code using a pastebin rather then as plain text or screenshots. https://pastebin.com/ ist the most popular, but there are many alterantives out there. Of course, for very short snippets, text is fine. Please at least format it as monospace in that case.""",
+        'help': "Ask users not to post code as text or images."
     }
 }
 
