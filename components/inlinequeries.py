@@ -238,8 +238,8 @@ def inline_query(update: Update, context: CallbackContext, threshold=20):
         if not results_list:
             doc = search.docs(query, threshold=threshold)
             if doc:
-                text = f'*{doc.short_name}*\n' \
-                    f'_python-telegram-bot_ documentation for this {doc.type}:\n' \
+                text = f'<b>{doc.short_name}</b>\n' \
+                    f'<i>python-telegram-bot</i> documentation for this {doc.type}:\n' \
                     f'<a href="{doc.url}">{doc.full_name}</a>'
                 if doc.tg_name:
                     text += f'\n\nThe official documentation has more info about <a href="{doc.tg_url}">{doc.tg_name}</a>.'
@@ -258,7 +258,7 @@ def inline_query(update: Update, context: CallbackContext, threshold=20):
                     results_list.append(article(
                         title=f'{wiki_page[0]}',
                         description="Github wiki for python-telegram-bot",
-                        message_text=f'Wiki of _python-telegram-bot_\n'
+                        message_text=f'Wiki of <i>python-telegram-bot</i>\n'
                         f'<a href="{wiki_page[1]}">{wiki_page[0]}</a>'
                     ))
 
@@ -267,7 +267,7 @@ def inline_query(update: Update, context: CallbackContext, threshold=20):
             results_list.append(article(
                 title='❌ No results.',
                 description='',
-                message_text=f'<a href="{WIKI_URL}">GitHub wiki</a> of _python-telegram-bot_',
+                message_text=f'<a href="{WIKI_URL}">GitHub wiki</a> of <i>python-telegram-bot</i>',
             ))
 
     else:
@@ -276,7 +276,7 @@ def inline_query(update: Update, context: CallbackContext, threshold=20):
             results_list.append(article(
                 title=name,
                 description='Wiki of python-telegram-bot',
-                message_text=f'Wiki of _python-telegram-bot_\n'
+                message_text=f'Wiki of <i>python-telegram-bot</i>\n'
                 f'<a href="{link}">{escape_markdown(name)}</a>',
             ))
 
