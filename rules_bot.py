@@ -134,15 +134,15 @@ def off_on_topic(update: Update, context: CallbackContext):
             else:
                 name = reply.from_user.first_name
 
-            replied_message_text = reply.text
+            replied_message_text = reply.text_html
             replied_message_id = reply.message_id
 
-            text = (f'{name} [wrote](t.me/pythontelegrambotgroup/{replied_message_id}):\n'
+            text = (f'{name} <a href="t.me/pythontelegrambotgroup/{replied_message_id}">wrote</a>:\n'
                     f'{replied_message_text}\n\n'
                     f'⬇️ ᴘʟᴇᴀsᴇ ᴄᴏɴᴛɪɴᴜᴇ ʜᴇʀᴇ ⬇️')
 
             offtopic_msg = context.bot.send_message(OFFTOPIC_CHAT_ID, text, disable_web_page_preview=True,
-                                                    parse_mode=ParseMode.MARKDOWN)
+                                                    parse_mode=ParseMode.HTML)
 
             update.message.reply_text(
                 moved_notification.format('https://telegram.me/pythontelegrambottalk/' +
