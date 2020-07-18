@@ -1,5 +1,6 @@
 import re
 
+USER_AGENT = 'Github: python-telegram-bot/rules-bot'
 ENCLOSING_REPLACEMENT_CHARACTER = '+'
 ENCLOSED_REGEX = rf'\{ENCLOSING_REPLACEMENT_CHARACTER}([a-zA-Z_.0-9]*)\{ENCLOSING_REPLACEMENT_CHARACTER}'
 OFFTOPIC_USERNAME = 'pythontelegrambottalk'
