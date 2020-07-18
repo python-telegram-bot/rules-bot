@@ -102,7 +102,7 @@ class Search:
 
         for div in example_soup.findAll('div', {'role': 'rowheader'}):
             a = div.a
-            if a.text not in ['LICENSE.txt', 'README.md', '. .']:
+            if a.text not in ['LICENSE.txt', 'README.md', '\n. .\n']:
                 name = f'Examples {ARROW_CHARACTER} {a.text.strip()}'
                 self._wiki[name] = urljoin(EXAMPLES_URL, a['href'])
 
