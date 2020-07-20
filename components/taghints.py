@@ -146,7 +146,7 @@ def hint_handler(update: Update, context: CallbackContext):
         update.effective_message.reply_text(hint.msg,
                                             reply_markup=hint.reply_markup,
                                             reply_to_message_id=reply_to.message_id if reply_to else None,
-                                            parse_mode=ParseMode.MARKDOWN,
+                                            parse_mode=ParseMode.HTML,
                                             disable_web_page_preview=True)
         try:
             update.effective_message.delete()
