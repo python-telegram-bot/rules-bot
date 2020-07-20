@@ -76,7 +76,7 @@ class Search:
                 self._official[anchor['href'][1:]] = anchor.next_sibling
 
     def parse_wiki(self):
-        request = Request(OFFICIAL_URL, headers={'User-Agent': USER_AGENT})
+        request = Request(WIKI_URL, headers={'User-Agent': USER_AGENT})
         wiki_soup = BeautifulSoup(urlopen(request), "html.parser")
 
         # Parse main pages from custom sidebar
