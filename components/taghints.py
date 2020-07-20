@@ -90,11 +90,11 @@ It looks like you're not using the python-telegram-bot library. If you insist on
     },
     '#broadcast': {
         'message': """Hey. Broadcasting to users is a common use case. This <a href="https://telegra.ph/Sending-notifications-to-all-users-07-17">short article</a> summarizes the most important tips for that.""",
-        'help': "@Bibo-Joshi's article about broadcasting to users."
+        'help': "@BiboJoshi's article about broadcasting to users."
     },
     '#mwe': {
         'message': """Hey. Please provide a minimal working example (MWE). Have a look at <a href="https://telegra.ph/Minimal-Working-Example-for-PTB-07-18">this short article</a> for information on what a MWE is.""",
-        'help': "@Bibo-Joshi's article about MWEs."
+        'help': "@BiboJoshi's article about MWEs."
     },
     '#pastebin': {
         'message': """Hey. Please post code using a pastebin rather then as plain text or screenshots. https://pastebin.com/ ist the most popular, but there are many alterantives out there. Of course, for very short snippets, text is fine. Please at least format it as monospace in that case.""",
@@ -112,7 +112,7 @@ def list_available_hints(update: Update, context: CallbackContext):
         ) for k, v in HINTS.items()
     )
     message += "\n\nMake sure to reply to another message, so I know who to refer to."
-    update.effective_message.reply_text(message, parse_mode='markdown',
+    update.effective_message.reply_text(message, parse_mode=ParseMode.HTML,
                                         disable_web_page_preview=True)
 
 
@@ -146,7 +146,7 @@ def hint_handler(update: Update, context: CallbackContext):
         update.effective_message.reply_text(hint.msg,
                                             reply_markup=hint.reply_markup,
                                             reply_to_message_id=reply_to.message_id if reply_to else None,
-                                            parse_mode=ParseMode.MARKDOWN,
+                                            parse_mode=ParseMode.HTML,
                                             disable_web_page_preview=True)
         try:
             update.effective_message.delete()
