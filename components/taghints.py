@@ -84,7 +84,7 @@ It looks like you're not using the python-telegram-bot library. If you insist on
     },
     '#askright': {
         'message': """Hey.
-        In order for someone to be able to help you, you must ask a <b>good technical question</b>. Please read <a href="http://telegra.ph/How-not-to-ask-technical-questions-05-10) and try again ;">this short article</a>
+        In order for someone to be able to help you, you must ask a <b>good technical question</b>. Please read <a href="http://telegra.ph/How-not-to-ask-technical-questions-05-10">this short article</a> and try again ;)
         """,
         'help': "@d_Rickyy_b's article about asking technical questions"
     },
@@ -97,7 +97,7 @@ It looks like you're not using the python-telegram-bot library. If you insist on
         'help': "@BiboJoshi's article about MWEs."
     },
     '#pastebin': {
-        'message': """Hey. Please post code using a pastebin rather then as plain text or screenshots. https://pastebin.com/ ist the most popular, but there are many alterantives out there. Of course, for very short snippets, text is fine. Please at least format it as monospace in that case.""",
+        'message': """Hey. Please post code using a pastebin rather then as plain text or screenshots. https://pastebin.com/ is the most popular, but there are many alterantives out there. Of course, for very short snippets, text is fine. Please at least format it as monospace in that case.""",
         'help': "Ask users not to post code as text or images."
     }
 }
