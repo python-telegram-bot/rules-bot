@@ -25,6 +25,9 @@ logger = logging.getLogger(__name__)
 
 self_chat_id = '@'  # Updated in main()
 
+# Require x new chat members joining before welcoming them
+NEW_CHAT_MEMBERS_LIMIT_SPACING = 10
+
 
 def start(update: Update, context: CallbackContext):
     args = context.args
@@ -212,6 +215,48 @@ def github(update: Update, context: CallbackContext):
         reply_or_edit(update, context, '\n'.join([f'<a href="{url}">{name}</a>' for url, name in things.items()]))
 
 
+def delete_new_chat_members_message(update: Update, context: CallbackContext):
+    update.message.delete()
+
+
+def greet_new_chat_members(update: Update, context: CallbackContext):
+    group_user_name = update.effective_chat.username
+    # Get saved users
+    try:
+        user_lists = context.chat_data['new_chat_members']
+    except KeyError:
+        user_lists = context.chat_data['new_chat_members'] = {}
+
+    try:
+        users = user_lists[group_user_name]
+    except KeyError:
+        users = user_lists[group_user_name] = []
+
+    # save new users
+    new_chat_members = update.message.new_chat_members
+    for user in new_chat_members:
+        users.append(user.mention_html())
+
+    # check rate limit
+    if len(users) < NEW_CHAT_MEMBERS_LIMIT_SPACING:
+        logging.debug('Waiting for more members to join before greeting them.')
+        return
+
+    text = (f'Welcome to the group, {", ".join(users)}! Please read and follow the rules of this '
+            'group:\n\n')
+    if group_user_name == ONTOPIC_USERNAME:
+        text += ONTOPIC_RULES
+    elif group_user_name == OFFTOPIC_USERNAME:
+        text += OFFTOPIC_RULES
+
+    # Clear users list
+    users.clear()
+
+    # send message
+    update.message.reply_text(text, disable_web_page_preview=True, quote=False,
+                              parse_mode=ParseMode.HTML)
+
+
 def error(update: Update, context: CallbackContext):
     """Log all errors"""
     logger.warning(f'Update "{update}" caused error "{context.error}"')
@@ -238,6 +283,10 @@ def main():
                                       sandwich)
     off_on_topic_handler = MessageHandler(Filters.regex(r'(?i)[\s\S]*?\b(?<!["\\])(off|on)[- _]?topic\b'),
                                           off_on_topic)
+    delete_new_chat_members_handler = MessageHandler(Filters.status_update.new_chat_members,
+                                                     delete_new_chat_members_message)
+    greet_new_chat_members_handler = MessageHandler(Filters.status_update.new_chat_members,
+                                                    greet_new_chat_members)
 
     # We need several matches so Filters.regex is basically useless
     # therefore we catch everything and do regex ourselves
@@ -259,6 +308,8 @@ def main():
     dispatcher.add_handler(sandwich_handler)
     dispatcher.add_handler(off_on_topic_handler)
     dispatcher.add_handler(github_handler)
+    dispatcher.add_handler(greet_new_chat_members_handler)
+    dispatcher.add_handler(delete_new_chat_members_handler, group=1)
 
     inlinequeries.register(dispatcher)
     dispatcher.add_error_handler(error)
