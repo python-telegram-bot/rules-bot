@@ -18,6 +18,7 @@ OFFICIAL_URL = "https://core.telegram.org/bots/api"
 PROJECT_URL = urljoin(GITHUB_URL, DEFAULT_REPO + '/')
 WIKI_URL = urljoin(PROJECT_URL, "wiki/")
 WIKI_CODE_SNIPPETS_URL = urljoin(WIKI_URL, "Code-snippets")
+WIKI_FAQ_URL = urljoin(WIKI_URL, "Frequently-Asked-Questions")
 EXAMPLES_URL = urljoin(PROJECT_URL, 'tree/master/examples/')
 
 Doc = namedtuple('Doc', 'short_name, full_name, type, url, tg_name, tg_url')
@@ -61,6 +62,7 @@ class Search:
         self.parse_wiki()
         self.parse_examples()
         self.parse_wiki_code_snippets()
+        self.parse_wiki_faq()
 
     def parse_docs(self):
         request = Request(urljoin(DOCS_URL, "objects.inv"),
@@ -93,6 +95,13 @@ class Search:
         for h4 in code_snippet_soup.select('div#wiki-body h4'):
             name = f'Code snippets {ARROW_CHARACTER} {h4.text.strip()}'
             self._wiki[name] = urljoin(WIKI_CODE_SNIPPETS_URL, h4.a['href'])
+
+    def parse_wiki_faq(self):
+        request = Request(WIKI_FAQ_URL, headers={'User-Agent': USER_AGENT})
+        code_snippet_soup = BeautifulSoup(urlopen(request), 'html.parser')
+        for h4 in code_snippet_soup.select('div#wiki-body h3'):
+            name = f'FAQ {ARROW_CHARACTER} {h4.text.strip()}'
+            self._wiki[name] = urljoin(WIKI_FAQ_URL, h4.a['href'])
 
     def parse_examples(self):
         self._wiki['Examples'] = EXAMPLES_URL

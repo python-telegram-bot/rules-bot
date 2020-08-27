@@ -83,10 +83,9 @@ It looks like you're not using the python-telegram-bot library. If you insist on
         'help': "Other Python wrappers for Telegram"
     },
     '#askright': {
-        'message': """Hey.
-        In order for someone to be able to help you, you must ask a <b>good technical question</b>. Please read <a href="http://telegra.ph/How-not-to-ask-technical-questions-05-10">this short article</a> and try again ;)
+        'message': """Hey. In order for someone to be able to help you, you must ask a <b>good technical question</b>. Please read <a href="https://github.com/python-telegram-bot/python-telegram-bot/wiki/Ask-Right">this short article</a> and try again ;)
         """,
-        'help': "@d_Rickyy_b's article about asking technical questions"
+        'help': "The wiki page about asking technical questions"
     },
     '#broadcast': {
         'message': """Hey. Broadcasting to users is a common use case. This <a href="https://telegra.ph/Sending-notifications-to-all-users-07-17">short article</a> summarizes the most important tips for that.""",
