@@ -98,6 +98,10 @@ It looks like you're not using the python-telegram-bot library. If you insist on
     '#pastebin': {
         'message': """Hey. Please post code using a pastebin rather then as plain text or screenshots. https://pastebin.com/ is the most popular, but there are many alterantives out there. Of course, for very short snippets, text is fine. Please at least format it as monospace in that case.""",
         'help': "Ask users not to post code as text or images."
+    },
+    '#doublepost': {
+        'message': """Hey. Please don't double post. Questions usually are on-topic only in one of the groups two groups anyway.""",
+        'help': "Ask users not to post the same question in both on- and off-topic."
     }
 }
 
