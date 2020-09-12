@@ -100,8 +100,8 @@ It looks like you're not using the python-telegram-bot library. If you insist on
         'help': "Ask users not to post code as text or images."
     },
     '#doublepost': {
-        'message': """Hey. Please don\'t double post, i.e wait for a reasonable amount of time before asking again.\n\nDouble posting is wrong because the question is usually on-topic only in one of the groups.""",
-        'help': "Ask users not to post the same question more times."
+        'message': """Hey. Please don't double post. Questions usually are on-topic only in one of the groups two groups anyway.""",
+        'help': "Ask users not to post the same question in both on- and off-topic."
     }
 }
 
