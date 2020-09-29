@@ -84,12 +84,13 @@ class Search:
         wiki_soup = BeautifulSoup(urlopen(request), "html.parser")
 
         # Parse main pages from custom sidebar
-        for ol in wiki_soup.select("div.wiki-custom-sidebar > ol"):
-            category = ol.find_previous_sibling('h2').text.strip()
-            for li in ol.select('li'):
-                if li.a['href'] != '#':
-                    name = f'{category} {ARROW_CHARACTER} {li.a.text.strip()}'
-                    self._wiki[name] = urljoin(WIKI_URL, li.a['href'])
+        for tag in ['ol', 'ul']:
+            for element in wiki_soup.select(f"div.wiki-custom-sidebar > {tag}"):
+                category = element.find_previous_sibling('h2').text.strip()
+                for li in element.select('li'):
+                    if li.a['href'] != '#':
+                        name = f'{category} {ARROW_CHARACTER} {li.a.text.strip()}'
+                        self._wiki[name] = urljoin(WIKI_URL, li.a['href'])
 
     def parse_wiki_code_snippets(self):
         request = Request(WIKI_CODE_SNIPPETS_URL, headers={'User-Agent': USER_AGENT})
