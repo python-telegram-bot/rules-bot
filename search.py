@@ -52,6 +52,8 @@ class Search:
         self._docs = {}
         self._official = {}
         self._wiki = OrderedDict()  # also examples
+        self._snippets = OrderedDict()
+        self._faq = OrderedDict()
         self.last_cache_date = date.today()
         self._parse()
 
@@ -95,6 +97,7 @@ class Search:
         for h4 in code_snippet_soup.select('div#wiki-body h4'):
             name = f'Code snippets {ARROW_CHARACTER} {h4.text.strip()}'
             self._wiki[name] = urljoin(WIKI_CODE_SNIPPETS_URL, h4.a['href'])
+            self._snippets[name] = self._wiki[name]
 
     def parse_wiki_faq(self):
         request = Request(WIKI_FAQ_URL, headers={'User-Agent': USER_AGENT})
@@ -102,6 +105,7 @@ class Search:
         for h4 in code_snippet_soup.select('div#wiki-body h3'):
             name = f'FAQ {ARROW_CHARACTER} {h4.text.strip()}'
             self._wiki[name] = urljoin(WIKI_FAQ_URL, h4.a['href'])
+            self._faq[name] = self._wiki[name]
 
     def parse_examples(self):
         self._wiki['Examples'] = EXAMPLES_URL
@@ -165,19 +169,36 @@ class Search:
             return best[1]
 
     @cached_parsing
-    def wiki(self, query, amount=5, threshold=50):
+    def _get_results(self, candidates, query, amount=5, threshold=50):
         best = BestHandler()
         best.add(0, ('HOME', WIKI_URL))
         if query != '':
-            for name, link in self._wiki.items():
+            for name, link in candidates.items():
                 score = fuzz.ratio(query.lower(), name.split(ARROW_CHARACTER)[-1].strip().lower())
                 best.add(score, (name, link))
 
         return best.to_list(amount, threshold)
 
+    def faq(self, query, amount=5, threshold=50):
+        return self._get_results(self._faq, query, amount, threshold)
+
+    def code_snippets(self, query, amount=5, threshold=50):
+        return self._get_results(self._snippets, query, amount, threshold)
+
+    def wiki(self, query, amount=5, threshold=50):
+        return self._get_results(self._wiki, query, amount, threshold)
+
     @cached_parsing
     def all_wiki_pages(self):
         return list(self._wiki.items())
+
+    @cached_parsing
+    def all_code_snippets(self):
+        return list(self._snippets.items())
+
+    @cached_parsing
+    def all_faq(self):
+        return list(self._faq.items())
 
 
 search = Search()

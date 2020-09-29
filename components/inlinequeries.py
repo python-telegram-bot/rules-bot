@@ -234,6 +234,46 @@ def inline_query(update: Update, context: CallbackContext, threshold=15):
                     description=', '.join(modified),
                     message_text=replaced))
 
+        if query.lower() == 'faq':
+            for name, link in search.all_faq()[:50]:
+                results_list.append(article(
+                    title=name,
+                    description='Wiki of python-telegram-bot',
+                    message_text=f'Wiki of <i>python-telegram-bot</i>\n'
+                    f'<a href="{link}">{escape_markdown(name)}</a>',
+                ))
+        if query.lower().startswith('faq') and len(query.split(' ')) > 1:
+            faq = search.faq(query.split(' ', 1)[1], amount=20, threshold=threshold)
+            if faq:
+                faq = faq[:50]
+                for q in faq:
+                    results_list.append(article(
+                        title=f'{q[0]}',
+                        description="Github wiki for python-telegram-bot",
+                        message_text=f'Wiki of <i>python-telegram-bot</i>\n'
+                        f'<a href="{q[1]}">{q[0]}</a>'
+                    ))
+
+        if query.lower() == 'snippets':
+            for name, link in search.all_faq()[:50]:
+                results_list.append(article(
+                    title=name,
+                    description='Wiki of python-telegram-bot',
+                    message_text=f'Wiki of <i>python-telegram-bot</i>\n'
+                    f'<a href="{link}">{escape_markdown(name)}</a>',
+                ))
+        if query.lower().startswith('snippets') and len(query.split(' ')) > 1:
+            snippets = search.code_snippets(query.split(' ', 1)[1], amount=20, threshold=threshold)
+            if snippets:
+                snippets = snippets[:50]
+                for snippet in snippets:
+                    results_list.append(article(
+                        title=f'{snippet[0]}',
+                        description="Github wiki for python-telegram-bot",
+                        message_text=f'Wiki of <i>python-telegram-bot</i>\n'
+                        f'<a href="{snippet[1]}">{snippet[0]}</a>'
+                    ))
+
         # If no results so far then search wiki and docs
         if not results_list:
             doc = search.docs(query, threshold=threshold)
