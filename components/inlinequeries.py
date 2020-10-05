@@ -255,7 +255,7 @@ def inline_query(update: Update, context: CallbackContext, threshold=15):
                     ))
 
         if query.lower() == 'snippets':
-            for name, link in search.all_faq()[:50]:
+            for name, link in search.all_code_snippets()[:50]:
                 results_list.append(article(
                     title=name,
                     description='Wiki of python-telegram-bot',
