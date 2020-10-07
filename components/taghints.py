@@ -79,6 +79,9 @@ Probably. <b>Just ask your question and somebody will help!</b>
 It looks like you're not using the python-telegram-bot library. If you insist on using that other one, please go where you belong:
 <a href="https://telegram.me/joinchat/Bn4ixj84FIZVkwhk2jag6A">pyTelegramBotApi</a>
 <a href="https://github.com/nickoala/telepot">Telepot</a>
+<a href="https://t.me/Pyrogram">pyrogram</a>
+<a href="https://github.com/LonamiWebs/Telethon">Telethon</a>
+<a href="https://github.com/aiogram/aiogram">aiogram</a>
         """,
         'help': "Other Python wrappers for Telegram"
     },
