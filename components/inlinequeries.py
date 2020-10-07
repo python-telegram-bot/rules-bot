@@ -1,10 +1,10 @@
 import re
 from collections import OrderedDict
+from html import escape
 from uuid import uuid4
 
 from telegram import InlineQueryResultArticle, InputTextMessageContent, ParseMode, Update
 from telegram.ext import InlineQueryHandler, CallbackContext
-from telegram.utils.helpers import escape_markdown
 
 from components import taghints
 from const import ENCLOSED_REGEX, TELEGRAM_SUPERSCRIPT, ENCLOSING_REPLACEMENT_CHARACTER, GITHUB_PATTERN
@@ -25,7 +25,7 @@ def article(title='', description='', message_text='', key=None, reply_markup=No
     )
 
 
-def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
+def fuzzy_replacements_html(query, threshold=95, official_api_links=True):
     """ Replaces the enclosed characters in the query string with hyperlinks to the documentations """
     symbols = re.findall(ENCLOSED_REGEX, query)
 
@@ -53,7 +53,7 @@ def fuzzy_replacements_markdown(query, threshold=95, official_api_links=True):
             continue
 
         # not found
-        replacements.append((s + '❓', s, escape_markdown(s)))
+        replacements.append((s + '❓', s, escape(s)))
 
     result = query
     for name, symbol, text in replacements:
@@ -220,14 +220,14 @@ def inline_query(update: Update, context: CallbackContext, threshold=15):
             results_list.extend(inline_github(query))
 
         if ENCLOSING_REPLACEMENT_CHARACTER in query:
-            modified, replaced = fuzzy_replacements_markdown(query, official_api_links=True)
+            modified, replaced = fuzzy_replacements_html(query, official_api_links=True)
             if modified:
                 results_list.append(article(
                     title="Replace links and show official Bot API documentation",
                     description=', '.join(modified),
                     message_text=replaced))
 
-            modified, replaced = fuzzy_replacements_markdown(query, official_api_links=False)
+            modified, replaced = fuzzy_replacements_html(query, official_api_links=False)
             if modified:
                 results_list.append(article(
                     title="Replace links",
@@ -240,7 +240,7 @@ def inline_query(update: Update, context: CallbackContext, threshold=15):
                     title=name,
                     description='Wiki of python-telegram-bot',
                     message_text=f'Wiki of <i>python-telegram-bot</i>\n'
-                    f'<a href="{link}">{escape_markdown(name)}</a>',
+                    f'<a href="{link}">{escape(name)}</a>',
                 ))
         if query.lower().startswith('faq') and len(query.split(' ')) > 1:
             faq = search.faq(query.split(' ', 1)[1], amount=20, threshold=threshold)
@@ -260,7 +260,7 @@ def inline_query(update: Update, context: CallbackContext, threshold=15):
                     title=name,
                     description='Wiki of python-telegram-bot',
                     message_text=f'Wiki of <i>python-telegram-bot</i>\n'
-                    f'<a href="{link}">{escape_markdown(name)}</a>',
+                    f'<a href="{link}">{escape(name)}</a>',
                 ))
         if query.lower().startswith('snippets') and len(query.split(' ')) > 1:
             snippets = search.code_snippets(query.split(' ', 1)[1], amount=20, threshold=threshold)
@@ -317,7 +317,7 @@ def inline_query(update: Update, context: CallbackContext, threshold=15):
                 title=name,
                 description='Wiki of python-telegram-bot',
                 message_text=f'Wiki of <i>python-telegram-bot</i>\n'
-                f'<a href="{link}">{escape_markdown(name)}</a>',
+                f'<a href="{link}">{escape(name)}</a>',
             ))
 
     update.inline_query.answer(results=results_list, switch_pm_text='Help',
