@@ -80,8 +80,8 @@ It looks like you're not using the python-telegram-bot library. If you insist on
 <a href="https://telegram.me/joinchat/Bn4ixj84FIZVkwhk2jag6A">pyTelegramBotApi</a>
 <a href="https://github.com/nickoala/telepot">Telepot</a>
 <a href="https://t.me/Pyrogram">pyrogram</a>
-<a href="https://github.com/LonamiWebs/Telethon">Telethon</a>
-<a href="https://github.com/aiogram/aiogram">aiogram</a>
+<a href="https://t.me/TelethonChat">Telethon</a>
+<a href="https://t.me/aiogram">aiogram</a>
         """,
         'help': "Other Python wrappers for Telegram"
     },
