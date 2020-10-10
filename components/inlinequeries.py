@@ -235,7 +235,7 @@ def inline_query(update: Update, context: CallbackContext, threshold=15):
                     message_text=replaced))
 
         if query.lower() == 'faq':
-            for name, link in search.all_faq()[:50]:
+            for name, link in search.all_faq():
                 results_list.append(article(
                     title=name,
                     description='Wiki of python-telegram-bot',
@@ -245,7 +245,6 @@ def inline_query(update: Update, context: CallbackContext, threshold=15):
         if query.lower().startswith('faq') and len(query.split(' ')) > 1:
             faq = search.faq(query.split(' ', 1)[1], amount=20, threshold=threshold)
             if faq:
-                faq = faq[:50]
                 for q in faq:
                     results_list.append(article(
                         title=f'{q[0]}',
@@ -255,7 +254,7 @@ def inline_query(update: Update, context: CallbackContext, threshold=15):
                     ))
 
         if query.lower() == 'snippets':
-            for name, link in search.all_code_snippets()[:50]:
+            for name, link in search.all_code_snippets():
                 results_list.append(article(
                     title=name,
                     description='Wiki of python-telegram-bot',
@@ -265,7 +264,7 @@ def inline_query(update: Update, context: CallbackContext, threshold=15):
         if query.lower().startswith('snippets') and len(query.split(' ')) > 1:
             snippets = search.code_snippets(query.split(' ', 1)[1], amount=20, threshold=threshold)
             if snippets:
-                snippets = snippets[:50]
+                snippets = snippets
                 for snippet in snippets:
                     results_list.append(article(
                         title=f'{snippet[0]}',
@@ -292,8 +291,7 @@ def inline_query(update: Update, context: CallbackContext, threshold=15):
 
             wiki_pages = search.wiki(query, amount=4, threshold=threshold)
             if wiki_pages:
-                # Limit number of search results to maximum (-1 cause we might have added a doc above)
-                wiki_pages = wiki_pages[:49]
+                wiki_pages = wiki_pages
                 for wiki_page in wiki_pages:
                     results_list.append(article(
                         title=f'{wiki_page[0]}',
@@ -311,8 +309,7 @@ def inline_query(update: Update, context: CallbackContext, threshold=15):
             ))
 
     else:
-        # If no query then add all wiki pages (max 50)
-        for name, link in search.all_wiki_pages()[:50]:
+        for name, link in search.all_wiki_pages():
             results_list.append(article(
                 title=name,
                 description='Wiki of python-telegram-bot',
@@ -321,7 +318,8 @@ def inline_query(update: Update, context: CallbackContext, threshold=15):
             ))
 
     update.inline_query.answer(results=results_list, switch_pm_text='Help',
-                               switch_pm_parameter='inline-help', cache_time=0)
+                               switch_pm_parameter='inline-help', cache_time=0,
+                               auto_pagination=True)
 
 
 def register(dispatcher):

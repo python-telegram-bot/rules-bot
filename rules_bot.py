@@ -20,6 +20,8 @@ if os.environ.get('ROOLSBOT_DEBUG'):
 else:
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                         level=logging.INFO)
+    aps_logger = logging.getLogger('apscheduler')
+    aps_logger.setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
@@ -292,7 +294,7 @@ def main():
     # therefore we catch everything and do regex ourselves
     # This should probably be in another dispatcher group
     # but I kept getting SystemErrors...
-    github_handler = MessageHandler(Filters.text, github)
+    github_handler = MessageHandler(Filters.text & ~Filters.command, github)
     forward_faq_handler = MessageHandler(Filters.regex(r'(?i).*#faq.*'), forward_faq)
 
     dispatcher.add_handler(rate_limit_tracker_handler, group=-1)
