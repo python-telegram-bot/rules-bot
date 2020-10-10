@@ -2,7 +2,7 @@ from collections import namedtuple
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode, Update
 from telegram.error import BadRequest
-from telegram.ext import CommandHandler, RegexHandler, run_async, Filters, MessageHandler, CallbackContext
+from telegram.ext import CommandHandler, Filters, MessageHandler, CallbackContext
 
 import const
 import util
@@ -113,7 +113,6 @@ It looks like you're not using the python-telegram-bot library. If you insist on
 }
 
 
-@run_async
 def list_available_hints(update: Update, context: CallbackContext):
     message = "You can use the following hashtags to guide new members:\n\n"
     message += '\n'.join(
@@ -146,7 +145,6 @@ def get_hints(query):
     return results
 
 
-@run_async
 def hint_handler(update: Update, context: CallbackContext):
     reply_to = update.message.reply_to_message
 
@@ -165,5 +163,5 @@ def hint_handler(update: Update, context: CallbackContext):
 
 
 def register(dispatcher):
-    dispatcher.add_handler(MessageHandler(Filters.regex(rf'{"|".join(HINTS.keys())}.*'), hint_handler))
-    dispatcher.add_handler(CommandHandler(('hints', 'listhints'), list_available_hints))
+    dispatcher.add_handler(MessageHandler(Filters.regex(rf'{"|".join(HINTS.keys())}.*'), hint_handler, run_async=True))
+    dispatcher.add_handler(CommandHandler(('hints', 'listhints'), list_available_hints, run_async=True))
