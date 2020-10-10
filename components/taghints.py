@@ -36,7 +36,7 @@ HINTS = {
     },
     '#userbot': {
         'message': 'Refer to <a href="http://telegra.ph/How-a-Userbot-superacharges-your-Telegram-Bot-07-09">this article</a> to learn more about <b>Userbots</b>.',
-        'help': "@JosXa's article about Userbots"
+        'help': "What are Userbots?"
     },
     '#snippets': {
         'message': '<a href="https://github.com/python-telegram-bot/python-telegram-bot/wiki/Code-snippets">Here</a> '
@@ -92,19 +92,23 @@ It looks like you're not using the python-telegram-bot library. If you insist on
     },
     '#broadcast': {
         'message': """Hey. Broadcasting to users is a common use case. This <a href="https://telegra.ph/Sending-notifications-to-all-users-07-17">short article</a> summarizes the most important tips for that.""",
-        'help': "@BiboJoshi's article about broadcasting to users."
+        'help': "FAQ for broadcasting to users."
     },
     '#mwe': {
         'message': """Hey. Please provide a minimal working example (MWE). Have a look at <a href="https://telegra.ph/Minimal-Working-Example-for-PTB-07-18">this short article</a> for information on what a MWE is.""",
-        'help': "@BiboJoshi's article about MWEs."
+        'help': "How to build an MWE for PTB."
     },
     '#pastebin': {
-        'message': """Hey. Please post code using a pastebin rather then as plain text or screenshots. https://pastebin.com/ is the most popular, but there are many alterantives out there. Of course, for very short snippets, text is fine. Please at least format it as monospace in that case.""",
+        'message': """Hey. Please post code using a pastebin rather then as plain text or screenshots. https://pastebin.com/ is the most popular, but there are many alternatives out there. Of course, for very short snippets, text is fine. Please at least format it as monospace in that case.""",
         'help': "Ask users not to post code as text or images."
     },
     '#doublepost': {
         'message': """Hey. Please don't double post. Questions usually are on-topic only in one of the two groups anyway.""",
         'help': "Ask users not to post the same question in both on- and off-topic."
+    },
+    '#formatting': {
+        'message': """Telegram supports some formatting options for text. All the details about what is supported can be found <a href="https://core.telegram.org/bots/api#formatting-options">here</a>. You can format text with every API method/type that has a <code>parse_mode</code> parameter. In addition to editing your text as described in the link above, pass one of the parse modes available through <a href="https://python-telegram-bot.readthedocs.io/en/stable/telegram.parsemode.html">telegram.ParseMode</a> to the <code>parse_mode</code> parameter.""",
+        'help': "How to use text formatting."
     }
 }
 
