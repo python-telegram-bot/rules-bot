@@ -35,8 +35,9 @@ HINTS = {
         'help': 'Send issue template',
     },
     '#userbot': {
-        'message': 'Refer to <a href="http://telegra.ph/How-a-Userbot-superacharges-your-Telegram-Bot-07-09">this article</a> to learn more about <b>Userbots</b>.',
-        'help': "What are Userbots?"
+        'message': '{query} Refer to <a href="http://telegra.ph/How-a-Userbot-superacharges-your-Telegram-Bot-07-09">this article</a> to learn more about <b>Userbots</b>.',
+        'help': "What are Userbots?",
+        'default': '',
     },
     '#snippets': {
         'message': '<a href="https://github.com/python-telegram-bot/python-telegram-bot/wiki/Code-snippets">Here</a> '
@@ -60,7 +61,8 @@ Probably. <b>Just ask your question and somebody will help!</b>
         'help': "Show our stance on meta-questions"
     },
     '#tutorial': {
-        'message': """Oh, hey! There's someone new joining our awesome community of Python developers ❤️ We have compiled a list of learning resources <i>just for you</i>:
+        'message': """{query}
+We have compiled a list of learning resources <i>just for you</i>:
 • <a href="https://wiki.python.org/moin/BeginnersGuide/NonProgrammers">As Beginner</a>
 • <a href="https://wiki.python.org/moin/BeginnersGuide/Programmers">As Programmer</a>
 • <a href="https://docs.python.org/3/tutorial/">Official Tutorial</a>
@@ -72,39 +74,45 @@ Probably. <b>Just ask your question and somebody will help!</b>
 • The @PythonRes Telegram Channel.
 • Corey Schafer videos for <a href="https://www.youtube.com/watch?v=YYXdXT2l-Gg&list=PL-osiE80TeTskrapNbzXhwoFUiLCjGgY7">beginners</a> and in <a href="https://www.youtube.com/watch?v=YYXdXT2l-Gg&list=PL-osiE80TeTt2d9bfVyTiXJA-UTHn6WwU">general</a>
 • <a href="http://projectpython.net/chapter00/">Project Python</a>""",
-        'help': "How to find a Python tutorial"
+        'help': "How to find a Python tutorial",
+        'default': "Oh, hey! There's someone new joining our awesome community of Python developers ❤️ "
     },
     '#wronglib': {
-        'message': """Hey, I think you're wrong 🧐
-It looks like you're not using the python-telegram-bot library. If you insist on using that other one, please go where you belong:
+        'message': """{query} If you insist on using that other one, please go where you belong:
 <a href="https://telegram.me/joinchat/Bn4ixj84FIZVkwhk2jag6A">pyTelegramBotApi</a>
 <a href="https://github.com/nickoala/telepot">Telepot</a>
 <a href="https://t.me/Pyrogram">pyrogram</a>
 <a href="https://t.me/TelethonChat">Telethon</a>
 <a href="https://t.me/aiogram">aiogram</a>
         """,
-        'help': "Other Python wrappers for Telegram"
+        'help': "Other Python wrappers for Telegram",
+        'default': "Hey, I think you're wrong 🧐\nIt looks like you're not using the python-telegram-bot library.",
     },
     '#askright': {
-        'message': """Hey. In order for someone to be able to help you, you must ask a <b>good technical question</b>. Please read <a href="https://github.com/python-telegram-bot/python-telegram-bot/wiki/Ask-Right">this short article</a> and try again ;)
+        'message': """{query} In order for someone to be able to help you, you must ask a <b>good technical question</b>. Please read <a href="https://github.com/python-telegram-bot/python-telegram-bot/wiki/Ask-Right">this short article</a> and try again ;)
         """,
-        'help': "The wiki page about asking technical questions"
+        'help': "The wiki page about asking technical questions",
+        'default': 'Hey.',
     },
     '#broadcast': {
-        'message': """Hey. Broadcasting to users is a common use case. This <a href="https://telegra.ph/Sending-notifications-to-all-users-07-17">short article</a> summarizes the most important tips for that.""",
-        'help': "FAQ for broadcasting to users."
+        'message': """{query} Broadcasting to users is a common use case. This <a href="https://telegra.ph/Sending-notifications-to-all-users-07-17">short article</a> summarizes the most important tips for that.""",
+        'help': "FAQ for broadcasting to users.",
+        'default': 'Hey.',
     },
     '#mwe': {
-        'message': """Hey. Please provide a minimal working example (MWE). Have a look at <a href="https://telegra.ph/Minimal-Working-Example-for-PTB-07-18">this short article</a> for information on what a MWE is.""",
-        'help': "How to build an MWE for PTB."
+        'message': """{query} Have a look at <a href="https://telegra.ph/Minimal-Working-Example-for-PTB-07-18">this short article</a> for information on what a MWE is.""",
+        'help': "How to build an MWE for PTB.",
+        'default': 'Hey. Please provide a minimal working example (MWE).'
     },
     '#pastebin': {
-        'message': """Hey. Please post code using a pastebin rather then as plain text or screenshots. https://pastebin.com/ is the most popular, but there are many alternatives out there. Of course, for very short snippets, text is fine. Please at least format it as monospace in that case.""",
-        'help': "Ask users not to post code as text or images."
+        'message': """{default} Please post code using a pastebin rather then as plain text or screenshots. https://pastebin.com/ is the most popular, but there are many alternatives out there. Of course, for very short snippets, text is fine. Please at least format it as monospace in that case.""",
+        'help': "Ask users not to post code as text or images.",
+        'default': 'Hey.',
     },
     '#doublepost': {
-        'message': """Hey. Please don't double post. Questions usually are on-topic only in one of the two groups anyway.""",
-        'help': "Ask users not to post the same question in both on- and off-topic."
+        'message': """{default} Please don't double post. Questions usually are on-topic only in one of the two groups anyway.""",
+        'help': "Ask users not to post the same question in both on- and off-topic.",
+        'default': 'Hey.',
     },
     '#formatting': {
         'message': """Telegram supports some formatting options for text. All the details about what is supported can be found <a href="https://core.telegram.org/bots/api#formatting-options">here</a>. You can format text with every API method/type that has a <code>parse_mode</code> parameter. In addition to editing your text as described in the link above, pass one of the parse modes available through <a href="https://python-telegram-bot.readthedocs.io/en/stable/telegram.parsemode.html">telegram.ParseMode</a> to the <code>parse_mode</code> parameter.""",
@@ -133,7 +141,7 @@ def get_hints(query):
     hashtag, _, query = query.partition(' ')
 
     for k, v in HINTS.items():
-        if k.startswith(hashtag):
+        if k.lower().startswith(hashtag.lower()):
             reply_markup = InlineKeyboardMarkup(util.build_menu([InlineKeyboardButton(
                 **{k: v.format(query=query) for k, v in b.items()}
             ) for b in v['buttons']], 1)) if 'buttons' in v else None
@@ -163,5 +171,5 @@ def hint_handler(update: Update, context: CallbackContext):
 
 
 def register(dispatcher):
-    dispatcher.add_handler(MessageHandler(Filters.regex(rf'{"|".join(HINTS.keys())}.*'), hint_handler, run_async=True))
+    dispatcher.add_handler(MessageHandler(Filters.regex(rf'(?i){"|".join(HINTS.keys())}'), hint_handler, run_async=True))
     dispatcher.add_handler(CommandHandler(('hints', 'listhints'), list_available_hints, run_async=True))
