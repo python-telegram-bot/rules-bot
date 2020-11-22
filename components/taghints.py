@@ -105,18 +105,23 @@ We have compiled a list of learning resources <i>just for you</i>:
         'default': 'Hey. Please provide a minimal working example (MWE).'
     },
     '#pastebin': {
-        'message': """{default} Please post code using a pastebin rather then as plain text or screenshots. https://pastebin.com/ is the most popular, but there are many alternatives out there. Of course, for very short snippets, text is fine. Please at least format it as monospace in that case.""",
+        'message': """{query} Please post code using a pastebin rather then as plain text or screenshots. https://pastebin.com/ is the most popular, but there are many alternatives out there. Of course, for very short snippets, text is fine. Please at least format it as monospace in that case.""",
         'help': "Ask users not to post code as text or images.",
         'default': 'Hey.',
     },
     '#doublepost': {
-        'message': """{default} Please don't double post. Questions usually are on-topic only in one of the two groups anyway.""",
+        'message': """{query} Please don't double post. Questions usually are on-topic only in one of the two groups anyway.""",
         'help': "Ask users not to post the same question in both on- and off-topic.",
         'default': 'Hey.',
     },
     '#formatting': {
         'message': """Telegram supports some formatting options for text. All the details about what is supported can be found <a href="https://core.telegram.org/bots/api#formatting-options">here</a>. You can format text with every API method/type that has a <code>parse_mode</code> parameter. In addition to editing your text as described in the link above, pass one of the parse modes available through <a href="https://python-telegram-bot.readthedocs.io/en/stable/telegram.parsemode.html">telegram.ParseMode</a> to the <code>parse_mode</code> parameter.""",
         'help': "How to use text formatting."
+    },
+    '#xy': {
+        'message': """{query} This seems like an <a href="https://xyproblem.info">xy-problem</a> to me.""",
+        'default': 'Hey. What exactly do you want this for?',
+        'help': 'Ask users for the actual use case.'
     }
 }
 
