@@ -18,7 +18,9 @@ This group is for questions, answers and discussions around the <a href="https:/
 - No meta questions (eg. <i>"Can I ask something?"</i>)
 - Use a pastebin when you have a question about your code, like <a href="https://www.codepile.net">this one</a>.
 - Use <code>/wiki</code> and <code>/docs</code> in a private chat if possible.
+- Only mention or reply to users directly if you're following up on a conversation with them.
 - Please abide by our <a href="https://github.com/python-telegram-bot/python-telegram-bot/blob/master/CODE_OF_CONDUCT.md">Code of Conduct</a>
+- Use <code>@admin</admin> to report spam or abuse and <i>only</i> for that.
 
 Before asking, please take a look at our <a href="https://github.com/python-telegram-bot/python-telegram-bot/wiki">wiki</a> and <a href="https://github.com/python-telegram-bot/python-telegram-bot/tree/master/examples">example bots</a> or, depending on your question, the <a href="https://core.telegram.org/bots/api">official API docs</a> and <a href="https://python-telegram-bot.readthedocs.io">python-telegram-bot docs</a>).
 For off-topic discussions, please use our <a href="https://telegram.me/pythontelegrambottalk">off-topic group</a>.
@@ -35,7 +37,9 @@ OFFTOPIC_RULES = """
 - Use a pastebin to share code
 - No shitposting, flamewars or excessive trolling
 - Max. 1 meme per user per day
+- Only mention or reply to users directly if you're following up on a conversation with them.
 - Please abide by our <a href="https://github.com/python-telegram-bot/python-telegram-bot/blob/master/CODE_OF_CONDUCT.md">Code of Conduct</a>
+- Use <code>@admin</admin> to report spam or abuse and <i>only</i> for that.
 """
 
 # Github username

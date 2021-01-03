@@ -122,6 +122,11 @@ We have compiled a list of learning resources <i>just for you</i>:
         'message': """{query} This seems like an <a href="https://xyproblem.info">xy-problem</a> to me.""",
         'default': 'Hey. What exactly do you want this for?',
         'help': 'Ask users for the actual use case.'
+    },
+    '#dontping': {
+        'message': """{query} Please only mention or reply to users directly if you're following up on a conversation with them. Otherwise just ask your question and wait if someone has a solution for you - that's how this group works 😉 Also note the the <code>@admin</code> tag is only to be used to report spam or abuse!""",
+        'default': 'Hey.',
+        'help': 'Tell users not to ping randomly ping you.',
     }
 }
 
@@ -145,7 +150,7 @@ def get_hints(query):
     results = {}
     hashtag, _, query = query.partition(' ')
 
-    for k, v in HINTS.items():
+    for k, v in sorted(HINTS.items()):
         if k.lower().startswith(hashtag.lower()):
             reply_markup = InlineKeyboardMarkup(util.build_menu([InlineKeyboardButton(
                 **{k: v.format(query=query) for k, v in b.items()}
