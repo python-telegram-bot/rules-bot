@@ -2,6 +2,7 @@ import configparser
 import logging
 import os
 import time
+import datetime as dtm
 
 from telegram import ParseMode, MessageEntity, ChatAction, Update
 from telegram.error import BadRequest
@@ -27,8 +28,8 @@ logger = logging.getLogger(__name__)
 
 self_chat_id = '@'  # Updated in main()
 
-# Require x new chat members joining before welcoming them
-NEW_CHAT_MEMBERS_LIMIT_SPACING = 10
+# Welcome new chat members at most ever X minutes
+NEW_CHAT_MEMBERS_LIMIT_SPACING = 30
 
 
 def start(update: Update, context: CallbackContext):
@@ -224,15 +225,8 @@ def delete_new_chat_members_message(update: Update, context: CallbackContext):
 def greet_new_chat_members(update: Update, context: CallbackContext):
     group_user_name = update.effective_chat.username
     # Get saved users
-    try:
-        user_lists = context.chat_data['new_chat_members']
-    except KeyError:
-        user_lists = context.chat_data['new_chat_members'] = {}
-
-    try:
-        users = user_lists[group_user_name]
-    except KeyError:
-        users = user_lists[group_user_name] = []
+    user_lists = context.chat_data.setdefault('new_chat_members', {})
+    users = user_lists.setdefault(group_user_name, [])
 
     # save new users
     new_chat_members = update.message.new_chat_members
@@ -240,12 +234,19 @@ def greet_new_chat_members(update: Update, context: CallbackContext):
         users.append(user.mention_html())
 
     # check rate limit
-    if len(users) < NEW_CHAT_MEMBERS_LIMIT_SPACING:
-        logging.debug('Waiting for more members to join before greeting them.')
+    last_message_date = context.chat_data.setdefault(
+        'new_chat_members_timeout',
+        dtm.datetime.now() - dtm.timedelta(minutes=NEW_CHAT_MEMBERS_LIMIT_SPACING + 1)
+    )
+    if dtm.datetime.now() < last_message_date + dtm.timedelta(minutes=NEW_CHAT_MEMBERS_LIMIT_SPACING):
+        logging.debug('Waiting a bit longer before greeting new members.')
         return
 
+    # save new timestamp
+    context.chat_data['new_chat_members_timeout'] = dtm.datetime.now()
+
     text = (f'Welcome to the group, {", ".join(users)}! Please read and follow the rules of this '
-            'group:\n\n')
+            'group:\n')
     if group_user_name == ONTOPIC_USERNAME:
         text += ONTOPIC_RULES
     elif group_user_name == OFFTOPIC_USERNAME:
