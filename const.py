@@ -9,6 +9,10 @@ OFFTOPIC_CHAT_ID = '@' + OFFTOPIC_USERNAME
 TELEGRAM_SUPERSCRIPT = 'ᵀᴱᴸᴱᴳᴿᴬᴹ'
 FAQ_CHANNEL_ID = '@ptbfaq'
 SELF_BOT_NAME = 'roolsbot'
+ONTOPIC_RULES_MESSAGE_ID = 419903
+ONTOPIC_RULES_MESSAGE_LINK = 'https://t.me/pythontelegrambotgroup/419903'
+OFFTOPIC_RULES_MESSAGE_ID = 161133
+OFFTOPIC_RULES_MESSAGE_LINK = 'https://t.me/pythontelegrambottalk/161133'
 ONTOPIC_RULES = """
 This group is for questions, answers and discussions around the <a href="https://python-telegram-bot.org/">python-telegram-bot library</a> and, to some extent, Telegram bots in general.
 

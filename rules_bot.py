@@ -4,7 +4,7 @@ import os
 import time
 import datetime as dtm
 
-from telegram import ParseMode, MessageEntity, ChatAction, Update
+from telegram import ParseMode, MessageEntity, ChatAction, Update, Bot
 from telegram.error import BadRequest
 from telegram.ext import CommandHandler, Updater, MessageHandler, Filters, CallbackContext
 from telegram.utils.helpers import escape_markdown
@@ -12,7 +12,9 @@ from telegram.utils.helpers import escape_markdown
 import const
 from components import inlinequeries, taghints
 from const import (ENCLOSING_REPLACEMENT_CHARACTER, GITHUB_PATTERN, OFFTOPIC_CHAT_ID, OFFTOPIC_RULES,
-                   OFFTOPIC_USERNAME, ONTOPIC_RULES, ONTOPIC_USERNAME)
+                   OFFTOPIC_USERNAME, ONTOPIC_RULES, ONTOPIC_USERNAME, ONTOPIC_RULES_MESSAGE_LINK,
+                   OFFTOPIC_RULES_MESSAGE_LINK, ONTOPIC_RULES_MESSAGE_ID,
+                   OFFTOPIC_RULES_MESSAGE_ID)
 from util import get_reply_id, reply_or_edit, get_text_not_in_entities, github_issues, rate_limit, rate_limit_tracker
 
 if os.environ.get('ROOLSBOT_DEBUG'):
@@ -29,7 +31,7 @@ logger = logging.getLogger(__name__)
 self_chat_id = '@'  # Updated in main()
 
 # Welcome new chat members at most ever X minutes
-NEW_CHAT_MEMBERS_LIMIT_SPACING = 30
+NEW_CHAT_MEMBERS_LIMIT_SPACING = 60
 
 
 def start(update: Update, context: CallbackContext):
@@ -245,12 +247,10 @@ def greet_new_chat_members(update: Update, context: CallbackContext):
     # save new timestamp
     context.chat_data['new_chat_members_timeout'] = dtm.datetime.now()
 
+
+    link = ONTOPIC_RULES_MESSAGE_LINK if group_user_name == ONTOPIC_USERNAME else OFFTOPIC_RULES_MESSAGE_LINK
     text = (f'Welcome to the group, {", ".join(users)}! Please read and follow the rules of this '
-            'group:\n')
-    if group_user_name == ONTOPIC_USERNAME:
-        text += ONTOPIC_RULES
-    elif group_user_name == OFFTOPIC_USERNAME:
-        text += OFFTOPIC_RULES
+            f'group. You can find them <a href="{link}">here 🔗</a>.')
 
     # Clear users list
     users.clear()
@@ -265,12 +265,37 @@ def error(update: Update, context: CallbackContext):
     logger.warning(f'Update "{update}" caused error "{context.error}"')
 
 
+def update_rules_messages(bot: Bot):
+    try:
+        bot.edit_message_text(
+            chat_id=ONTOPIC_USERNAME,
+            message_id=ONTOPIC_RULES_MESSAGE_ID,
+            text=ONTOPIC_RULES,
+            pars_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
+        )
+    except BadRequest as exc:
+        logger.warning(f'Updating on-topic rules failed: {exc}')
+    try:
+        bot.edit_message_text(
+            chat_id=OFFTOPIC_USERNAME,
+            message_id=OFFTOPIC_RULES_MESSAGE_ID,
+            text=OFFTOPIC_RULES,
+            pars_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
+        )
+    except BadRequest as exc:
+        logger.warning(f'Updating off-topic rules failed: {exc}')
+
+
+
 def main():
     config = configparser.ConfigParser()
     config.read('bot.ini')
 
     updater = Updater(token=config['KEYS']['bot_api'], use_context=True)
     dispatcher = updater.dispatcher
+    update_rules_messages(updater.bot)
 
     global SELF_CHAT_ID
     SELF_CHAT_ID = f'@{updater.bot.get_me().username}'
