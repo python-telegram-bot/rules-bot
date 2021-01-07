@@ -268,20 +268,20 @@ def error(update: Update, context: CallbackContext):
 def update_rules_messages(bot: Bot):
     try:
         bot.edit_message_text(
-            chat_id=ONTOPIC_USERNAME,
+            chat_id='@' + ONTOPIC_USERNAME,
             message_id=ONTOPIC_RULES_MESSAGE_ID,
             text=ONTOPIC_RULES,
-            pars_mode=ParseMode.HTML,
+            parse_mode=ParseMode.HTML,
             disable_web_page_preview=True,
         )
     except BadRequest as exc:
         logger.warning(f'Updating on-topic rules failed: {exc}')
     try:
         bot.edit_message_text(
-            chat_id=OFFTOPIC_USERNAME,
+            chat_id='@' + OFFTOPIC_USERNAME,
             message_id=OFFTOPIC_RULES_MESSAGE_ID,
             text=OFFTOPIC_RULES,
-            pars_mode=ParseMode.HTML,
+            parse_mode=ParseMode.HTML,
             disable_web_page_preview=True,
         )
     except BadRequest as exc:
