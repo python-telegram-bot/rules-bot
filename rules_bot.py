@@ -1,11 +1,12 @@
 import configparser
+import html
 import logging
 import os
 import time
 import datetime as dtm
 
 from telegram import ParseMode, MessageEntity, ChatAction, Update, Bot
-from telegram.error import BadRequest
+from telegram.error import BadRequest, Unauthorized
 from telegram.ext import CommandHandler, Updater, MessageHandler, Filters, CallbackContext
 from telegram.utils.helpers import escape_markdown
 
@@ -61,31 +62,6 @@ def inlinequery_help(update: Update, context: CallbackContext):
     context.bot.sendMessage(chat_id, text, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True)
 
 
-def forward_faq(update: Update, context: CallbackContext):
-    if update.message.chat.username not in [ONTOPIC_USERNAME, OFFTOPIC_USERNAME]:
-        return
-
-    admins = context.bot.get_chat_administrators(ONTOPIC_USERNAME)
-
-    if update.effective_user.id not in [x.user.id for x in admins]:
-        return
-
-    if not update.message:
-        return
-
-    reply_to = update.message.reply_to_message
-    if not reply_to:
-        return
-
-    try:
-        update.message.delete()
-    except BadRequest:
-        pass
-
-    # Forward message to FAQ channel
-    reply_to.forward(const.FAQ_CHANNEL_ID, disable_notification=True)
-
-
 @rate_limit
 def rules(update: Update, context: CallbackContext):
     """Load and send the appropriate rules based on which group we're in"""
@@ -124,6 +100,19 @@ def wiki(update: Update, context: CallbackContext):
     else:
         reply_id = None
     update.message.reply_text(text, parse_mode='Markdown', quote=False,
+                              disable_web_page_preview=True, reply_to_message_id=reply_id)
+    update.message.delete()
+
+
+@rate_limit
+def help(update: Update, context: CallbackContext):
+    """ Link to rules readme """
+    text = f'You can find an explanation of @{html.escape(context.bot.username)}\'s functionality wiki on <a href="https://github.com/python-telegram-bot/rules-bot/blob/master/README.md">GitHub</a>.'
+    if update.message.reply_to_message:
+        reply_id = update.message.reply_to_message.message_id
+    else:
+        reply_id = None
+    update.message.reply_text(text, parse_mode=ParseMode.HTML, quote=False,
                               disable_web_page_preview=True, reply_to_message_id=reply_id)
     update.message.delete()
 
@@ -274,7 +263,7 @@ def update_rules_messages(bot: Bot):
             parse_mode=ParseMode.HTML,
             disable_web_page_preview=True,
         )
-    except BadRequest as exc:
+    except (BadRequest, Unauthorized) as exc:
         logger.warning(f'Updating on-topic rules failed: {exc}')
     try:
         bot.edit_message_text(
@@ -284,7 +273,7 @@ def update_rules_messages(bot: Bot):
             parse_mode=ParseMode.HTML,
             disable_web_page_preview=True,
         )
-    except BadRequest as exc:
+    except (BadRequest, Unauthorized) as exc:
         logger.warning(f'Updating off-topic rules failed: {exc}')
 
 
@@ -307,6 +296,7 @@ def main():
     rules_handler_hashtag = MessageHandler(Filters.regex(r'.*#rules.*'), rules)
     docs_handler = CommandHandler('docs', docs)
     wiki_handler = CommandHandler('wiki', wiki)
+    help_handler = CommandHandler('help', help)
     sandwich_handler = MessageHandler(Filters.regex(r'(?i)[\s\S]*?((sudo )?make me a sandwich)[\s\S]*?'),
                                       sandwich)
     off_on_topic_handler = MessageHandler(Filters.regex(r'(?i)[\s\S]*?\b(?<!["\\])(off|on)[- _]?topic\b'),
@@ -321,18 +311,17 @@ def main():
     # This should probably be in another dispatcher group
     # but I kept getting SystemErrors...
     github_handler = MessageHandler(Filters.text & ~Filters.command, github)
-    forward_faq_handler = MessageHandler(Filters.regex(r'(?i).*#faq.*'), forward_faq)
 
     dispatcher.add_handler(rate_limit_tracker_handler, group=-1)
 
     # Note: Order matters!
     taghints.register(dispatcher)
-    dispatcher.add_handler(forward_faq_handler)
     dispatcher.add_handler(start_handler)
     dispatcher.add_handler(rules_handler)
     dispatcher.add_handler(rules_handler_hashtag)
     dispatcher.add_handler(docs_handler)
     dispatcher.add_handler(wiki_handler)
+    dispatcher.add_handler(help_handler)
     dispatcher.add_handler(sandwich_handler)
     dispatcher.add_handler(off_on_topic_handler)
     dispatcher.add_handler(github_handler)
@@ -351,6 +340,14 @@ def main():
         logging.info('No github auth set. Rate-limit is 60 requests/hour without auth.')
 
     github_issues.init_issues(dispatcher.job_queue)
+
+    # set commands
+    updater.bot.set_my_commands([
+        ('docs', 'Send the link to the docs. Use in PM.'),
+        ('wiki', 'Send the link to the wiki. Use in PM.'),
+        ('hits', 'List available tag hints. Use in PM.'),
+        ('help', 'Send the link to this bots README. Use in PM.'),
+    ])
 
     updater.idle()
 

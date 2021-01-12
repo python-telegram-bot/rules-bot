@@ -263,7 +263,7 @@ class GitHubIssues:
         # This must not happen while updating the self.issues dict so acquire the lock
         with self.issues_lock:
             return [result[0] for result in process.extract(query, self.issues, scorer=fuzz.partial_ratio,
-                                                            processor=processor, limit=5)]
+                                                            processor=processor, limit=1000)]
 
 
 github_issues = GitHubIssues()
