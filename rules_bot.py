@@ -345,7 +345,7 @@ def main():
     updater.bot.set_my_commands([
         ('docs', 'Send the link to the docs. Use in PM.'),
         ('wiki', 'Send the link to the wiki. Use in PM.'),
-        ('hits', 'List available tag hints. Use in PM.'),
+        ('hints', 'List available tag hints. Use in PM.'),
         ('help', 'Send the link to this bots README. Use in PM.'),
     ])
 
