@@ -115,7 +115,8 @@ We have compiled a list of learning resources <i>just for you</i>:
         'default': 'Hey.',
     },
     '#formatting': {
-        'message': """Telegram supports some formatting options for text. All the details about what is supported can be found <a href="https://core.telegram.org/bots/api#formatting-options">here</a>. You can format text with every API method/type that has a <code>parse_mode</code> parameter. In addition to editing your text as described in the link above, pass one of the parse modes available through <a href="https://python-telegram-bot.readthedocs.io/en/stable/telegram.parsemode.html">telegram.ParseMode</a> to the <code>parse_mode</code> parameter. Since the <code>5.0</code> update of the Bot API (version <code>13.1+</code> of our library), you can alternatively pass a list of <a href="https://python-telegram-bot.readthedocs.io/en/stable/telegram.messageentity.html">telegram.MessageEntities</a> to the <code>entities</code> parameter.""",
+        'message': """{query} Telegram supports some formatting options for text. All the details about what is supported can be found <a href="https://core.telegram.org/bots/api#formatting-options">here</a>. You can format text with every API method/type that has a <code>parse_mode</code> parameter. In addition to editing your text as described in the link above, pass one of the parse modes available through <a href="https://python-telegram-bot.readthedocs.io/en/stable/telegram.parsemode.html">telegram.ParseMode</a> to the <code>parse_mode</code> parameter. Since the <code>5.0</code> update of the Bot API (version <code>13.1+</code> of our library), you can alternatively pass a list of <a href="https://python-telegram-bot.readthedocs.io/en/stable/telegram.messageentity.html">telegram.MessageEntities</a> to the <code>entities</code> parameter.""",
+        'default': 'Hey.',
         'help': "How to use text formatting."
     },
     '#xy': {
@@ -127,6 +128,11 @@ We have compiled a list of learning resources <i>just for you</i>:
         'message': """{query} Please only mention or reply to users directly if you're following up on a conversation with them. Otherwise just ask your question and wait if someone has a solution for you - that's how this group works 😉 Also note the the <code>@admin</code> tag is only to be used to report spam or abuse!""",
         'default': 'Hey.',
         'help': 'Tell users not to ping randomly ping you.',
+    },
+    '#read': {
+        'message': """I just pointed you to {query} and I have the strong feeling that <i>you did not actually read it</i>. Please do so. If you don't understand everything and have follow up questions, that's fine, but you can't expect me to repeat everything <i>just for you</i> because you didn't feel like reading on your own. 😉""",
+        'default': 'a resource in the wiki, the docs or the examples',
+        'help': 'ell users to actually read the resources they were linked to'
     }
 }
 
