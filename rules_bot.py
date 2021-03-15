@@ -238,8 +238,8 @@ def greet_new_chat_members(update: Update, context: CallbackContext):
 
 
     link = ONTOPIC_RULES_MESSAGE_LINK if group_user_name == ONTOPIC_USERNAME else OFFTOPIC_RULES_MESSAGE_LINK
-    text = (f'Welcome {", ".join(users)}! Please read and follow the rules of this '
-            f'group. You can find them <a href="{link}">here 🔗</a>.')
+    text = (f'Welcome {", ".join(users)}! If you haven't already, read the rules of this '
+            f'group and make sure to follow them. You can find them <a href="{link}">here 🔗</a>.')
 
     # Clear users list
     users.clear()
