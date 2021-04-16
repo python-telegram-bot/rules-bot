@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode, Update, Chat
 from telegram.error import BadRequest
 from telegram.ext import CommandHandler, Filters, MessageHandler, CallbackContext
 
@@ -137,16 +137,24 @@ We have compiled a list of learning resources <i>just for you</i>:
 }
 
 
-def list_available_hints(update: Update, context: CallbackContext):
-    message = "You can use the following hashtags to guide new members:\n\n"
-    message += '\n'.join(
-        '🗣 {tag} ➖ {help}'.format(
-            tag=k, help=v['help']
-        ) for k, v in HINTS.items()
-    )
-    message += "\n\nMake sure to reply to another message, so I know who to refer to."
+def list_available_hints(update: Update, _: CallbackContext):
+    if update.effective_chat.type != Chat.PRIVATE:
+        message = "Please use this command in private chat with me."
+        reply_markup = InlineKeyboardMarkup.from_button(
+            InlineKeyboardButton('Take me there!', url=f"https://t.me/{const.SELF_BOT_NAME}")
+        )
+    else:
+        message = "You can use the following hashtags to guide new members:\n\n"
+        message += '\n'.join(
+            '🗣 {tag} ➖ {help}'.format(
+                tag=k, help=v['help']
+            ) for k, v in HINTS.items()
+        )
+        message += "\n\nMake sure to reply to another message, so I know who to refer to."
+        reply_markup = None
+
     update.effective_message.reply_text(message, parse_mode=ParseMode.HTML,
-                                        disable_web_page_preview=True)
+                                        disable_web_page_preview=True, reply_markup=reply_markup)
 
 
 Hint = namedtuple('Hint', 'help, msg, reply_markup')
@@ -169,7 +177,7 @@ def get_hints(query):
     return results
 
 
-def hint_handler(update: Update, context: CallbackContext):
+def hint_handler(update: Update, _: CallbackContext):
     reply_to = update.message.reply_to_message
 
     hint = get_hints(update.message.text).popitem()[1]
@@ -188,4 +196,4 @@ def hint_handler(update: Update, context: CallbackContext):
 
 def register(dispatcher):
     dispatcher.add_handler(MessageHandler(Filters.regex(rf'(?i){"|".join(HINTS.keys())}'), hint_handler, run_async=True))
-    dispatcher.add_handler(CommandHandler(('hints', 'listhints'), list_available_hints, run_async=True))
+    dispatcher.add_handler(CommandHandler(['hints', 'listhints'], list_available_hints, run_async=True))

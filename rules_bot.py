@@ -10,8 +10,8 @@ from telegram.error import BadRequest, Unauthorized
 from telegram.ext import CommandHandler, Updater, MessageHandler, Filters, CallbackContext
 from telegram.utils.helpers import escape_markdown
 
-import const
 from components import inlinequeries, taghints
+from components.errorhandler import error_handler
 from const import (ENCLOSING_REPLACEMENT_CHARACTER, GITHUB_PATTERN, OFFTOPIC_CHAT_ID, OFFTOPIC_RULES,
                    OFFTOPIC_USERNAME, ONTOPIC_RULES, ONTOPIC_USERNAME, ONTOPIC_RULES_MESSAGE_LINK,
                    OFFTOPIC_RULES_MESSAGE_LINK, ONTOPIC_RULES_MESSAGE_ID,
@@ -249,11 +249,6 @@ def greet_new_chat_members(update: Update, context: CallbackContext):
                               parse_mode=ParseMode.HTML)
 
 
-def error(update: Update, context: CallbackContext):
-    """Log all errors"""
-    logger.warning(f'Update "{update}" caused error "{context.error}"')
-
-
 def update_rules_messages(bot: Bot):
     try:
         bot.edit_message_text(
@@ -329,7 +324,7 @@ def main():
     dispatcher.add_handler(delete_new_chat_members_handler, group=1)
 
     inlinequeries.register(dispatcher)
-    dispatcher.add_error_handler(error)
+    dispatcher.add_error_handler(error_handler)
 
     updater.start_polling()
     logger.info('Listening...')
@@ -343,10 +338,10 @@ def main():
 
     # set commands
     updater.bot.set_my_commands([
-        ('docs', 'Send the link to the docs. Use in PM.'),
-        ('wiki', 'Send the link to the wiki. Use in PM.'),
-        ('hints', 'List available tag hints. Use in PM.'),
-        ('help', 'Send the link to this bots README. Use in PM.'),
+        ('docs', 'Send the link to the docs. Use in private chat with rools.'),
+        ('wiki', 'Send the link to the wiki. Use in private chat with rools.'),
+        ('hints', 'List available tag hints. Use in private chat with rools.'),
+        ('help', 'Send the link to this bots README. Use in private chat with rools.'),
     ])
 
     updater.idle()
