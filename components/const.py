@@ -1,4 +1,5 @@
 import re
+from urllib.parse import urljoin
 
 ARROW_CHARACTER = '➜'
 GITHUB_URL = "https://github.com/"
@@ -26,6 +27,13 @@ ONTOPIC_RULES_MESSAGE_LINK = 'https://t.me/pythontelegrambotgroup/419903'
 OFFTOPIC_RULES_MESSAGE_ID = 161133
 OFFTOPIC_RULES_MESSAGE_LINK = 'https://t.me/pythontelegrambottalk/161133'
 PTBCONTRIB_LINK = 'https://github.com/python-telegram-bot/ptbcontrib/'
+DOCS_URL = "https://python-telegram-bot.readthedocs.io/en/stable/"
+OFFICIAL_URL = "https://core.telegram.org/bots/api"
+PROJECT_URL = urljoin(GITHUB_URL, DEFAULT_REPO + '/')
+WIKI_URL = urljoin(PROJECT_URL, "wiki/")
+WIKI_CODE_SNIPPETS_URL = urljoin(WIKI_URL, "Code-snippets")
+WIKI_FAQ_URL = urljoin(WIKI_URL, "Frequently-Asked-Questions")
+EXAMPLES_URL = urljoin(PROJECT_URL, 'tree/master/examples/')
 ONTOPIC_RULES = """
 This group is for questions, answers and discussions around the \
 <a href="https://python-telegram-bot.org/">python-telegram-bot library</a> and, to some extent, \

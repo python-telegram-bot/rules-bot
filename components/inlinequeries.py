@@ -20,8 +20,9 @@ from components.const import (
     ENCLOSING_REPLACEMENT_CHARACTER,
     GITHUB_PATTERN,
     ARROW_CHARACTER,
+    WIKI_URL,
 )
-from components.search import WIKI_URL, search
+from components.search import search
 from components.util import github_issues, Issue, Commit
 
 

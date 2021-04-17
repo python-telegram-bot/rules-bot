@@ -11,15 +11,16 @@ from bs4 import BeautifulSoup
 from fuzzywuzzy import fuzz
 from sphinx.util.inventory import InventoryFile
 
-from .const import USER_AGENT, ARROW_CHARACTER, GITHUB_URL, DEFAULT_REPO
-
-DOCS_URL = "https://python-telegram-bot.readthedocs.io/en/stable/"
-OFFICIAL_URL = "https://core.telegram.org/bots/api"
-PROJECT_URL = urljoin(GITHUB_URL, DEFAULT_REPO + '/')
-WIKI_URL = urljoin(PROJECT_URL, "wiki/")
-WIKI_CODE_SNIPPETS_URL = urljoin(WIKI_URL, "Code-snippets")
-WIKI_FAQ_URL = urljoin(WIKI_URL, "Frequently-Asked-Questions")
-EXAMPLES_URL = urljoin(PROJECT_URL, 'tree/master/examples/')
+from .const import (
+    USER_AGENT,
+    ARROW_CHARACTER,
+    DOCS_URL,
+    OFFICIAL_URL,
+    WIKI_URL,
+    WIKI_CODE_SNIPPETS_URL,
+    WIKI_FAQ_URL,
+    EXAMPLES_URL,
+)
 
 Doc = namedtuple('Doc', 'short_name, full_name, type, url, tg_name, tg_url')
 
