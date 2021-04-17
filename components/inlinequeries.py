@@ -7,7 +7,12 @@ from telegram import InlineQueryResultArticle, InputTextMessageContent, ParseMod
 from telegram.ext import InlineQueryHandler, CallbackContext
 
 from components import taghints
-from const import ENCLOSED_REGEX, TELEGRAM_SUPERSCRIPT, ENCLOSING_REPLACEMENT_CHARACTER, GITHUB_PATTERN
+from const import (
+    ENCLOSED_REGEX,
+    TELEGRAM_SUPERSCRIPT,
+    ENCLOSING_REPLACEMENT_CHARACTER,
+    GITHUB_PATTERN,
+)
 from search import WIKI_URL, search
 from util import ARROW_CHARACTER, github_issues, Issue, Commit
 
@@ -18,15 +23,15 @@ def article(title='', description='', message_text='', key=None, reply_markup=No
         title=title,
         description=description,
         input_message_content=InputTextMessageContent(
-            message_text=message_text,
-            parse_mode=ParseMode.HTML,
-            disable_web_page_preview=True),
-        reply_markup=reply_markup
+            message_text=message_text, parse_mode=ParseMode.HTML, disable_web_page_preview=True
+        ),
+        reply_markup=reply_markup,
     )
 
 
 def fuzzy_replacements_html(query, threshold=95, official_api_links=True):
-    """ Replaces the enclosed characters in the query string with hyperlinks to the documentations """
+    """Replaces the enclosed characters in the query string with hyperlinks
+    to the documentations."""
     symbols = re.findall(ENCLOSED_REGEX, query)
 
     if not symbols:
@@ -122,10 +127,11 @@ def inline_github(query):
                           description=#2: that issue, #10, tenth issue),
                          ... (3 more)]
         `#search1 #10 #search2` - [(title= 🔍 An issue with search2 in it's issue,
-                                    description=#3: search1 result, #10: tenth issue, #5: search2 result1),
+                                    description=#3: search1 result, #10: tenth issue,
+                                    #5: search2 result1),
                                    (title= 🔍 Another issue with search2 in it's issue,
-                                    description=#3: search1 result, #10, tenth issue, #6: search2 result2),
-                                   ... (3 more)]
+                                    description=#3: search1 result, #10, tenth issue,
+                                    #6: search2 result2), ... (3 more)]
     """
     # Issues/PRs/Commits
     things = OrderedDict()
@@ -133,8 +139,9 @@ def inline_github(query):
 
     # Search for Issues, PRs and commits in the query and add them to things
     for match in GITHUB_PATTERN.finditer(query):
-        owner, repo, number, sha, search_query, full = [match.groupdict()[x] for x in ('owner', 'repo', 'number',
-                                                                                       'sha', 'query', 'full')]
+        owner, repo, number, sha, search_query, full = [
+            match.groupdict()[x] for x in ('owner', 'repo', 'number', 'sha', 'query', 'full')
+        ]
         # If it's an issue
         if number:
             issue = github_issues.get_issue(int(number), owner, repo)
@@ -163,16 +170,17 @@ def inline_github(query):
         # If we did a search
         if last_search and last_search[i]:
             # Show the search title as the title
-            title = '🔍' + github_issues.pretty_format(last_search[i],
-                                                       short_with_title=True,
-                                                       title_max_length=50)
+            title = '🔍' + github_issues.pretty_format(
+                last_search[i], short_with_title=True, title_max_length=50
+            )
         else:
             # Otherwise just use generic title
             title = 'Resolve via GitHub'
 
         # Description is the short formats combined with ', '
-        description = (', '.join(github_issues.pretty_format(thing, short_with_title=True)
-                                 for thing in things.values()))
+        description = ', '.join(
+            github_issues.pretty_format(thing, short_with_title=True) for thing in things.values()
+        )
 
         # Truncate the description to 100 chars, from the left side.
         # So the last thing will always be shown.
@@ -181,7 +189,9 @@ def inline_github(query):
 
         # The text that will be sent when user clicks the choice/result
         text = ''
-        pattern = r'|'.join(re.escape(thing) for thing in sorted(things.keys(), key=len, reverse=True))
+        pattern = r'|'.join(
+            re.escape(thing) for thing in sorted(things.keys(), key=len, reverse=True)
+        )
         # Check if there's other stuff than issues/PRs etc. in the query by
         # removing issues/PRs etc. and seeing if there's anything left
         if re.sub(pattern, '', query).strip():
@@ -190,13 +200,18 @@ def inline_github(query):
             # would break would turn into something like
             # [blah/blah[#2](LinkFor#2)](LinkForblah/blah[#2](LinkFor#2))
             # which isn't even valid markdown
-            text = re.sub(pattern,
-                          lambda x: f'<a href="{things[x.group(0)].url}">'
-                          f'{github_issues.pretty_format(things[x.group(0)], short=True)}</a>', query)
+            text = re.sub(
+                pattern,
+                lambda x: f'<a href="{things[x.group(0)].url}">'
+                f'{github_issues.pretty_format(things[x.group(0)], short=True)}</a>',
+                query,
+            )
 
         # Add full format to bottom of message
-        text += '\n\n' + '\n'.join(f'<a href="{thing.url}">{github_issues.pretty_format(thing)}</a>'
-                                   for thing in things.values())
+        text += '\n\n' + '\n'.join(
+            f'<a href="{thing.url}">{github_issues.pretty_format(thing)}</a>'
+            for thing in things.values()
+        )
 
         results.append(article(title=title, description=description, message_text=text))
 
@@ -210,11 +225,18 @@ def inline_query(update: Update, context: CallbackContext, threshold=15):
     if len(query) > 0:
         if query.startswith('#'):
             hints = taghints.get_hints(query)
-            results_list.extend([article(f'Send hint on {key.capitalize()}',
-                                         hint.help,
-                                         hint.msg,
-                                         key=key,
-                                         reply_markup=hint.reply_markup) for key, hint in hints.items()])
+            results_list.extend(
+                [
+                    article(
+                        f'Send hint on {key.capitalize()}',
+                        hint.help_callback,
+                        hint.msg,
+                        key=key,
+                        reply_markup=hint.reply_markup,
+                    )
+                    for key, hint in hints.items()
+                ]
+            )
 
         if '#' in query or '@' in query:
             results_list.extend(inline_github(query))
@@ -222,104 +244,136 @@ def inline_query(update: Update, context: CallbackContext, threshold=15):
         if ENCLOSING_REPLACEMENT_CHARACTER in query:
             modified, replaced = fuzzy_replacements_html(query, official_api_links=True)
             if modified:
-                results_list.append(article(
-                    title="Replace links and show official Bot API documentation",
-                    description=', '.join(modified),
-                    message_text=replaced))
+                results_list.append(
+                    article(
+                        title="Replace links and show official Bot API documentation",
+                        description=', '.join(modified),
+                        message_text=replaced,
+                    )
+                )
 
             modified, replaced = fuzzy_replacements_html(query, official_api_links=False)
             if modified:
-                results_list.append(article(
-                    title="Replace links",
-                    description=', '.join(modified),
-                    message_text=replaced))
+                results_list.append(
+                    article(
+                        title="Replace links",
+                        description=', '.join(modified),
+                        message_text=replaced,
+                    )
+                )
 
         if query.lower() == 'faq':
             for name, link in search.all_faq():
-                results_list.append(article(
-                    title=name,
-                    description='Wiki of python-telegram-bot',
-                    message_text=f'Wiki of <i>python-telegram-bot</i>\n'
-                    f'<a href="{link}">{escape(name)}</a>',
-                ))
+                results_list.append(
+                    article(
+                        title=name,
+                        description='Wiki of python-telegram-bot',
+                        message_text=f'Wiki of <i>python-telegram-bot</i>\n'
+                        f'<a href="{link}">{escape(name)}</a>',
+                    )
+                )
         if query.lower().startswith('faq') and len(query.split(' ')) > 1:
             faq = search.faq(query.split(' ', 1)[1], amount=20, threshold=threshold)
             if faq:
                 for q in faq:
-                    results_list.append(article(
-                        title=f'{q[0]}',
-                        description="Github wiki for python-telegram-bot",
-                        message_text=f'Wiki of <i>python-telegram-bot</i>\n'
-                        f'<a href="{q[1]}">{q[0]}</a>'
-                    ))
+                    results_list.append(
+                        article(
+                            title=f'{q[0]}',
+                            description="Github wiki for python-telegram-bot",
+                            message_text=f'Wiki of <i>python-telegram-bot</i>\n'
+                            f'<a href="{q[1]}">{q[0]}</a>',
+                        )
+                    )
 
         if query.lower() == 'snippets':
             for name, link in search.all_code_snippets():
-                results_list.append(article(
-                    title=name,
-                    description='Wiki of python-telegram-bot',
-                    message_text=f'Wiki of <i>python-telegram-bot</i>\n'
-                    f'<a href="{link}">{escape(name)}</a>',
-                ))
+                results_list.append(
+                    article(
+                        title=name,
+                        description='Wiki of python-telegram-bot',
+                        message_text=f'Wiki of <i>python-telegram-bot</i>\n'
+                        f'<a href="{link}">{escape(name)}</a>',
+                    )
+                )
         if query.lower().startswith('snippets') and len(query.split(' ')) > 1:
             snippets = search.code_snippets(query.split(' ', 1)[1], amount=20, threshold=threshold)
             if snippets:
                 snippets = snippets
                 for snippet in snippets:
-                    results_list.append(article(
-                        title=f'{snippet[0]}',
-                        description="Github wiki for python-telegram-bot",
-                        message_text=f'Wiki of <i>python-telegram-bot</i>\n'
-                        f'<a href="{snippet[1]}">{snippet[0]}</a>'
-                    ))
+                    results_list.append(
+                        article(
+                            title=f'{snippet[0]}',
+                            description="Github wiki for python-telegram-bot",
+                            message_text=f'Wiki of <i>python-telegram-bot</i>\n'
+                            f'<a href="{snippet[1]}">{snippet[0]}</a>',
+                        )
+                    )
 
         # If no results so far then search wiki and docs
         if not results_list:
             doc = search.docs(query, threshold=threshold)
             if doc:
-                text = f'<b>{doc.short_name}</b>\n' \
-                    f'<i>python-telegram-bot</i> documentation for this {doc.type}:\n' \
+                text = (
+                    f'<b>{doc.short_name}</b>\n'
+                    f'<i>python-telegram-bot</i> documentation for this {doc.type}:\n'
                     f'<a href="{doc.url}">{doc.full_name}</a>'
+                )
                 if doc.tg_name:
-                    text += f'\n\nThe official documentation has more info about <a href="{doc.tg_url}">{doc.tg_name}</a>.'
+                    text += (
+                        f'\n\nThe official documentation has more info about '
+                        f'<a href="{doc.tg_url}">{doc.tg_name}</a>. '
+                    )
 
-                results_list.append(article(
-                    title=f'{doc.full_name}',
-                    description="python-telegram-bot documentation",
-                    message_text=text,
-                ))
+                results_list.append(
+                    article(
+                        title=f'{doc.full_name}',
+                        description="python-telegram-bot documentation",
+                        message_text=text,
+                    )
+                )
 
             wiki_pages = search.wiki(query, amount=4, threshold=threshold)
             if wiki_pages:
                 wiki_pages = wiki_pages
                 for wiki_page in wiki_pages:
-                    results_list.append(article(
-                        title=f'{wiki_page[0]}',
-                        description="Github wiki for python-telegram-bot",
-                        message_text=f'Wiki of <i>python-telegram-bot</i>\n'
-                        f'<a href="{wiki_page[1]}">{wiki_page[0]}</a>'
-                    ))
+                    results_list.append(
+                        article(
+                            title=f'{wiki_page[0]}',
+                            description="Github wiki for python-telegram-bot",
+                            message_text=f'Wiki of <i>python-telegram-bot</i>\n'
+                            f'<a href="{wiki_page[1]}">{wiki_page[0]}</a>',
+                        )
+                    )
 
         # If no results even after searching wiki and docs
         if not results_list:
-            results_list.append(article(
-                title='❌ No results.',
-                description='',
-                message_text=f'<a href="{WIKI_URL}">GitHub wiki</a> of <i>python-telegram-bot</i>',
-            ))
+            results_list.append(
+                article(
+                    title='❌ No results.',
+                    description='',
+                    message_text=f'<a href="{WIKI_URL}">GitHub wiki</a> of '
+                    f'<i>python-telegram-bot</i>',
+                )
+            )
 
     else:
         for name, link in search.all_wiki_pages():
-            results_list.append(article(
-                title=name,
-                description='Wiki of python-telegram-bot',
-                message_text=f'Wiki of <i>python-telegram-bot</i>\n'
-                f'<a href="{link}">{escape(name)}</a>',
-            ))
+            results_list.append(
+                article(
+                    title=name,
+                    description='Wiki of python-telegram-bot',
+                    message_text=f'Wiki of <i>python-telegram-bot</i>\n'
+                    f'<a href="{link}">{escape(name)}</a>',
+                )
+            )
 
-    update.inline_query.answer(results=results_list, switch_pm_text='Help',
-                               switch_pm_parameter='inline-help', cache_time=0,
-                               auto_pagination=True)
+    update.inline_query.answer(
+        results=results_list,
+        switch_pm_text='Help',
+        switch_pm_parameter='inline-help',
+        cache_time=0,
+        auto_pagination=True,
+    )
 
 
 def register(dispatcher):

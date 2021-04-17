@@ -35,9 +35,8 @@ def error_handler(update: object, context: CallbackContext) -> None:
     # We send update and traceback in two parts to reduce the chance of hitting max length
     try:
         sent_message = context.bot.send_message(
-            chat_id=ERROR_CHANNEL_CHAT_IT,
-            text=message_1,
-            parse_mode=ParseMode.HTML)
+            chat_id=ERROR_CHANNEL_CHAT_IT, text=message_1, parse_mode=ParseMode.HTML
+        )
         sent_message.reply_html(message_2)
     except BadRequest as exc:
         if 'too long' in str(exc):
@@ -46,9 +45,7 @@ def error_handler(update: object, context: CallbackContext) -> None:
                 f' The traceback is too long to send, but it was written to the log.'
             )
             context.bot.send_message(
-                chat_id=ERROR_CHANNEL_CHAT_IT,
-                text=message,
-                parse_mode=ParseMode.HTML
+                chat_id=ERROR_CHANNEL_CHAT_IT, text=message, parse_mode=ParseMode.HTML
             )
         else:
             raise exc

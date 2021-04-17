@@ -44,6 +44,7 @@ def cached_parsing(func):
             self._parse()
             self.last_cache_date = date.today()
         return func(self, *args, **kwargs)
+
     return checking_cache_time
 
 
@@ -67,8 +68,7 @@ class Search:
         self.parse_wiki_faq()
 
     def parse_docs(self):
-        request = Request(urljoin(DOCS_URL, "objects.inv"),
-                          headers={'User-Agent': USER_AGENT})
+        request = Request(urljoin(DOCS_URL, "objects.inv"), headers={'User-Agent': USER_AGENT})
         docs_data = urlopen(request)
         self._docs = InventoryFile.load(docs_data, DOCS_URL, urljoin)
 
@@ -126,8 +126,16 @@ class Search:
         best = (0, None)
 
         for typ, items in self._docs.items():
-            if typ not in ['py:staticmethod', 'py:exception', 'py:method', 'py:module', 'py:class', 'py:attribute',
-                           'py:data', 'py:function']:
+            if typ not in [
+                'py:staticmethod',
+                'py:exception',
+                'py:method',
+                'py:module',
+                'py:class',
+                'py:attribute',
+                'py:data',
+                'py:function',
+            ]:
                 continue
             for name, item in items.items():
                 name_bits = name.split('.')
@@ -164,8 +172,10 @@ class Search:
                             short_name = name_bits[2:]
                     except IndexError:
                         pass
-                    best = (score, Doc('.'.join(short_name), name,
-                                       typ[3:], item[2], tg_name, tg_url))
+                    best = (
+                        score,
+                        Doc('.'.join(short_name), name, typ[3:], item[2], tg_name, tg_url),
+                    )
         if best[0] > threshold:
             return best[1]
 
