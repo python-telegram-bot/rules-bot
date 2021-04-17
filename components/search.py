@@ -10,8 +10,8 @@ from bs4 import BeautifulSoup
 from fuzzywuzzy import fuzz
 from sphinx.util.inventory import InventoryFile
 
-from util import ARROW_CHARACTER, DEFAULT_REPO, GITHUB_URL
-from const import USER_AGENT
+from .util import ARROW_CHARACTER, DEFAULT_REPO, GITHUB_URL
+from .const import USER_AGENT
 
 DOCS_URL = "https://python-telegram-bot.readthedocs.io/en/stable/"
 OFFICIAL_URL = "https://core.telegram.org/bots/api"

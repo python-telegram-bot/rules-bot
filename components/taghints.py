@@ -4,8 +4,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, Chat
 from telegram.error import BadRequest
 from telegram.ext import CommandHandler, Filters, MessageHandler, CallbackContext
 
-import const
-import util
+from components import const, util
 
 HINTS = {
     '#inline': {

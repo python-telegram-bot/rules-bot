@@ -10,7 +10,7 @@ from requests import Session
 from telegram import Update
 from telegram.ext import CallbackContext
 
-from const import USER_AGENT
+from .const import USER_AGENT
 
 ARROW_CHARACTER = '➜'
 GITHUB_URL = "https://github.com/"

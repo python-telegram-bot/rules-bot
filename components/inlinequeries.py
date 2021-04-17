@@ -6,15 +6,16 @@ from uuid import uuid4
 from telegram import InlineQueryResultArticle, InputTextMessageContent, Update
 from telegram.ext import InlineQueryHandler, CallbackContext
 
+import components.callbacks
 from components import taghints
-from const import (
+from components.const import (
     ENCLOSED_REGEX,
     TELEGRAM_SUPERSCRIPT,
     ENCLOSING_REPLACEMENT_CHARACTER,
     GITHUB_PATTERN,
 )
-from search import WIKI_URL, search
-from util import ARROW_CHARACTER, github_issues, Issue, Commit
+from components.search import WIKI_URL, search
+from components.util import ARROW_CHARACTER, github_issues, Issue, Commit
 
 
 def article(title='', description='', message_text='', key=None, reply_markup=None):
@@ -40,14 +41,14 @@ def fuzzy_replacements_html(query, threshold=95, official_api_links=True):
     replacements = list()
     for symbol in symbols:
         # Wiki first, cause with docs you can always prepend telegram. for better precision
-        wiki = search.wiki(symbol.replace('_', ' '), amount=1, threshold=threshold)
+        wiki = components.callbacks.wiki(symbol.replace('_', ' '), amount=1, threshold=threshold)
         if wiki:
             name = wiki[0][0].split(ARROW_CHARACTER)[-1].strip()
             text = f'<a href="{wiki[0][1]}">{name}</a>'
             replacements.append((wiki[0][0], symbol, text))
             continue
 
-        doc = search.docs(symbol, threshold=threshold)
+        doc = components.callbacks.docs(symbol, threshold=threshold)
         if doc:
             text = f'<a href="{doc.url}">{doc.short_name}</a>'
 
@@ -229,7 +230,7 @@ def inline_query(update: Update, _: CallbackContext, threshold=15):
                 [
                     article(
                         f'Send hint on {key.capitalize()}',
-                        hint.help_callback,
+                        components.callbacks.help_callback,
                         hint.msg,
                         key=key,
                         reply_markup=hint.reply_markup,
@@ -310,7 +311,7 @@ def inline_query(update: Update, _: CallbackContext, threshold=15):
 
         # If no results so far then search wiki and docs
         if not results_list:
-            doc = search.docs(query, threshold=threshold)
+            doc = components.callbacks.docs(query, threshold=threshold)
             if doc:
                 text = (
                     f'<b>{doc.short_name}</b>\n'
@@ -331,7 +332,7 @@ def inline_query(update: Update, _: CallbackContext, threshold=15):
                     )
                 )
 
-            wiki_pages = search.wiki(query, amount=4, threshold=threshold)
+            wiki_pages = components.callbacks.wiki(query, amount=4, threshold=threshold)
             if wiki_pages:
                 for wiki_page in wiki_pages:
                     results_list.append(

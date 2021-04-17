@@ -1,5 +1,7 @@
 import re
 
+# Welcome new chat members at most ever X minutes
+NEW_CHAT_MEMBERS_LIMIT_SPACING = 60
 USER_AGENT = 'Github: python-telegram-bot/rules-bot'
 ENCLOSING_REPLACEMENT_CHARACTER = '+'
 ENCLOSED_REGEX = (
@@ -8,7 +10,7 @@ ENCLOSED_REGEX = (
 OFFTOPIC_USERNAME = 'pythontelegrambottalk'
 ONTOPIC_USERNAME = 'pythontelegrambotgroup'
 OFFTOPIC_CHAT_ID = '@' + OFFTOPIC_USERNAME
-ERROR_CHANNEL_CHAT_IT = -1001397960657
+ERROR_CHANNEL_CHAT_ID = -1001397960657
 TELEGRAM_SUPERSCRIPT = 'ᵀᴱᴸᴱᴳᴿᴬᴹ'
 FAQ_CHANNEL_ID = '@ptbfaq'
 SELF_BOT_NAME = 'roolsbot'
