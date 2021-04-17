@@ -5,6 +5,7 @@ from telegram.error import BadRequest
 from telegram.ext import CommandHandler, Filters, MessageHandler, CallbackContext
 
 from components import const, util
+from components.const import PTBCONTRIB_LINK
 
 HINTS = {
     '#inline': {
@@ -189,6 +190,16 @@ HINTS = {
         'default': 'a resource in the wiki, the docs or the examples',
         'help': 'Tell users to actually read the resources they were linked to',
     },
+    '#ptbcontrib': {
+        'message': (
+            '{query} <code>ptbcontrib</code> is a library that provides extensions for the '
+            '<code>python-telegram-bot</code> library that written and maintained by the '
+            'community of PTB users.'
+        ),
+        'default': 'Hey.',
+        'buttons': [{'text': '🔗 Take me there!', 'url': f"{PTBCONTRIB_LINK}"}],
+        'help': 'Display a short info text about ptbcontrib',
+    },
 }
 
 
@@ -212,6 +223,9 @@ def list_available_hints(update: Update, _: CallbackContext):
         reply_markup=reply_markup,
     )
 
+
+# Sort the hints by hey
+HINTS = dict(sorted(HINTS.items()))
 
 Hint = namedtuple('Hint', 'help, msg, reply_markup')
 
