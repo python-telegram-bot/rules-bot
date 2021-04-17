@@ -7,7 +7,14 @@ import datetime as dtm
 
 from telegram import ParseMode, MessageEntity, ChatAction, Update, Bot
 from telegram.error import BadRequest, Unauthorized
-from telegram.ext import CommandHandler, Updater, MessageHandler, Filters, CallbackContext
+from telegram.ext import (
+    CommandHandler,
+    Updater,
+    MessageHandler,
+    Filters,
+    CallbackContext,
+    Defaults,
+)
 from telegram.utils.helpers import escape_markdown
 
 from components import inlinequeries, taghints
@@ -47,7 +54,7 @@ else:
 
 logger = logging.getLogger(__name__)
 
-self_chat_id = '@'  # Updated in main()
+SELF_CHAT_ID = '@'  # Updated in main()
 
 # Welcome new chat members at most ever X minutes
 NEW_CHAT_MEMBERS_LIMIT_SPACING = 60
@@ -89,17 +96,13 @@ def inlinequery_help(update: Update, context: CallbackContext):
 
 
 @rate_limit
-def rules(update: Update, context: CallbackContext):
+def rules(update: Update, _: CallbackContext):
     """Load and send the appropriate rules based on which group we're in"""
     if update.message.chat.username == ONTOPIC_USERNAME:
-        update.message.reply_text(
-            ONTOPIC_RULES, parse_mode=ParseMode.HTML, disable_web_page_preview=True, quote=False
-        )
+        update.message.reply_text(ONTOPIC_RULES, disable_web_page_preview=True, quote=False)
         update.message.delete()
     elif update.message.chat.username == OFFTOPIC_USERNAME:
-        update.message.reply_text(
-            OFFTOPIC_RULES, parse_mode=ParseMode.HTML, disable_web_page_preview=True, quote=False
-        )
+        update.message.reply_text(OFFTOPIC_RULES, disable_web_page_preview=True, quote=False)
         update.message.delete()
     else:
         update.message.reply_text(
@@ -109,7 +112,7 @@ def rules(update: Update, context: CallbackContext):
 
 
 @rate_limit
-def docs(update: Update, context: CallbackContext):
+def docs(update: Update, _: CallbackContext):
     """ Documentation link """
     text = (
         "You can find our documentation at "
@@ -130,7 +133,7 @@ def docs(update: Update, context: CallbackContext):
 
 
 @rate_limit
-def wiki(update: Update, context: CallbackContext):
+def wiki(update: Update, _: CallbackContext):
     """ Wiki link """
     text = (
         "You can find our wiki on "
@@ -164,7 +167,6 @@ def help_callback(update: Update, context: CallbackContext):
         reply_id = None
     update.message.reply_text(
         text,
-        parse_mode=ParseMode.HTML,
         quote=False,
         disable_web_page_preview=True,
         reply_to_message_id=reply_id,
@@ -196,7 +198,7 @@ def off_on_topic(update: Update, context: CallbackContext):
             )
 
             offtopic_msg = context.bot.send_message(
-                OFFTOPIC_CHAT_ID, text, disable_web_page_preview=True, parse_mode=ParseMode.HTML
+                OFFTOPIC_CHAT_ID, text, disable_web_page_preview=True
             )
 
             update.message.reply_text(
@@ -279,7 +281,7 @@ def github(update: Update, context: CallbackContext):
         )
 
 
-def delete_new_chat_members_message(update: Update, context: CallbackContext):
+def delete_new_chat_members_message(update: Update, _: CallbackContext):
     update.message.delete()
 
 
@@ -322,9 +324,7 @@ def greet_new_chat_members(update: Update, context: CallbackContext):
     users.clear()
 
     # send message
-    update.message.reply_text(
-        text, disable_web_page_preview=True, quote=False, parse_mode=ParseMode.HTML
-    )
+    update.message.reply_text(text, disable_web_page_preview=True, quote=False)
 
 
 def update_rules_messages(bot: Bot):
@@ -333,32 +333,31 @@ def update_rules_messages(bot: Bot):
             chat_id='@' + ONTOPIC_USERNAME,
             message_id=ONTOPIC_RULES_MESSAGE_ID,
             text=ONTOPIC_RULES,
-            parse_mode=ParseMode.HTML,
             disable_web_page_preview=True,
         )
     except (BadRequest, Unauthorized) as exc:
-        logger.warning(f'Updating on-topic rules failed: {exc}')
+        logger.warning('Updating on-topic rules failed: %s', exc)
     try:
         bot.edit_message_text(
             chat_id='@' + OFFTOPIC_USERNAME,
             message_id=OFFTOPIC_RULES_MESSAGE_ID,
             text=OFFTOPIC_RULES,
-            parse_mode=ParseMode.HTML,
             disable_web_page_preview=True,
         )
     except (BadRequest, Unauthorized) as exc:
-        logger.warning(f'Updating off-topic rules failed: {exc}')
+        logger.warning('Updating off-topic rules failed: %s', exc)
 
 
 def main():
     config = configparser.ConfigParser()
     config.read('bot.ini')
 
-    updater = Updater(token=config['KEYS']['bot_api'], use_context=True)
+    defaults = Defaults(parse_mode=ParseMode.HTML)
+    updater = Updater(token=config['KEYS']['bot_api'], defaults=defaults)
     dispatcher = updater.dispatcher
     update_rules_messages(updater.bot)
 
-    global SELF_CHAT_ID
+    global SELF_CHAT_ID  # pylint: disable=W0603
     SELF_CHAT_ID = f'@{updater.bot.get_me().username}'
 
     rate_limit_tracker_handler = MessageHandler(~Filters.command, rate_limit_tracker)

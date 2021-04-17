@@ -41,7 +41,7 @@ def cached_parsing(func):
     @functools.wraps(func)
     def checking_cache_time(self, *args, **kwargs):
         if date.today() > self.last_cache_date:
-            self._parse()
+            self.parse()
             self.last_cache_date = date.today()
         return func(self, *args, **kwargs)
 
@@ -56,9 +56,9 @@ class Search:
         self._snippets = OrderedDict()
         self._faq = OrderedDict()
         self.last_cache_date = date.today()
-        self._parse()
+        self.parse()
 
-    def _parse(self):
+    def parse(self):
         self.parse_docs()
         self.parse_official()
         # Order matters since we use an ordered dict
@@ -87,25 +87,25 @@ class Search:
         for tag in ['ol', 'ul']:
             for element in wiki_soup.select(f"div.wiki-custom-sidebar > {tag}"):
                 category = element.find_previous_sibling('h2').text.strip()
-                for li in element.select('li'):
-                    if li.a['href'] != '#':
-                        name = f'{category} {ARROW_CHARACTER} {li.a.text.strip()}'
-                        self._wiki[name] = urljoin(WIKI_URL, li.a['href'])
+                for list_item in element.select('li'):
+                    if list_item.a['href'] != '#':
+                        name = f'{category} {ARROW_CHARACTER} {list_item.a.text.strip()}'
+                        self._wiki[name] = urljoin(WIKI_URL, list_item.a['href'])
 
     def parse_wiki_code_snippets(self):
         request = Request(WIKI_CODE_SNIPPETS_URL, headers={'User-Agent': USER_AGENT})
         code_snippet_soup = BeautifulSoup(urlopen(request), 'html.parser')
-        for h4 in code_snippet_soup.select('div#wiki-body h4'):
-            name = f'Code snippets {ARROW_CHARACTER} {h4.text.strip()}'
-            self._wiki[name] = urljoin(WIKI_CODE_SNIPPETS_URL, h4.a['href'])
+        for headline in code_snippet_soup.select('div#wiki-body h4'):
+            name = f'Code snippets {ARROW_CHARACTER} {headline.text.strip()}'
+            self._wiki[name] = urljoin(WIKI_CODE_SNIPPETS_URL, headline.a['href'])
             self._snippets[name] = self._wiki[name]
 
     def parse_wiki_faq(self):
         request = Request(WIKI_FAQ_URL, headers={'User-Agent': USER_AGENT})
         code_snippet_soup = BeautifulSoup(urlopen(request), 'html.parser')
-        for h4 in code_snippet_soup.select('div#wiki-body h3'):
-            name = f'FAQ {ARROW_CHARACTER} {h4.text.strip()}'
-            self._wiki[name] = urljoin(WIKI_FAQ_URL, h4.a['href'])
+        for headline in code_snippet_soup.select('div#wiki-body h3'):
+            name = f'FAQ {ARROW_CHARACTER} {headline.text.strip()}'
+            self._wiki[name] = urljoin(WIKI_FAQ_URL, headline.a['href'])
             self._faq[name] = self._wiki[name]
 
     def parse_examples(self):
@@ -115,10 +115,10 @@ class Search:
         example_soup = BeautifulSoup(urlopen(request), 'html.parser')
 
         for div in example_soup.findAll('div', {'role': 'rowheader'}):
-            a = div.a
-            if a.text not in ['LICENSE.txt', 'README.md', '\n. .\n']:
-                name = f'Examples {ARROW_CHARACTER} {a.text.strip()}'
-                self._wiki[name] = urljoin(EXAMPLES_URL, a['href'])
+            hyperlink = div.a
+            if hyperlink.text not in ['LICENSE.txt', 'README.md', '\n. .\n']:
+                name = f'Examples {ARROW_CHARACTER} {hyperlink.text.strip()}'
+                self._wiki[name] = urljoin(EXAMPLES_URL, hyperlink.href)
 
     @cached_parsing
     def docs(self, query, threshold=80):
@@ -141,8 +141,8 @@ class Search:
                 name_bits = name.split('.')
                 dot_split = zip(query, reversed(name_bits))
                 score = 0
-                for s, n in dot_split:
-                    score += fuzz.ratio(s, n)
+                for target, value in dot_split:
+                    score += fuzz.ratio(target, value)
                 score += fuzz.ratio(query, name)
 
                 # These values are basically random :/
@@ -178,9 +178,11 @@ class Search:
                     )
         if best[0] > threshold:
             return best[1]
+        return None
 
+    @staticmethod
     @cached_parsing
-    def _get_results(self, candidates, query, amount=5, threshold=50):
+    def _get_results(candidates, query, amount=5, threshold=50):
         best = BestHandler()
         best.add(0, ('HOME', WIKI_URL))
         if query != '':
@@ -191,13 +193,13 @@ class Search:
         return best.to_list(amount, threshold)
 
     def faq(self, query, amount=5, threshold=50):
-        return self._get_results(self._faq, query, amount, threshold)
+        return self._get_results(query, amount, threshold)
 
     def code_snippets(self, query, amount=5, threshold=50):
-        return self._get_results(self._snippets, query, amount, threshold)
+        return self._get_results(query, amount, threshold)
 
     def wiki(self, query, amount=5, threshold=50):
-        return self._get_results(self._wiki, query, amount, threshold)
+        return self._get_results(query, amount, threshold)
 
     @cached_parsing
     def all_wiki_pages(self):

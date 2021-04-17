@@ -3,7 +3,7 @@ from collections import OrderedDict
 from html import escape
 from uuid import uuid4
 
-from telegram import InlineQueryResultArticle, InputTextMessageContent, ParseMode, Update
+from telegram import InlineQueryResultArticle, InputTextMessageContent, Update
 from telegram.ext import InlineQueryHandler, CallbackContext
 
 from components import taghints
@@ -23,7 +23,7 @@ def article(title='', description='', message_text='', key=None, reply_markup=No
         title=title,
         description=description,
         input_message_content=InputTextMessageContent(
-            message_text=message_text, parse_mode=ParseMode.HTML, disable_web_page_preview=True
+            message_text=message_text, disable_web_page_preview=True
         ),
         reply_markup=reply_markup,
     )
@@ -38,27 +38,27 @@ def fuzzy_replacements_html(query, threshold=95, official_api_links=True):
         return None, None
 
     replacements = list()
-    for s in symbols:
+    for symbol in symbols:
         # Wiki first, cause with docs you can always prepend telegram. for better precision
-        wiki = search.wiki(s.replace('_', ' '), amount=1, threshold=threshold)
+        wiki = search.wiki(symbol.replace('_', ' '), amount=1, threshold=threshold)
         if wiki:
             name = wiki[0][0].split(ARROW_CHARACTER)[-1].strip()
             text = f'<a href="{wiki[0][1]}">{name}</a>'
-            replacements.append((wiki[0][0], s, text))
+            replacements.append((wiki[0][0], symbol, text))
             continue
 
-        doc = search.docs(s, threshold=threshold)
+        doc = search.docs(symbol, threshold=threshold)
         if doc:
             text = f'<a href="{doc.url}">{doc.short_name}</a>'
 
             if doc.tg_url and official_api_links:
                 text += f' <a href="{doc.tg_url}">{TELEGRAM_SUPERSCRIPT}</a>'
 
-            replacements.append((doc.short_name, s, text))
+            replacements.append((doc.short_name, symbol, text))
             continue
 
         # not found
-        replacements.append((s + '❓', s, escape(s)))
+        replacements.append((symbol + '❓', symbol, escape(symbol)))
 
     result = query
     for name, symbol, text in replacements:
@@ -90,10 +90,10 @@ def unwrap(things):
             for i, elem_last in enumerate(elem_merged):
                 out[i][k] = elem_last
         elif not isinstance(elem_merged, (Issue, Commit)):
-            for i in range(len(out)):
+            for i, _ in enumerate(out):
                 out[i][k] = elem_merged[0]
         else:
-            for i in range(len(out)):
+            for i, _ in enumerate(out):
                 out[i][k] = elem_merged
 
     return last_search, out
@@ -218,7 +218,7 @@ def inline_github(query):
     return results
 
 
-def inline_query(update: Update, context: CallbackContext, threshold=15):
+def inline_query(update: Update, _: CallbackContext, threshold=15):
     query = update.inline_query.query
     results_list = list()
 
@@ -275,13 +275,13 @@ def inline_query(update: Update, context: CallbackContext, threshold=15):
         if query.lower().startswith('faq') and len(query.split(' ')) > 1:
             faq = search.faq(query.split(' ', 1)[1], amount=20, threshold=threshold)
             if faq:
-                for q in faq:
+                for question in faq:
                     results_list.append(
                         article(
-                            title=f'{q[0]}',
+                            title=f'{question[0]}',
                             description="Github wiki for python-telegram-bot",
                             message_text=f'Wiki of <i>python-telegram-bot</i>\n'
-                            f'<a href="{q[1]}">{q[0]}</a>',
+                            f'<a href="{question[1]}">{question[0]}</a>',
                         )
                     )
 
@@ -298,7 +298,6 @@ def inline_query(update: Update, context: CallbackContext, threshold=15):
         if query.lower().startswith('snippets') and len(query.split(' ')) > 1:
             snippets = search.code_snippets(query.split(' ', 1)[1], amount=20, threshold=threshold)
             if snippets:
-                snippets = snippets
                 for snippet in snippets:
                     results_list.append(
                         article(
@@ -334,7 +333,6 @@ def inline_query(update: Update, context: CallbackContext, threshold=15):
 
             wiki_pages = search.wiki(query, amount=4, threshold=threshold)
             if wiki_pages:
-                wiki_pages = wiki_pages
                 for wiki_page in wiki_pages:
                     results_list.append(
                         article(

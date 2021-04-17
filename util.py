@@ -7,7 +7,7 @@ import requests
 from bs4 import BeautifulSoup
 from fuzzywuzzy import process, fuzz
 from requests import Session
-from telegram import ParseMode, Update
+from telegram import Update
 from telegram.ext import CallbackContext
 
 from const import USER_AGENT
@@ -31,9 +31,7 @@ def get_reply_id(update):
 def reply_or_edit(update, context, text):
     chat_data = context.chat_data
     if update.edited_message:
-        chat_data[update.edited_message.message_id].edit_text(
-            text, parse_mode=ParseMode.HTML, disable_web_page_preview=True
-        )
+        chat_data[update.edited_message.message_id].edit_text(text, disable_web_page_preview=True)
     else:
         issued_reply = get_reply_id(update)
         if issued_reply:
@@ -41,12 +39,11 @@ def reply_or_edit(update, context, text):
                 update.message.chat_id,
                 text,
                 reply_to_message_id=issued_reply,
-                parse_mode=ParseMode.HTML,
                 disable_web_page_preview=True,
             )
         else:
             chat_data[update.message.message_id] = update.message.reply_text(
-                text, parse_mode=ParseMode.HTML, disable_web_page_preview=True
+                text, disable_web_page_preview=True
             )
 
 
@@ -64,20 +61,20 @@ def build_menu(buttons, n_cols, header_buttons=None, footer_buttons=None):
     return menu
 
 
-def rate_limit_tracker(update: Update, context: CallbackContext):
+def rate_limit_tracker(_: Update, context: CallbackContext):
     data = context.chat_data.get('rate_limit', {})
 
     for key in data.keys():
         data[key] += 1
 
 
-def rate_limit(f):
+def rate_limit(func):
     """
     Rate limit command so that RATE_LIMIT_SPACING non-command messages are
     required between invocations.
     """
 
-    @wraps(f)
+    @wraps(func)
     def wrapper(update, context, *args, **kwargs):
         # Get rate limit data
         try:
@@ -86,19 +83,19 @@ def rate_limit(f):
             data = context.chat_data['rate_limit'] = {}
 
         # If we have not seen two non-command messages since last of type `f`
-        if data.get(f, RATE_LIMIT_SPACING) < RATE_LIMIT_SPACING:
+        if data.get(func, RATE_LIMIT_SPACING) < RATE_LIMIT_SPACING:
             logging.debug('Ignoring due to rate limit!')
-            return
+            return None
 
-        data[f] = 0
+        data[func] = 0
 
-        return f(update, context, *args, **kwargs)
+        return func(update, context, *args, **kwargs)
 
     return wrapper
 
 
-def truncate_str(str, max):
-    return (str[:max] + '…') if len(str) > max else str
+def truncate_str(string, max_length):
+    return (string[:max_length] + '…') if len(string) > max_length else string
 
 
 Issue = namedtuple('Issue', 'type, owner, repo, number, url, title, author')
@@ -107,8 +104,8 @@ Commit = namedtuple('Commit', 'owner, repo, sha, url, title, author')
 
 class GitHubIssues:
     def __init__(self, default_owner=DEFAULT_REPO_OWNER, default_repo=DEFAULT_REPO_NAME):
-        self.s = Session()
-        self.s.headers.update({'user-agent': USER_AGENT})
+        self.session = Session()
+        self.session.headers.update({'user-agent': USER_AGENT})
         self.base_url = 'https://api.github.com/'
         self.default_owner = default_owner
         self.default_repo = default_repo
@@ -120,22 +117,26 @@ class GitHubIssues:
         self.issues_lock = threading.Lock()
 
     def set_auth(self, client_id, client_secret):
-        self.s.auth = (client_id, client_secret)
+        self.session.auth = (client_id, client_secret)
 
     def _get_json(self, url, data=None, headers=None):
         # Add base_url if needed
         url = url if url.startswith('https://') else self.base_url + url
         self.logger.info('Getting %s', url)
         try:
-            r = self.s.get(url, params=data, headers=headers)
-        except requests.exceptions.RequestException as e:
-            self.logger.exception('While getting %s with data %s', url, data, exec_info=e)
+            result = self.session.get(url, params=data, headers=headers)
+        except requests.exceptions.RequestException as exc:
+            self.logger.exception('While getting %s with data %s', url, data, exec_info=exc)
             return False, None, (None, None)
-        self.logger.debug('status_code=%d', r.status_code)
-        if not r.ok:
-            self.logger.error('Not OK: %s', r.text)
+        self.logger.debug('status_code=%d', result.status_code)
+        if not result.ok:
+            self.logger.error('Not OK: %s', result.text)
         # Only try .json() if we actually got new data
-        return r.ok, None if r.status_code == 304 else r.json(), (r.headers, r.links)
+        return (
+            result.ok,
+            None if result.status_code == 304 else result.json(),
+            (result.headers, result.links),
+        )
 
     def pretty_format(self, thing, short=False, short_with_title=False, title_max_length=15):
         if isinstance(thing, Issue):
@@ -155,50 +156,50 @@ class GitHubIssues:
     def pretty_format_issue(self, issue, short=False, short_with_title=False, title_max_length=15):
         # PR OwnerIfNotDefault/RepoIfNotDefault#9999: Title by Author
         # OwnerIfNotDefault/RepoIfNotDefault#9999 if short=True
-        s = (
+        short_text = (
             f'{"" if issue.owner == self.default_owner else issue.owner + "/"}'
             f'{"" if issue.repo == self.default_repo else issue.repo}'
             f'#{issue.number}'
         )
         if short:
-            return s
-        elif short_with_title:
-            return f'{s}: {truncate_str(issue.title, title_max_length)}'
-        return f'{issue.type} {s}: {issue.title} by {issue.author}'
+            return short_text
+        if short_with_title:
+            return f'{short_text}: {truncate_str(issue.title, title_max_length)}'
+        return f'{issue.type} {short_text}: {issue.title} by {issue.author}'
 
     def pretty_format_commit(
         self, commit, short=False, short_with_title=False, title_max_length=15
     ):
         # Commit OwnerIfNotDefault/RepoIfNotDefault@abcdf123456789: Title by Author
         # OwnerIfNotDefault/RepoIfNotDefault@abcdf123456789 if short=True
-        s = (
+        short_text = (
             f'{"" if commit.owner == self.default_owner else commit.owner + "/"}'
             f'{"" if commit.repo == self.default_repo else commit.repo}'
             f'@{commit.sha[:7]}'
         )
         if short:
-            return s
-        elif short_with_title:
-            return f'{s}: {truncate_str(commit.title, title_max_length)}'
-        return f'Commit {s}: {commit.title} by {commit.author}'
+            return short_text
+        if short_with_title:
+            return f'{short_text}: {truncate_str(commit.title, title_max_length)}'
+        return f'Commit {short_text}: {commit.title} by {commit.author}'
 
     def get_issue(self, number: int, owner=None, repo=None):
         # Other owner or repo than default?
         if owner is not None or repo is not None:
             owner = owner or self.default_owner
             repo = repo or self.default_repo
-            ok, data, _ = self._get_json(f'repos/{owner}/{repo}/issues/{number}')
+            status, data, _ = self._get_json(f'repos/{owner}/{repo}/issues/{number}')
             # Return issue directly, or unknown if not found
             return Issue(
-                type=('PR' if 'pull_request' in data else 'Issue') if ok else '',
+                type=('PR' if 'pull_request' in data else 'Issue') if status else '',
                 owner=owner,
                 repo=repo,
                 number=number,
                 url=data['html_url']
-                if ok
+                if status
                 else f'https://github.com/{owner}/{repo}/issues/{number}',
-                title=data['title'] if ok else 'Unknown',
-                author=data['user']['login'] if ok else 'Unknown',
+                title=data['title'] if status else 'Unknown',
+                author=data['user']['login'] if status else 'Unknown',
             )
 
         # Look the issue up, or if not found, fall back on above code
@@ -210,14 +211,14 @@ class GitHubIssues:
     def get_commit(self, sha: int, owner=None, repo=None):
         owner = owner or self.default_owner
         repo = repo or self.default_repo
-        ok, data, _ = self._get_json(f'repos/{owner}/{repo}/commits/{sha}')
+        status, data, _ = self._get_json(f'repos/{owner}/{repo}/commits/{sha}')
         return Commit(
             owner=owner,
             repo=repo,
             sha=sha,
-            url=data['html_url'] if ok else f'https://github.com/{owner}/{repo}/commits/{sha}',
-            title=data['commit']['message'].partition('\n')[0] if ok else 'Unknown',
-            author=data['commit']['author']['name'] if ok else 'Unknown',
+            url=data['html_url'] if status else f'https://github.com/{owner}/{repo}/commits/{sha}',
+            title=data['commit']['message'].partition('\n')[0] if status else 'Unknown',
+            author=data['commit']['author']['name'] if status else 'Unknown',
         )
 
     def _job(self, url, job_queue, first=True):
@@ -225,13 +226,13 @@ class GitHubIssues:
 
         # Load 100 issues
         # We pass the ETag if we have one (not called from init_issues)
-        ok, data, (headers, links) = self._get_json(
+        status, data, (headers, links) = self._get_json(
             url,
             {'per_page': 100, 'state': 'all'},
             {'If-None-Match': self.etag} if self.etag else None,
         )
 
-        if ok and data:
+        if status and data:
             # Add to issue cache
             # Acquire lock so we don't add while a func (like self.search) is iterating over it
             with self.issues_lock:
@@ -245,7 +246,7 @@ class GitHubIssues:
                         title=issue['title'],
                         author=issue['user']['login'],
                     )
-        elif not ok:
+        elif not status:
             # Retry in 5 sec
             job_queue.run_once(lambda _: self._job(url, job_queue), 5)
             return
@@ -270,10 +271,10 @@ class GitHubIssues:
         self._job(f'repos/{self.default_owner}/{self.default_repo}/issues', job_queue, first=True)
 
     def search(self, query):
-        def processor(x):
-            if isinstance(x, Issue):
-                x = x.title
-            return x.strip().lower()
+        def processor(str_or_issue):
+            if isinstance(str_or_issue, Issue):
+                str_or_issue = str_or_issue.title
+            return str_or_issue.strip().lower()
 
         # We don't care about the score, so return first element
         # This must not happen while updating the self.issues dict so acquire the lock

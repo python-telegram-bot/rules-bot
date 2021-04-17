@@ -3,7 +3,7 @@ import json
 import logging
 import traceback
 
-from telegram import ParseMode, Update
+from telegram import Update
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext
 
@@ -34,9 +34,7 @@ def error_handler(update: object, context: CallbackContext) -> None:
     # Finally, send the messages
     # We send update and traceback in two parts to reduce the chance of hitting max length
     try:
-        sent_message = context.bot.send_message(
-            chat_id=ERROR_CHANNEL_CHAT_IT, text=message_1, parse_mode=ParseMode.HTML
-        )
+        sent_message = context.bot.send_message(chat_id=ERROR_CHANNEL_CHAT_IT, text=message_1)
         sent_message.reply_html(message_2)
     except BadRequest as exc:
         if 'too long' in str(exc):
@@ -44,8 +42,6 @@ def error_handler(update: object, context: CallbackContext) -> None:
                 f'Hey.\nThe error <code>{html.escape(str(context.error))}</code> happened.'
                 f' The traceback is too long to send, but it was written to the log.'
             )
-            context.bot.send_message(
-                chat_id=ERROR_CHANNEL_CHAT_IT, text=message, parse_mode=ParseMode.HTML
-            )
+            context.bot.send_message(chat_id=ERROR_CHANNEL_CHAT_IT, text=message)
         else:
             raise exc

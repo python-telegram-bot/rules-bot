@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode, Update, Chat
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, Chat
 from telegram.error import BadRequest
 from telegram.ext import CommandHandler, Filters, MessageHandler, CallbackContext
 
@@ -209,7 +209,6 @@ def list_available_hints(update: Update, _: CallbackContext):
 
     update.effective_message.reply_text(
         message,
-        parse_mode=ParseMode.HTML,
         disable_web_page_preview=True,
         reply_markup=reply_markup,
     )
@@ -222,8 +221,8 @@ def get_hints(query):
     results = {}
     hashtag, _, query = query.partition(' ')
 
-    for k, v in sorted(HINTS.items()):
-        if k.lower().startswith(hashtag.lower()):
+    for key, value in sorted(HINTS.items()):
+        if key.lower().startswith(hashtag.lower()):
             reply_markup = (
                 InlineKeyboardMarkup(
                     util.build_menu(
@@ -231,18 +230,18 @@ def get_hints(query):
                             InlineKeyboardButton(
                                 **{k: v.format(query=query) for k, v in b.items()}
                             )
-                            for b in v['buttons']
+                            for b in value['buttons']
                         ],
                         1,
                     )
                 )
-                if 'buttons' in v
+                if 'buttons' in value
                 else None
             )
 
-            msg = v['message'].format(query=query if query else v.get('default', ''))
+            msg = value['message'].format(query=query if query else value.get('default', ''))
 
-            results[k] = Hint(help=v.get('help', ''), msg=msg, reply_markup=reply_markup)
+            results[key] = Hint(help=value.get('help', ''), msg=msg, reply_markup=reply_markup)
 
     return results
 
@@ -257,7 +256,6 @@ def hint_handler(update: Update, _: CallbackContext):
             hint.msg,
             reply_markup=hint.reply_markup,
             reply_to_message_id=reply_to.message_id if reply_to else None,
-            parse_mode=ParseMode.HTML,
             disable_web_page_preview=True,
         )
         try:
