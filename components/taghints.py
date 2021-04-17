@@ -1,13 +1,25 @@
 from collections import namedtuple
+from typing import cast, Dict, Optional, TypedDict, List
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, Chat
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, Chat, Message
 from telegram.error import BadRequest
-from telegram.ext import CommandHandler, Filters, MessageHandler, CallbackContext
+from telegram.ext import CommandHandler, Filters, MessageHandler, CallbackContext, Dispatcher
 
 from components import const, util
 from components.const import PTBCONTRIB_LINK
 
-HINTS = {
+
+class HintDictRequired(TypedDict):
+    message: str
+    help: str
+
+
+class HintDict(HintDictRequired, total=False):
+    default: str
+    buttons: List[Dict[str, str]]
+
+
+HINTS: Dict[str, HintDict] = {
     '#inline': {
         'message': "Consider using me in inline-mode 😎\n<code>@roolsbot {query}</code>",
         'default': "Your search terms",
@@ -203,25 +215,27 @@ HINTS = {
 }
 
 
-def list_available_hints(update: Update, _: CallbackContext):
-    if update.effective_chat.type != Chat.PRIVATE:
-        message = "Please use this command in private chat with me."
-        reply_markup = InlineKeyboardMarkup.from_button(
+def list_available_hints(update: Update, _: CallbackContext) -> None:
+    if cast(Chat, update.effective_chat).type != Chat.PRIVATE:
+        text = "Please use this command in private chat with me."
+        reply_markup: Optional[InlineKeyboardMarkup] = InlineKeyboardMarkup.from_button(
             InlineKeyboardButton('Take me there!', url=f"https://t.me/{const.SELF_BOT_NAME}")
         )
     else:
-        message = "You can use the following hashtags to guide new members:\n\n"
-        message += '\n'.join(
+        text = "You can use the following hashtags to guide new members:\n\n"
+        text += '\n'.join(
             '🗣 {tag} ➖ {help}'.format(tag=k, help=v['help']) for k, v in HINTS.items()
         )
-        message += "\n\nMake sure to reply to another message, so I know who to refer to."
+        text += "\n\nMake sure to reply to another message, so I know who to refer to."
         reply_markup = None
 
-    update.effective_message.reply_text(
-        message,
+    message = cast(Message, update.effective_message)
+    message.reply_text(
+        text,
         disable_web_page_preview=True,
         reply_markup=reply_markup,
     )
+    message.delete()
 
 
 # Sort the hints by hey
@@ -230,7 +244,7 @@ HINTS = dict(sorted(HINTS.items()))
 Hint = namedtuple('Hint', 'help, msg, reply_markup')
 
 
-def get_hints(query):
+def get_hints(query: str) -> Dict[str, Hint]:
     results = {}
     hashtag, _, query = query.partition(' ')
 
@@ -241,7 +255,7 @@ def get_hints(query):
                     util.build_menu(
                         [
                             InlineKeyboardButton(
-                                **{k: v.format(query=query) for k, v in b.items()}
+                                **{k: v.format(query=query) for k, v in b.items()}  # type: ignore
                             )
                             for b in value['buttons']
                         ],
@@ -259,25 +273,26 @@ def get_hints(query):
     return results
 
 
-def hint_handler(update: Update, _: CallbackContext):
-    reply_to = update.message.reply_to_message
+def hint_handler(update: Update, _: CallbackContext) -> None:
+    message = cast(Message, update.effective_chat)
+    reply_to = message.reply_to_message
 
-    hint = get_hints(update.message.text).popitem()[1]
+    hint = get_hints(cast(str, message.text)).popitem()[1]
 
     if hint is not None:
-        update.effective_message.reply_text(
+        message.reply_text(
             hint.msg,
             reply_markup=hint.reply_markup,
             reply_to_message_id=reply_to.message_id if reply_to else None,
             disable_web_page_preview=True,
         )
         try:
-            update.effective_message.delete()
+            message.delete()
         except BadRequest:
             pass
 
 
-def register(dispatcher):
+def register(dispatcher: Dispatcher) -> None:
     dispatcher.add_handler(
         MessageHandler(
             Filters.regex(rf'(?i){"|".join(HINTS.keys())}'), hint_handler, run_async=True

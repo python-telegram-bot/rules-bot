@@ -2,6 +2,7 @@ import html
 import json
 import logging
 import traceback
+from typing import cast
 
 from telegram import Update
 from telegram.error import BadRequest
@@ -19,7 +20,9 @@ def error_handler(update: object, context: CallbackContext) -> None:
 
     # traceback.format_exception returns the usual python message about an exception, but as a
     # list of strings rather than a single string, so we have to join them together.
-    tb_list = traceback.format_exception(None, context.error, context.error.__traceback__)
+    tb_list = traceback.format_exception(
+        None, context.error, cast(Exception, context.error).__traceback__
+    )
     tb_string = ''.join(tb_list)
 
     # Build the message with some markup and additional information about what happened.

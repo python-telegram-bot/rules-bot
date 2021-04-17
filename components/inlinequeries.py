@@ -1,26 +1,39 @@
 import re
 from collections import OrderedDict
 from html import escape
+from typing import List, cast, Tuple, Optional, no_type_check
 from uuid import uuid4
 
-from telegram import InlineQueryResultArticle, InputTextMessageContent, Update
-from telegram.ext import InlineQueryHandler, CallbackContext
+from telegram import (
+    InlineQueryResultArticle,
+    InputTextMessageContent,
+    Update,
+    InlineQuery,
+    InlineKeyboardMarkup,
+)
+from telegram.ext import InlineQueryHandler, CallbackContext, Dispatcher
 
-import components.callbacks
 from components import taghints
 from components.const import (
     ENCLOSED_REGEX,
     TELEGRAM_SUPERSCRIPT,
     ENCLOSING_REPLACEMENT_CHARACTER,
     GITHUB_PATTERN,
+    ARROW_CHARACTER,
 )
 from components.search import WIKI_URL, search
-from components.util import ARROW_CHARACTER, github_issues, Issue, Commit
+from components.util import github_issues, Issue, Commit
 
 
-def article(title='', description='', message_text='', key=None, reply_markup=None):
+def article(
+    title: str = '',
+    description: str = '',
+    message_text: str = '',
+    key: str = None,
+    reply_markup: InlineKeyboardMarkup = None,
+) -> InlineQueryResultArticle:
     return InlineQueryResultArticle(
-        id=key or uuid4(),
+        id=key or str(uuid4()),
         title=title,
         description=description,
         input_message_content=InputTextMessageContent(
@@ -30,7 +43,9 @@ def article(title='', description='', message_text='', key=None, reply_markup=No
     )
 
 
-def fuzzy_replacements_html(query, threshold=95, official_api_links=True):
+def fuzzy_replacements_html(
+    query: str, threshold: int = 95, official_api_links: bool = True
+) -> Tuple[Optional[List[str]], Optional[str]]:
     """Replaces the enclosed characters in the query string with hyperlinks
     to the documentations."""
     symbols = re.findall(ENCLOSED_REGEX, query)
@@ -41,14 +56,14 @@ def fuzzy_replacements_html(query, threshold=95, official_api_links=True):
     replacements = list()
     for symbol in symbols:
         # Wiki first, cause with docs you can always prepend telegram. for better precision
-        wiki = components.callbacks.wiki(symbol.replace('_', ' '), amount=1, threshold=threshold)
+        wiki = search.wiki(symbol.replace('_', ' '), amount=1, threshold=threshold)
         if wiki:
             name = wiki[0][0].split(ARROW_CHARACTER)[-1].strip()
             text = f'<a href="{wiki[0][1]}">{name}</a>'
             replacements.append((wiki[0][0], symbol, text))
             continue
 
-        doc = components.callbacks.docs(symbol, threshold=threshold)
+        doc = search.docs(symbol, threshold=threshold)
         if doc:
             text = f'<a href="{doc.url}">{doc.short_name}</a>'
 
@@ -70,6 +85,7 @@ def fuzzy_replacements_html(query, threshold=95, official_api_links=True):
     return result_changed, result
 
 
+@no_type_check
 def unwrap(things):
     """
     Unwrap and collapse things
@@ -100,7 +116,7 @@ def unwrap(things):
     return last_search, out
 
 
-def inline_github(query):
+def inline_github(query: str) -> List[InlineQueryResultArticle]:
     """
     Parse query for issues, PRs and commits SHA
     Returns a list of `articles`.
@@ -219,8 +235,8 @@ def inline_github(query):
     return results
 
 
-def inline_query(update: Update, _: CallbackContext, threshold=15):
-    query = update.inline_query.query
+def inline_query(update: Update, _: CallbackContext, threshold: int = 15) -> None:
+    query = cast(InlineQuery, update.inline_query).query
     results_list = list()
 
     if len(query) > 0:
@@ -230,7 +246,7 @@ def inline_query(update: Update, _: CallbackContext, threshold=15):
                 [
                     article(
                         f'Send hint on {key.capitalize()}',
-                        components.callbacks.help_callback,
+                        hint.help,
                         hint.msg,
                         key=key,
                         reply_markup=hint.reply_markup,
@@ -244,6 +260,7 @@ def inline_query(update: Update, _: CallbackContext, threshold=15):
 
         if ENCLOSING_REPLACEMENT_CHARACTER in query:
             modified, replaced = fuzzy_replacements_html(query, official_api_links=True)
+            assert modified and replaced
             if modified:
                 results_list.append(
                     article(
@@ -254,6 +271,7 @@ def inline_query(update: Update, _: CallbackContext, threshold=15):
                 )
 
             modified, replaced = fuzzy_replacements_html(query, official_api_links=False)
+            assert modified and replaced
             if modified:
                 results_list.append(
                     article(
@@ -311,7 +329,7 @@ def inline_query(update: Update, _: CallbackContext, threshold=15):
 
         # If no results so far then search wiki and docs
         if not results_list:
-            doc = components.callbacks.docs(query, threshold=threshold)
+            doc = search.docs(query, threshold=threshold)
             if doc:
                 text = (
                     f'<b>{doc.short_name}</b>\n'
@@ -332,7 +350,7 @@ def inline_query(update: Update, _: CallbackContext, threshold=15):
                     )
                 )
 
-            wiki_pages = components.callbacks.wiki(query, amount=4, threshold=threshold)
+            wiki_pages = search.wiki(query, amount=4, threshold=threshold)
             if wiki_pages:
                 for wiki_page in wiki_pages:
                     results_list.append(
@@ -366,7 +384,7 @@ def inline_query(update: Update, _: CallbackContext, threshold=15):
                 )
             )
 
-    update.inline_query.answer(
+    cast(InlineQuery, update.inline_query).answer(
         results=results_list,
         switch_pm_text='Help',
         switch_pm_parameter='inline-help',
@@ -375,5 +393,5 @@ def inline_query(update: Update, _: CallbackContext, threshold=15):
     )
 
 
-def register(dispatcher):
+def register(dispatcher: Dispatcher) -> None:
     dispatcher.add_handler(InlineQueryHandler(inline_query))

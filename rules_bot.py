@@ -52,7 +52,7 @@ else:
 logger = logging.getLogger(__name__)
 
 
-def update_rules_messages(bot: Bot):
+def update_rules_messages(bot: Bot) -> None:
     try:
         bot.edit_message_text(
             chat_id='@' + ONTOPIC_USERNAME,
@@ -73,7 +73,7 @@ def update_rules_messages(bot: Bot):
         logger.warning('Updating off-topic rules failed: %s', exc)
 
 
-def main():
+def main() -> None:
     config = configparser.ConfigParser()
     config.read('bot.ini')
 
@@ -117,10 +117,18 @@ def main():
 
     # Status updates
     dispatcher.add_handler(
-        MessageHandler(Filters.status_update.new_chat_members, greet_new_chat_members)
+        MessageHandler(
+            Filters.chat(username=[ONTOPIC_USERNAME, OFFTOPIC_USERNAME])
+            & Filters.status_update.new_chat_members,
+            greet_new_chat_members,
+        )
     )
     dispatcher.add_handler(
-        MessageHandler(Filters.status_update.new_chat_members, delete_new_chat_members_message),
+        MessageHandler(
+            Filters.chat(username=[ONTOPIC_USERNAME, OFFTOPIC_USERNAME])
+            & Filters.status_update.new_chat_members,
+            delete_new_chat_members_message,
+        ),
         group=1,
     )
 
@@ -140,7 +148,7 @@ def main():
     except KeyError:
         logging.info('No github auth set. Rate-limit is 60 requests/hour without auth.')
 
-    github_issues.init_issues(dispatcher.job_queue)
+    # github_issues.init_issues(dispatcher.job_queue)
 
     # set commands
     updater.bot.set_my_commands(

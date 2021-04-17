@@ -2,8 +2,9 @@ import datetime as dtm
 import html
 import logging
 import time
+from typing import cast, Match
 
-from telegram import Update, ParseMode, MessageEntity, ChatAction
+from telegram import Update, ParseMode, MessageEntity, ChatAction, Message, Chat
 from telegram.ext import CallbackContext
 from telegram.utils.helpers import escape_markdown
 
@@ -28,20 +29,22 @@ from components.util import (
 )
 
 
-def start(update: Update, context: CallbackContext):
+def start(update: Update, context: CallbackContext) -> None:
+    message = cast(Message, update.message)
+    username = cast(Chat, update.effective_chat)
     args = context.args
     if args:
         if args[0] == 'inline-help':
             inlinequery_help(update, context)
-    elif update.message.chat.username not in (OFFTOPIC_USERNAME, ONTOPIC_USERNAME):
-        update.message.reply_text(
+    elif username not in (OFFTOPIC_USERNAME, ONTOPIC_USERNAME):
+        message.reply_text(
             "Hi. I'm a bot that will announce the rules of the "
             "python-telegram-bot groups when you type /rules."
         )
 
 
-def inlinequery_help(update: Update, context: CallbackContext):
-    chat_id = update.message.chat_id
+def inlinequery_help(update: Update, context: CallbackContext) -> None:
+    chat_id = cast(Message, update.message).chat_id
     char = ENCLOSING_REPLACEMENT_CHARACTER
     self_chat_id = f'@{context.bot.username}'
     text = (
@@ -59,103 +62,102 @@ def inlinequery_help(update: Update, context: CallbackContext):
         f"Some wiki pages have spaces in them. Please replace such spaces with underscores. "
         f"The bot will automatically change them back desired space."
     )
-    context.bot.sendMessage(
+    context.bot.send_message(
         chat_id, text, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True
     )
 
 
 @rate_limit
-def rules(update: Update, _: CallbackContext):
+def rules(update: Update, _: CallbackContext) -> None:
     """Load and send the appropriate rules based on which group we're in"""
-    if update.message.chat.username == ONTOPIC_USERNAME:
-        update.message.reply_text(ONTOPIC_RULES, disable_web_page_preview=True, quote=False)
-        update.message.delete()
-    elif update.message.chat.username == OFFTOPIC_USERNAME:
-        update.message.reply_text(OFFTOPIC_RULES, disable_web_page_preview=True, quote=False)
-        update.message.delete()
+    message = cast(Message, update.effective_message)
+    if message.chat.username == ONTOPIC_USERNAME:
+        message.reply_text(ONTOPIC_RULES, disable_web_page_preview=True, quote=False)
+        message.delete()
+    elif message.chat.username == OFFTOPIC_USERNAME:
+        message.reply_text(OFFTOPIC_RULES, disable_web_page_preview=True, quote=False)
+        message.delete()
     else:
-        update.message.reply_text(
+        message.reply_text(
             "Hmm. You're not in a python-telegram-bot group, "
             "and I don't know the rules around here."
         )
 
 
 @rate_limit
-def docs(update: Update, _: CallbackContext):
+def docs(update: Update, _: CallbackContext) -> None:
     """ Documentation link """
+    message = cast(Message, update.effective_message)
     text = (
         "You can find our documentation at "
         "[Read the Docs](https://python-telegram-bot.readthedocs.io/en/stable/)"
     )
-    if update.message.reply_to_message:
-        reply_id = update.message.reply_to_message.message_id
-    else:
-        reply_id = None
-    update.message.reply_text(
+    reply_id = message.reply_to_message.message_id if message.reply_to_message else None
+    message.reply_text(
         text,
         parse_mode='Markdown',
         quote=False,
         disable_web_page_preview=True,
         reply_to_message_id=reply_id,
     )
-    update.message.delete()
+    message.delete()
 
 
 @rate_limit
-def wiki(update: Update, _: CallbackContext):
+def wiki(update: Update, _: CallbackContext) -> None:
     """ Wiki link """
+    message = cast(Message, update.effective_message)
     text = (
         "You can find our wiki on "
         "[GitHub](https://github.com/python-telegram-bot/python-telegram-bot/wiki)"
     )
-    if update.message.reply_to_message:
-        reply_id = update.message.reply_to_message.message_id
-    else:
-        reply_id = None
-    update.message.reply_text(
+    reply_id = message.reply_to_message.message_id if message.reply_to_message else None
+    message.reply_text(
         text,
         parse_mode='Markdown',
         quote=False,
         disable_web_page_preview=True,
         reply_to_message_id=reply_id,
     )
-    update.message.delete()
+    message.delete()
 
 
 @rate_limit
-def help_callback(update: Update, context: CallbackContext):
+def help_callback(update: Update, context: CallbackContext) -> None:
     """ Link to rules readme """
+    message = cast(Message, update.effective_message)
     text = (
         f'You can find an explanation of @{html.escape(context.bot.username)}\'s functionality '
         'wiki on <a href="https://github.com/python-telegram-bot/rules-bot/blob/master/README.md">'
         'GitHub</a>.'
     )
-    if update.message.reply_to_message:
-        reply_id = update.message.reply_to_message.message_id
-    else:
-        reply_id = None
-    update.message.reply_text(
+    reply_id = message.reply_to_message.message_id if message.reply_to_message else None
+    message.reply_text(
         text,
         quote=False,
         disable_web_page_preview=True,
         reply_to_message_id=reply_id,
     )
-    update.message.delete()
+    message.delete()
 
 
-def off_on_topic(update: Update, context: CallbackContext):
-    chat_username = update.message.chat.username
-    group_one = context.match.group(1)
+def off_on_topic(update: Update, context: CallbackContext) -> None:
+    message = cast(Message, update.effective_message)
+    chat_username = cast(Chat, update.effective_chat).username
+    group_one = cast(Match, context.match).group(1)
     if chat_username == ONTOPIC_USERNAME and group_one.lower() == 'off':
-        reply = update.message.reply_to_message
+        reply = message.reply_to_message
         moved_notification = 'I moved this discussion to the [off-topic Group]({}).'
         if reply and reply.text:
             issued_reply = get_reply_id(update)
 
-            if reply.from_user.username:
-                name = '@' + reply.from_user.username
+            if reply.from_user:
+                if reply.from_user.username:
+                    name = '@' + reply.from_user.username
+                else:
+                    name = reply.from_user.first_name
             else:
-                name = reply.from_user.first_name
+                name = 'Somebody'
 
             replied_message_text = reply.text_html
             replied_message_id = reply.message_id
@@ -170,7 +172,7 @@ def off_on_topic(update: Update, context: CallbackContext):
                 OFFTOPIC_CHAT_ID, text, disable_web_page_preview=True
             )
 
-            update.message.reply_text(
+            message.reply_text(
                 moved_notification.format(
                     'https://telegram.me/pythontelegrambottalk/' + str(offtopic_msg.message_id)
                 ),
@@ -180,7 +182,7 @@ def off_on_topic(update: Update, context: CallbackContext):
             )
 
         else:
-            update.message.reply_text(
+            message.reply_text(
                 'The off-topic group is [here](https://telegram.me/pythontelegrambottalk). '
                 'Come join us!',
                 disable_web_page_preview=True,
@@ -188,7 +190,7 @@ def off_on_topic(update: Update, context: CallbackContext):
             )
 
     elif chat_username == OFFTOPIC_USERNAME and group_one.lower() == 'on':
-        update.message.reply_text(
+        message.reply_text(
             'The on-topic group is [here](https://telegram.me/pythontelegrambotgroup). '
             'Come join us!',
             disable_web_page_preview=True,
@@ -196,24 +198,26 @@ def off_on_topic(update: Update, context: CallbackContext):
         )
 
 
-def sandwich(update: Update, context: CallbackContext):
-    if update.message.chat.username == OFFTOPIC_USERNAME:
-        if 'sudo' in context.match.group(0):
-            update.message.reply_text("Okay.", quote=True)
+def sandwich(update: Update, context: CallbackContext) -> None:
+    message = cast(Message, update.effective_message)
+    username = cast(Chat, update.effective_chat).username
+    if username == OFFTOPIC_USERNAME:
+        if 'sudo' in cast(Match, context.match).group(0):
+            message.reply_text("Okay.", quote=True)
         else:
-            update.message.reply_text("What? Make it yourself.", quote=True)
+            message.reply_text("What? Make it yourself.", quote=True)
 
 
-def keep_typing(last, chat, action):
+def keep_typing(last: float, chat: Chat, action: str) -> float:
     now = time.time()
     if (now - last) > 1:
         chat.send_action(action)
     return now
 
 
-def github(update: Update, context: CallbackContext):
-    message = update.effective_message
-    last = 0
+def github(update: Update, context: CallbackContext) -> None:
+    message = cast(Message, update.effective_message)
+    last = 0.0
     thing_matches = []
     things = {}
 
@@ -233,7 +237,7 @@ def github(update: Update, context: CallbackContext):
             thing_matches.append((owner, repo, number, sha))
 
     for thing_match in thing_matches:
-        last = keep_typing(last, update.effective_chat, ChatAction.TYPING)
+        last = keep_typing(last, cast(Chat, update.effective_chat), ChatAction.TYPING)
         owner, repo, number, sha = thing_match
         if number:
             issue = github_issues.get_issue(int(number), owner, repo)
@@ -250,23 +254,24 @@ def github(update: Update, context: CallbackContext):
         )
 
 
-def delete_new_chat_members_message(update: Update, _: CallbackContext):
-    update.message.delete()
+def delete_new_chat_members_message(update: Update, _: CallbackContext) -> None:
+    cast(Message, update.effective_message).delete()
 
 
-def greet_new_chat_members(update: Update, context: CallbackContext):
-    group_user_name = update.effective_chat.username
+def greet_new_chat_members(update: Update, context: CallbackContext) -> None:
+    group_user_name = cast(Chat, update.effective_chat).username
+    chat_data = cast(dict, context.chat_data)
     # Get saved users
-    user_lists = context.chat_data.setdefault('new_chat_members', {})
+    user_lists = chat_data.setdefault('new_chat_members', {})
     users = user_lists.setdefault(group_user_name, [])
 
     # save new users
-    new_chat_members = update.message.new_chat_members
+    new_chat_members = cast(Message, update.effective_message).new_chat_members
     for user in new_chat_members:
         users.append(user.mention_html())
 
     # check rate limit
-    last_message_date = context.chat_data.setdefault(
+    last_message_date = chat_data.setdefault(
         'new_chat_members_timeout',
         dtm.datetime.now() - dtm.timedelta(minutes=NEW_CHAT_MEMBERS_LIMIT_SPACING + 1),
     )
@@ -277,7 +282,7 @@ def greet_new_chat_members(update: Update, context: CallbackContext):
         return
 
     # save new timestamp
-    context.chat_data['new_chat_members_timeout'] = dtm.datetime.now()
+    cast(dict, context.chat_data)['new_chat_members_timeout'] = dtm.datetime.now()
 
     link = (
         ONTOPIC_RULES_MESSAGE_LINK
@@ -293,4 +298,6 @@ def greet_new_chat_members(update: Update, context: CallbackContext):
     users.clear()
 
     # send message
-    update.message.reply_text(text, disable_web_page_preview=True, quote=False)
+    cast(Message, update.effective_message).reply_text(
+        text, disable_web_page_preview=True, quote=False
+    )

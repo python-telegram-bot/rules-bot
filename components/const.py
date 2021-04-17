@@ -1,5 +1,12 @@
 import re
 
+ARROW_CHARACTER = '➜'
+GITHUB_URL = "https://github.com/"
+DEFAULT_REPO_OWNER = 'python-telegram-bot'
+DEFAULT_REPO_NAME = 'python-telegram-bot'
+DEFAULT_REPO = f'{DEFAULT_REPO_OWNER}/{DEFAULT_REPO_NAME}'
+# Require x non-command messages between each /rules etc.
+RATE_LIMIT_SPACING = 2
 # Welcome new chat members at most ever X minutes
 NEW_CHAT_MEMBERS_LIMIT_SPACING = 60
 USER_AGENT = 'Github: python-telegram-bot/rules-bot'

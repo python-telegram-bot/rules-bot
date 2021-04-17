@@ -2,57 +2,53 @@ import logging
 import threading
 from collections import namedtuple
 from functools import wraps
+from typing import Optional, List, Union, Callable, Any, TypeVar, Dict, no_type_check, cast
 
 import requests
 from bs4 import BeautifulSoup
 from fuzzywuzzy import process, fuzz
 from requests import Session
-from telegram import Update
-from telegram.ext import CallbackContext
+from telegram import Update, InlineKeyboardButton, Message
+from telegram.ext import CallbackContext, JobQueue
 
-from .const import USER_AGENT
-
-ARROW_CHARACTER = '➜'
-GITHUB_URL = "https://github.com/"
-DEFAULT_REPO_OWNER = 'python-telegram-bot'
-DEFAULT_REPO_NAME = 'python-telegram-bot'
-DEFAULT_REPO = f'{DEFAULT_REPO_OWNER}/{DEFAULT_REPO_NAME}'
-
-# Require x non-command messages between each /rules etc.
-RATE_LIMIT_SPACING = 2
+from .const import USER_AGENT, DEFAULT_REPO_OWNER, DEFAULT_REPO_NAME, RATE_LIMIT_SPACING
 
 
-def get_reply_id(update):
+def get_reply_id(update: Update) -> Optional[int]:
     if update.message and update.message.reply_to_message:
         return update.message.reply_to_message.message_id
     return None
 
 
-def reply_or_edit(update, context, text):
-    chat_data = context.chat_data
+def reply_or_edit(update: Update, context: CallbackContext, text: str) -> None:
+    chat_data = cast(Dict, context.chat_data)
     if update.edited_message:
         chat_data[update.edited_message.message_id].edit_text(text, disable_web_page_preview=True)
     else:
+        message = cast(Message, update.message)
         issued_reply = get_reply_id(update)
         if issued_reply:
-            chat_data[update.message.message_id] = context.bot.sendMessage(
-                update.message.chat_id,
+            chat_data[message.message_id] = context.bot.send_message(
+                message.chat_id,
                 text,
                 reply_to_message_id=issued_reply,
                 disable_web_page_preview=True,
             )
         else:
-            chat_data[update.message.message_id] = update.message.reply_text(
-                text, disable_web_page_preview=True
-            )
+            chat_data[message.message_id] = message.reply_text(text, disable_web_page_preview=True)
 
 
-def get_text_not_in_entities(html):
+def get_text_not_in_entities(html: str) -> str:
     soup = BeautifulSoup(html, 'html.parser')
     return ' '.join(soup.find_all(text=True, recursive=False))
 
 
-def build_menu(buttons, n_cols, header_buttons=None, footer_buttons=None):
+def build_menu(
+    buttons: List[InlineKeyboardButton],
+    n_cols: int,
+    header_buttons: List[InlineKeyboardButton] = None,
+    footer_buttons: List[InlineKeyboardButton] = None,
+) -> List[List[InlineKeyboardButton]]:
     menu = [buttons[i : i + n_cols] for i in range(0, len(buttons), n_cols)]
     if header_buttons:
         menu.insert(0, header_buttons)
@@ -61,26 +57,31 @@ def build_menu(buttons, n_cols, header_buttons=None, footer_buttons=None):
     return menu
 
 
-def rate_limit_tracker(_: Update, context: CallbackContext):
-    data = context.chat_data.get('rate_limit', {})
+def rate_limit_tracker(_: Update, context: CallbackContext) -> None:
+    data = cast(Dict, context.chat_data).setdefault('rate_limit', {})
 
     for key in data.keys():
         data[key] += 1
 
 
-def rate_limit(func):
+Func = TypeVar('Func', bound=Callable[[Update, CallbackContext], None])
+
+
+def rate_limit(
+    func: Callable[[Update, CallbackContext], None]
+) -> Callable[[Update, CallbackContext], None]:
     """
     Rate limit command so that RATE_LIMIT_SPACING non-command messages are
     required between invocations.
     """
 
     @wraps(func)
-    def wrapper(update, context, *args, **kwargs):
+    def wrapper(update: Update, context: CallbackContext) -> None:
         # Get rate limit data
         try:
-            data = context.chat_data['rate_limit']
+            data = cast(Dict, context.chat_data)['rate_limit']
         except KeyError:
-            data = context.chat_data['rate_limit'] = {}
+            data = cast(Dict, context.chat_data)['rate_limit'] = {}
 
         # If we have not seen two non-command messages since last of type `f`
         if data.get(func, RATE_LIMIT_SPACING) < RATE_LIMIT_SPACING:
@@ -89,12 +90,12 @@ def rate_limit(func):
 
         data[func] = 0
 
-        return func(update, context, *args, **kwargs)
+        return func(update, context)
 
     return wrapper
 
 
-def truncate_str(string, max_length):
+def truncate_str(string: str, max_length: int) -> str:
     return (string[:max_length] + '…') if len(string) > max_length else string
 
 
@@ -103,7 +104,9 @@ Commit = namedtuple('Commit', 'owner, repo, sha, url, title, author')
 
 
 class GitHubIssues:
-    def __init__(self, default_owner=DEFAULT_REPO_OWNER, default_repo=DEFAULT_REPO_NAME):
+    def __init__(
+        self, default_owner: str = DEFAULT_REPO_OWNER, default_repo: str = DEFAULT_REPO_NAME
+    ) -> None:
         self.session = Session()
         self.session.headers.update({'user-agent': USER_AGENT})
         self.base_url = 'https://api.github.com/'
@@ -113,13 +116,14 @@ class GitHubIssues:
         self.logger = logging.getLogger(self.__class__.__qualname__)
 
         self.etag = None
-        self.issues = {}
+        self.issues: Dict[int, Issue] = {}
         self.issues_lock = threading.Lock()
 
-    def set_auth(self, client_id, client_secret):
+    def set_auth(self, client_id: str, client_secret: str) -> None:
         self.session.auth = (client_id, client_secret)
 
-    def _get_json(self, url, data=None, headers=None):
+    @no_type_check
+    def _get_json(self, url: str, data: Dict[str, Any] = None, headers: str = None):
         # Add base_url if needed
         url = url if url.startswith('https://') else self.base_url + url
         self.logger.info('Getting %s', url)
@@ -138,7 +142,13 @@ class GitHubIssues:
             (result.headers, result.links),
         )
 
-    def pretty_format(self, thing, short=False, short_with_title=False, title_max_length=15):
+    def pretty_format(
+        self,
+        thing: Union[Issue, Commit],
+        short: bool = False,
+        short_with_title: bool = False,
+        title_max_length: int = 15,
+    ) -> str:
         if isinstance(thing, Issue):
             return self.pretty_format_issue(
                 thing,
@@ -153,7 +163,13 @@ class GitHubIssues:
             title_max_length=title_max_length,
         )
 
-    def pretty_format_issue(self, issue, short=False, short_with_title=False, title_max_length=15):
+    def pretty_format_issue(
+        self,
+        issue: Issue,
+        short: bool = False,
+        short_with_title: bool = False,
+        title_max_length: int = 15,
+    ) -> str:
         # PR OwnerIfNotDefault/RepoIfNotDefault#9999: Title by Author
         # OwnerIfNotDefault/RepoIfNotDefault#9999 if short=True
         short_text = (
@@ -168,8 +184,12 @@ class GitHubIssues:
         return f'{issue.type} {short_text}: {issue.title} by {issue.author}'
 
     def pretty_format_commit(
-        self, commit, short=False, short_with_title=False, title_max_length=15
-    ):
+        self,
+        commit: Commit,
+        short: bool = False,
+        short_with_title: bool = False,
+        title_max_length: int = 15,
+    ) -> str:
         # Commit OwnerIfNotDefault/RepoIfNotDefault@abcdf123456789: Title by Author
         # OwnerIfNotDefault/RepoIfNotDefault@abcdf123456789 if short=True
         short_text = (
@@ -183,7 +203,8 @@ class GitHubIssues:
             return f'{short_text}: {truncate_str(commit.title, title_max_length)}'
         return f'Commit {short_text}: {commit.title} by {commit.author}'
 
-    def get_issue(self, number: int, owner=None, repo=None):
+    @no_type_check
+    def get_issue(self, number: int, owner: str = None, repo: str = None) -> Issue:
         # Other owner or repo than default?
         if owner is not None or repo is not None:
             owner = owner or self.default_owner
@@ -208,7 +229,8 @@ class GitHubIssues:
         except KeyError:
             return self.get_issue(number, owner=self.default_owner, repo=self.default_repo)
 
-    def get_commit(self, sha: int, owner=None, repo=None):
+    @no_type_check
+    def get_commit(self, sha: Union[int, str], owner: str = None, repo: str = None) -> Commit:
         owner = owner or self.default_owner
         repo = repo or self.default_repo
         status, data, _ = self._get_json(f'repos/{owner}/{repo}/commits/{sha}')
@@ -221,7 +243,8 @@ class GitHubIssues:
             author=data['commit']['author']['name'] if status else 'Unknown',
         )
 
-    def _job(self, url, job_queue, first=True):
+    @no_type_check
+    def _job(self, url: str, job_queue: JobQueue, first: bool = True) -> None:
         logging.debug('Getting issues from %s', url)
 
         # Load 100 issues
@@ -267,14 +290,13 @@ class GitHubIssues:
         if first:
             self.etag = headers['etag']
 
-    def init_issues(self, job_queue):
+    def init_issues(self, job_queue: JobQueue) -> None:
         self._job(f'repos/{self.default_owner}/{self.default_repo}/issues', job_queue, first=True)
 
-    def search(self, query):
-        def processor(str_or_issue):
-            if isinstance(str_or_issue, Issue):
-                str_or_issue = str_or_issue.title
-            return str_or_issue.strip().lower()
+    def search(self, query: str) -> List[str]:
+        def processor(str_or_issue: Union[str, Issue]) -> str:
+            string = str_or_issue.title if isinstance(str_or_issue, Issue) else str_or_issue
+            return string.strip().lower()
 
         # We don't care about the score, so return first element
         # This must not happen while updating the self.issues dict so acquire the lock
