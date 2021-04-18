@@ -2,10 +2,10 @@ import datetime as dtm
 import html
 import logging
 import time
-from typing import cast, Match
+from typing import cast, Match, Optional
 
 from telegram import Update, ParseMode, ChatAction, Message, Chat
-from telegram.ext import CallbackContext
+from telegram.ext import CallbackContext, Job, JobQueue
 from telegram.utils.helpers import escape_markdown
 
 from components.const import (
@@ -257,6 +257,32 @@ def delete_new_chat_members_message(update: Update, _: CallbackContext) -> None:
     cast(Message, update.effective_message).delete()
 
 
+def do_greeting(context: CallbackContext, chat_id: str = None) -> None:
+    group_user_name = cast(Optional[str], cast(Job, context.job).context) or chat_id
+    assert group_user_name
+
+    chat_data = cast(dict, context.chat_data)
+    # Get saved users
+    user_lists = chat_data.setdefault('new_chat_members', {})
+    users = user_lists.setdefault(group_user_name, [])
+
+    link = (
+        ONTOPIC_RULES_MESSAGE_LINK
+        if group_user_name == ONTOPIC_USERNAME
+        else OFFTOPIC_RULES_MESSAGE_LINK
+    )
+    text = (
+        f'Welcome {", ".join(users)}! If you haven\'t already, read the rules of this '
+        f'group and be sure to follow them. You can find them <a href="{link}">here 🔗</a>.'
+    )
+
+    # Clear users list
+    users.clear()
+
+    # Send message
+    context.bot.send_message(chat_id=group_user_name, text=text, disable_web_page_preview=True)
+
+
 def greet_new_chat_members(update: Update, context: CallbackContext) -> None:
     group_user_name = cast(Chat, update.effective_chat).username
     chat_data = cast(dict, context.chat_data)
@@ -274,29 +300,23 @@ def greet_new_chat_members(update: Update, context: CallbackContext) -> None:
         'new_chat_members_timeout',
         dtm.datetime.now() - dtm.timedelta(minutes=NEW_CHAT_MEMBERS_LIMIT_SPACING + 1),
     )
-    if dtm.datetime.now() < last_message_date + dtm.timedelta(
+    next_possible_greeting_time = last_message_date + dtm.timedelta(
         minutes=NEW_CHAT_MEMBERS_LIMIT_SPACING
-    ):
-        logging.debug('Waiting a bit longer before greeting new members.')
-        return
-
-    # save new timestamp
-    cast(dict, context.chat_data)['new_chat_members_timeout'] = dtm.datetime.now()
-
-    link = (
-        ONTOPIC_RULES_MESSAGE_LINK
-        if group_user_name == ONTOPIC_USERNAME
-        else OFFTOPIC_RULES_MESSAGE_LINK
     )
-    text = (
-        f'Welcome {", ".join(users)}! If you haven\'t already, read the rules of this '
-        f'group and be sure to follow them. You can find them <a href="{link}">here 🔗</a>.'
-    )
-
-    # Clear users list
-    users.clear()
-
-    # send message
-    cast(Message, update.effective_message).reply_text(
-        text, disable_web_page_preview=True, quote=False
-    )
+    if dtm.datetime.now() < next_possible_greeting_time:
+        # We schedule a job to the next possible greeting time so that people are greeted
+        # and presented with the rules as early as possible while not exceeding the rate limit
+        logging.debug('Scheduling job to greet new members after greetings-cool down.')
+        job_queue = cast(JobQueue, context.job_queue)
+        jobs = job_queue.get_jobs_by_name('greetings_job')
+        if not jobs:
+            job_queue.run_once(
+                callback=do_greeting,
+                when=(next_possible_greeting_time - dtm.datetime.now()).seconds,
+                context=group_user_name,
+                name='greetings_job',
+            )
+    else:
+        # save new timestamp
+        cast(dict, context.chat_data)['new_chat_members_timeout'] = dtm.datetime.now()
+        do_greeting(context, chat_id=group_user_name)
