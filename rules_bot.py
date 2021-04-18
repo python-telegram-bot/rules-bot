@@ -35,9 +35,9 @@ from components.const import (
     OFFTOPIC_RULES_MESSAGE_ID,
 )
 from components.util import (
-    github_issues,
     rate_limit_tracker,
 )
+from components.github import github_issues
 
 if os.environ.get('ROOLSBOT_DEBUG'):
     logging.basicConfig(
@@ -146,9 +146,9 @@ def main() -> None:
             config['KEYS']['github_client_id'], config['KEYS']['github_client_secret']
         )
     except KeyError:
-        logging.info('No github auth set. Rate-limit is 60 requests/hour without auth.')
+        logging.info('No github api token set. Rate-limit is 60 requests/hour without auth.')
 
-    # github_issues.init_issues(dispatcher.job_queue)
+    github_issues.init_issues(dispatcher.job_queue)  # type: ignore[arg-type]
 
     # set commands
     updater.bot.set_my_commands(

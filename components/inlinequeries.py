@@ -1,7 +1,7 @@
 import re
 from collections import OrderedDict
 from html import escape
-from typing import List, cast, Tuple, Optional, no_type_check
+from typing import List, cast, Tuple, Optional, no_type_check, Union, Dict
 from uuid import uuid4
 
 from telegram import (
@@ -23,7 +23,7 @@ from components.const import (
     WIKI_URL,
 )
 from components.search import search
-from components.util import github_issues, Issue, Commit
+from components.github import CustomCommit, github_issues, Issue
 
 
 def article(
@@ -97,7 +97,7 @@ def unwrap(things):
     last_search = [None]
 
     for k, candidate in reversed(things.items()):
-        if not isinstance(candidate, (Issue, Commit)):
+        if not isinstance(candidate, (Issue, CustomCommit)):
             last_search = candidate
             break
 
@@ -107,7 +107,7 @@ def unwrap(things):
         if elem_merged is last_search:
             for i, elem_last in enumerate(elem_merged):
                 out[i][k] = elem_last
-        elif not isinstance(elem_merged, (Issue, Commit)):
+        elif not isinstance(elem_merged, (Issue, CustomCommit)):
             for i, _ in enumerate(out):
                 out[i][k] = elem_merged[0]
         else:
@@ -152,7 +152,7 @@ def inline_github(query: str) -> List[InlineQueryResultArticle]:
                                     #6: search2 result2), ... (3 more)]
     """
     # Issues/PRs/Commits
-    things = OrderedDict()
+    things: Dict[str, Union[Issue, CustomCommit, List[Issue]]] = OrderedDict()
     results = []
 
     # Search for Issues, PRs and commits in the query and add them to things
@@ -163,11 +163,13 @@ def inline_github(query: str) -> List[InlineQueryResultArticle]:
         # If it's an issue
         if number:
             issue = github_issues.get_issue(int(number), owner, repo)
-            things[full] = issue
+            if issue:
+                things[full] = issue
         # If it's a commit
         elif sha:
             commit = github_issues.get_commit(sha, owner, repo)
-            things[full] = commit
+            if commit:
+                things[full] = commit
         # If it's a search
         elif search_query:
             search_results = github_issues.search(search_query)
@@ -181,10 +183,10 @@ def inline_github(query: str) -> List[InlineQueryResultArticle]:
     last_search, choices = unwrap(things)
 
     # Loop over all the choices we should send to the client
-    # Each choice (things) is a dict of things (issues/PRs/commits) to show in that choice
+    # Each choice (items) is a dict of things (issues/PRs/commits) to show in that choice
     # If not searching there will only be a single choice
     # If searching we have 5 different possibilities we wanna send
-    for i, things in enumerate(choices):
+    for i, items in enumerate(choices):
         # If we did a search
         if last_search and last_search[i]:
             # Show the search title as the title
@@ -197,7 +199,7 @@ def inline_github(query: str) -> List[InlineQueryResultArticle]:
 
         # Description is the short formats combined with ', '
         description = ', '.join(
-            github_issues.pretty_format(thing, short_with_title=True) for thing in things.values()
+            github_issues.pretty_format(thing, short_with_title=True) for thing in items.values()
         )
 
         # Truncate the description to 100 chars, from the left side.
@@ -208,7 +210,7 @@ def inline_github(query: str) -> List[InlineQueryResultArticle]:
         # The text that will be sent when user clicks the choice/result
         text = ''
         pattern = r'|'.join(
-            re.escape(thing) for thing in sorted(things.keys(), key=len, reverse=True)
+            re.escape(thing) for thing in sorted(items.keys(), key=len, reverse=True)
         )
         # Check if there's other stuff than issues/PRs etc. in the query by
         # removing issues/PRs etc. and seeing if there's anything left
@@ -220,15 +222,15 @@ def inline_github(query: str) -> List[InlineQueryResultArticle]:
             # which isn't even valid markdown
             text = re.sub(
                 pattern,
-                lambda x: f'<a href="{things[x.group(0)].url}">'
-                f'{github_issues.pretty_format(things[x.group(0)], short=True)}</a>',
+                lambda x: f'<a href="{items[x.group(0)].html_url}">'  # pylint: disable=W0640
+                f'{github_issues.pretty_format(items[x.group(0)], short=True)}</a>',
                 query,
             )
 
         # Add full format to bottom of message
         text += '\n\n' + '\n'.join(
-            f'<a href="{thing.url}">{github_issues.pretty_format(thing)}</a>'
-            for thing in things.values()
+            f'<a href="{thing.html_url}">{github_issues.pretty_format(thing)}</a>'
+            for thing in items.values()
         )
 
         results.append(article(title=title, description=description, message_text=text))

@@ -274,7 +274,7 @@ def get_hints(query: str) -> Dict[str, Hint]:
 
 
 def hint_handler(update: Update, _: CallbackContext) -> None:
-    message = cast(Message, update.effective_chat)
+    message = cast(Message, update.effective_message)
     reply_to = message.reply_to_message
 
     hint = get_hints(cast(str, message.text)).popitem()[1]

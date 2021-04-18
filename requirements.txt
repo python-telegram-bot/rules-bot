@@ -6,3 +6,4 @@ python-Levenshtein
 python-telegram-bot==13.4.1
 Sphinx
 requests
+PyGithub==1.54.1

@@ -24,9 +24,9 @@ from components.util import (
     rate_limit,
     get_reply_id,
     get_text_not_in_entities,
-    github_issues,
     reply_or_edit,
 )
+from components.github import github_issues
 
 
 def start(update: Update, context: CallbackContext) -> None:
@@ -241,10 +241,12 @@ def github(update: Update, context: CallbackContext) -> None:
         owner, repo, number, sha = thing_match
         if number:
             issue = github_issues.get_issue(int(number), owner, repo)
-            things[issue.url] = github_issues.pretty_format_issue(issue)
+            if issue is not None:
+                things[issue.html_url] = github_issues.pretty_format_issue(issue)
         elif sha:
             commit = github_issues.get_commit(sha, owner, repo)
-            things[commit.url] = github_issues.pretty_format_commit(commit)
+            if commit is not None:
+                things[commit.commit.html_url] = github_issues.pretty_format_commit(commit)
 
     if things:
         reply_or_edit(
