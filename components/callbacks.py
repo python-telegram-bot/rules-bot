@@ -2,10 +2,10 @@ import datetime as dtm
 import html
 import logging
 import time
-from typing import cast, Match, Optional
+from typing import cast, Match
 
 from telegram import Update, ParseMode, ChatAction, Message, Chat
-from telegram.ext import CallbackContext, Job, JobQueue
+from telegram.ext import CallbackContext, JobQueue
 from telegram.utils.helpers import escape_markdown
 
 from components.const import (
@@ -258,8 +258,10 @@ def delete_new_chat_members_message(update: Update, _: CallbackContext) -> None:
 
 
 def do_greeting(context: CallbackContext, chat_id: str = None) -> None:
-    group_user_name = cast(Optional[str], cast(Job, context.job).context) or chat_id
-    assert group_user_name
+    if context.job:
+        group_user_name = cast(str, context.job.context)
+    else:
+        group_user_name = cast(str, chat_id)
 
     chat_data = cast(dict, context.chat_data)
     # Get saved users
