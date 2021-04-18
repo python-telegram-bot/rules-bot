@@ -4,7 +4,7 @@ import threading
 from typing import Dict, NamedTuple, Union, Optional, no_type_check, List, Pattern, Tuple, Any
 
 from fuzzywuzzy import process, fuzz
-from github import Github, GithubException
+from github import Github, GithubException, RateLimitExceededException
 from github.Commit import Commit
 from github.Issue import Issue
 from github.Organization import Organization
@@ -169,8 +169,13 @@ class GitHubIssues:
             with self.issues_lock:
                 for issue in issues:
                     self.issues[issue.number] = issue
-        except GithubException:
-            # Retry in 5 sec
+        except RateLimitExceededException:
+            logging.info('Exceeded rate limit while fetching issues. Retrying in 10min')
+            job_queue.run_once(lambda _: self._job(job_queue, page), 10 * 60)
+            return
+        except GithubException as exc:
+            logging.warning('Encountered an exception while fetching GH issues. Retrying in 5s.')
+            logging.warning('%s', exc)
             job_queue.run_once(lambda _: self._job(job_queue, page), 5)
             return
 
