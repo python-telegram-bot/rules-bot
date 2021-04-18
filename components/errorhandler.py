@@ -2,12 +2,13 @@ import html
 import json
 import logging
 import traceback
+from typing import cast
 
-from telegram import ParseMode, Update
+from telegram import Update
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext
 
-from const import ERROR_CHANNEL_CHAT_IT
+from components.const import ERROR_CHANNEL_CHAT_ID
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,9 @@ def error_handler(update: object, context: CallbackContext) -> None:
 
     # traceback.format_exception returns the usual python message about an exception, but as a
     # list of strings rather than a single string, so we have to join them together.
-    tb_list = traceback.format_exception(None, context.error, context.error.__traceback__)
+    tb_list = traceback.format_exception(
+        None, context.error, cast(Exception, context.error).__traceback__
+    )
     tb_string = ''.join(tb_list)
 
     # Build the message with some markup and additional information about what happened.
@@ -34,10 +37,7 @@ def error_handler(update: object, context: CallbackContext) -> None:
     # Finally, send the messages
     # We send update and traceback in two parts to reduce the chance of hitting max length
     try:
-        sent_message = context.bot.send_message(
-            chat_id=ERROR_CHANNEL_CHAT_IT,
-            text=message_1,
-            parse_mode=ParseMode.HTML)
+        sent_message = context.bot.send_message(chat_id=ERROR_CHANNEL_CHAT_ID, text=message_1)
         sent_message.reply_html(message_2)
     except BadRequest as exc:
         if 'too long' in str(exc):
@@ -45,10 +45,6 @@ def error_handler(update: object, context: CallbackContext) -> None:
                 f'Hey.\nThe error <code>{html.escape(str(context.error))}</code> happened.'
                 f' The traceback is too long to send, but it was written to the log.'
             )
-            context.bot.send_message(
-                chat_id=ERROR_CHANNEL_CHAT_IT,
-                text=message,
-                parse_mode=ParseMode.HTML
-            )
+            context.bot.send_message(chat_id=ERROR_CHANNEL_CHAT_ID, text=message)
         else:
             raise exc
