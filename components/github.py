@@ -1,6 +1,7 @@
 import logging
+import re
 import threading
-from typing import Dict, NamedTuple, Union, Optional, no_type_check, List
+from typing import Dict, NamedTuple, Union, Optional, no_type_check, List, Pattern, Tuple, Any
 
 from fuzzywuzzy import process, fuzz
 from github import Github, GithubException
@@ -187,6 +188,19 @@ class GitHubIssues:
                     query, self.issues, scorer=fuzz.partial_ratio, processor=processor, limit=1000
                 )
             ]
+
+    def get_examples_directory(self, pattern: Union[str, Pattern] = None) -> List[Tuple[str, str]]:
+        if isinstance(pattern, str):
+            effective_pattern: Optional[Pattern[Any]] = re.compile(pattern)
+        else:
+            effective_pattern = pattern
+
+        files = self.repos[self.default_repo].get_dir_contents('examples')
+        if effective_pattern is None:
+            return [(file.name, file.html_url) for file in files]
+        return [
+            (file.name, file.html_url) for file in files if effective_pattern.search(file.name)
+        ]
 
 
 github_issues = GitHubIssues()

@@ -21,6 +21,7 @@ from .const import (
     WIKI_FAQ_URL,
     EXAMPLES_URL,
 )
+from .github import github_issues
 
 Doc = namedtuple('Doc', 'short_name, full_name, type, url, tg_name, tg_url')
 
@@ -60,6 +61,7 @@ class Search:
         self._snippets: Dict[str, str] = OrderedDict()
         self._faq: Dict[str, str] = OrderedDict()
         self.last_cache_date = date.today()
+        self.github_session = github_issues
         self.parse()
 
     def parse(self) -> None:
@@ -114,15 +116,8 @@ class Search:
 
     def parse_examples(self) -> None:
         self._wiki['Examples'] = EXAMPLES_URL
-
-        request = Request(EXAMPLES_URL, headers={'User-Agent': USER_AGENT})
-        example_soup = BeautifulSoup(urlopen(request), 'html.parser')
-
-        for div in example_soup.findAll('div', {'role': 'rowheader'}):
-            hyperlink = div.a
-            if hyperlink.text not in ['LICENSE.txt', 'README.md', '\n. .\n']:
-                name = f'Examples {ARROW_CHARACTER} {hyperlink.text.strip()}'
-                self._wiki[name] = urljoin(EXAMPLES_URL, hyperlink.href)
+        for name, link in self.github_session.get_examples_directory(r'^.*\.py'):
+            self._wiki[f'Examples {ARROW_CHARACTER} {name}'] = link
 
     @cached_parsing
     def docs(self, input_query: str, threshold: float = 80) -> Optional[Doc]:
