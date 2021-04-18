@@ -62,9 +62,7 @@ def inlinequery_help(update: Update, context: CallbackContext) -> None:
         f"Some wiki pages have spaces in them. Please replace such spaces with underscores. "
         f"The bot will automatically change them back desired space."
     )
-    context.bot.send_message(
-        chat_id, text, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True
-    )
+    context.bot.send_message(chat_id, text, parse_mode=ParseMode.MARKDOWN)
 
 
 @rate_limit
@@ -72,10 +70,10 @@ def rules(update: Update, _: CallbackContext) -> None:
     """Load and send the appropriate rules based on which group we're in"""
     message = cast(Message, update.effective_message)
     if message.chat.username == ONTOPIC_USERNAME:
-        message.reply_text(ONTOPIC_RULES, disable_web_page_preview=True, quote=False)
+        message.reply_text(ONTOPIC_RULES, quote=False)
         message.delete()
     elif message.chat.username == OFFTOPIC_USERNAME:
-        message.reply_text(OFFTOPIC_RULES, disable_web_page_preview=True, quote=False)
+        message.reply_text(OFFTOPIC_RULES, quote=False)
         message.delete()
     else:
         message.reply_text(
@@ -97,7 +95,6 @@ def docs(update: Update, _: CallbackContext) -> None:
         text,
         parse_mode='Markdown',
         quote=False,
-        disable_web_page_preview=True,
         reply_to_message_id=reply_id,
     )
     message.delete()
@@ -116,7 +113,6 @@ def wiki(update: Update, _: CallbackContext) -> None:
         text,
         parse_mode='Markdown',
         quote=False,
-        disable_web_page_preview=True,
         reply_to_message_id=reply_id,
     )
     message.delete()
@@ -135,7 +131,6 @@ def help_callback(update: Update, context: CallbackContext) -> None:
     message.reply_text(
         text,
         quote=False,
-        disable_web_page_preview=True,
         reply_to_message_id=reply_id,
     )
     message.delete()
@@ -168,15 +163,12 @@ def off_on_topic(update: Update, context: CallbackContext) -> None:
                 f'⬇️ ᴘʟᴇᴀsᴇ ᴄᴏɴᴛɪɴᴜᴇ ʜᴇʀᴇ ⬇️'
             )
 
-            offtopic_msg = context.bot.send_message(
-                OFFTOPIC_CHAT_ID, text, disable_web_page_preview=True
-            )
+            offtopic_msg = context.bot.send_message(OFFTOPIC_CHAT_ID, text)
 
             message.reply_text(
                 moved_notification.format(
                     'https://telegram.me/pythontelegrambottalk/' + str(offtopic_msg.message_id)
                 ),
-                disable_web_page_preview=True,
                 parse_mode=ParseMode.MARKDOWN,
                 reply_to_message_id=issued_reply,
             )
@@ -185,7 +177,6 @@ def off_on_topic(update: Update, context: CallbackContext) -> None:
             message.reply_text(
                 'The off-topic group is [here](https://telegram.me/pythontelegrambottalk). '
                 'Come join us!',
-                disable_web_page_preview=True,
                 parse_mode=ParseMode.MARKDOWN,
             )
 
@@ -193,7 +184,6 @@ def off_on_topic(update: Update, context: CallbackContext) -> None:
         message.reply_text(
             'The on-topic group is [here](https://telegram.me/pythontelegrambotgroup). '
             'Come join us!',
-            disable_web_page_preview=True,
             parse_mode=ParseMode.MARKDOWN,
         )
 
@@ -282,7 +272,7 @@ def do_greeting(context: CallbackContext, chat_id: str = None) -> None:
     users.clear()
 
     # Send message
-    context.bot.send_message(chat_id=group_user_name, text=text, disable_web_page_preview=True)
+    context.bot.send_message(chat_id=f'@{group_user_name}', text=text)
 
 
 def greet_new_chat_members(update: Update, context: CallbackContext) -> None:

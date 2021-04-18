@@ -27,9 +27,7 @@ def reply_or_edit(update: Update, context: CallbackContext, text: str) -> None:
     chat_data = cast(Dict, context.chat_data)
     if update.edited_message:
         try:
-            chat_data[update.edited_message.message_id].edit_text(
-                text, disable_web_page_preview=True
-            )
+            chat_data[update.edited_message.message_id].edit_text(text)
         except BadRequest as exc:
             if 'not modified' not in str(exc):
                 raise exc
@@ -41,10 +39,9 @@ def reply_or_edit(update: Update, context: CallbackContext, text: str) -> None:
                 message.chat_id,
                 text,
                 reply_to_message_id=issued_reply,
-                disable_web_page_preview=True,
             )
         else:
-            chat_data[message.message_id] = message.reply_text(text, disable_web_page_preview=True)
+            chat_data[message.message_id] = message.reply_text(text)
 
 
 def get_text_not_in_entities(html: str) -> str:

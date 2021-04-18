@@ -170,24 +170,24 @@ class GitHubIssues:
                 for issue in issues:
                     self.issues[issue.number] = issue
         except RateLimitExceededException:
-            logging.info('Exceeded rate limit while fetching issues. Retrying in 10min')
-            job_queue.run_once(lambda _: self._job(job_queue, page), 10 * 60)
+            logging.info('Exceeded rate limit while fetching issues. Retrying in 30 min')
+            job_queue.run_once(lambda _: self._job(job_queue, page), 30 * 60)
             return
         except GithubException as exc:
-            logging.warning('Encountered an exception while fetching GH issues. Retrying in 5s.')
+            logging.warning('Encountered an exception while fetching GH issues. Retrying in 10s.')
             logging.warning('%s', exc)
-            job_queue.run_once(lambda _: self._job(job_queue, page), 5)
+            job_queue.run_once(lambda _: self._job(job_queue, page), 10)
             return
 
         # If more issues
-        if issue_paginator.totalCount > page * 100:
-            # Process next page after 5 sec to not get rate-limited
-            job_queue.run_once(lambda _: self._job(job_queue, page + 1), 5)
+        if issue_paginator.totalCount > (page + 1) * 100:
+            # Process next page after 10 sec to not get rate-limited
+            job_queue.run_once(lambda _: self._job(job_queue, page + 1), 10)
         # No more issues
         else:
-            # In 10 min check if the 100 first issues changed,
+            # In 1h check if the 100 first issues changed,
             # and update them in our cache if needed
-            job_queue.run_once(lambda _: self._job(job_queue), 10 * 60)
+            job_queue.run_once(lambda _: self._job(job_queue), 60 * 60)
 
     def init_issues(self, job_queue: JobQueue) -> None:
         self._job(job_queue)

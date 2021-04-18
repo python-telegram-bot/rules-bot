@@ -37,9 +37,7 @@ def article(
         id=key or str(uuid4()),
         title=title,
         description=description,
-        input_message_content=InputTextMessageContent(
-            message_text=message_text, disable_web_page_preview=True
-        ),
+        input_message_content=InputTextMessageContent(message_text=message_text),
         reply_markup=reply_markup,
     )
 

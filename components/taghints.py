@@ -232,7 +232,6 @@ def list_available_hints(update: Update, _: CallbackContext) -> None:
     message = cast(Message, update.effective_message)
     message.reply_text(
         text,
-        disable_web_page_preview=True,
         reply_markup=reply_markup,
     )
     message.delete()
@@ -284,7 +283,6 @@ def hint_handler(update: Update, _: CallbackContext) -> None:
             hint.msg,
             reply_markup=hint.reply_markup,
             reply_to_message_id=reply_to.message_id if reply_to else None,
-            disable_web_page_preview=True,
         )
         try:
             message.delete()

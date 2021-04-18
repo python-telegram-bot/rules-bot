@@ -58,7 +58,6 @@ def update_rules_messages(bot: Bot) -> None:
             chat_id='@' + ONTOPIC_USERNAME,
             message_id=ONTOPIC_RULES_MESSAGE_ID,
             text=ONTOPIC_RULES,
-            disable_web_page_preview=True,
         )
     except (BadRequest, Unauthorized) as exc:
         logger.warning('Updating on-topic rules failed: %s', exc)
@@ -67,7 +66,6 @@ def update_rules_messages(bot: Bot) -> None:
             chat_id='@' + OFFTOPIC_USERNAME,
             message_id=OFFTOPIC_RULES_MESSAGE_ID,
             text=OFFTOPIC_RULES,
-            disable_web_page_preview=True,
         )
     except (BadRequest, Unauthorized) as exc:
         logger.warning('Updating off-topic rules failed: %s', exc)
