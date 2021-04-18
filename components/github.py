@@ -9,9 +9,14 @@ from github.Commit import Commit
 from github.Issue import Issue
 from github.Organization import Organization
 from github.Repository import Repository
-from telegram.ext import JobQueue
+from telegram.ext import JobQueue, CallbackContext, Job
 
-from components.const import DEFAULT_REPO_OWNER, DEFAULT_REPO_NAME, USER_AGENT
+from components.const import (
+    DEFAULT_REPO_OWNER,
+    DEFAULT_REPO_NAME,
+    USER_AGENT,
+    PTBCONTRIB_REPO_NAME,
+)
 from components.util import truncate_str
 
 
@@ -30,6 +35,11 @@ class CustomCommit(NamedTuple):
     repo: str
 
 
+class PTBContrib(NamedTuple):
+    name: str
+    html_url: str
+
+
 class GitHubIssues:
     def __init__(
         self, default_owner: str = DEFAULT_REPO_OWNER, default_repo: str = DEFAULT_REPO_NAME
@@ -43,14 +53,16 @@ class GitHubIssues:
 
         self.repos = RepoDict(self.default_org)
         self.issues: Dict[int, Issue] = {}
+        self.ptbcontribs: Dict[str, PTBContrib] = {}
         self.issues_lock = threading.Lock()
+        self.ptbcontrib_lock = threading.Lock()
 
     def set_auth(self, client_id: str, client_secret: str) -> None:
         self.session = Github(client_id, client_secret, user_agent=USER_AGENT, per_page=100)
 
     def pretty_format(
         self,
-        thing: Union[Issue, CustomCommit],
+        thing: Union[Issue, CustomCommit, PTBContrib],
         short: bool = False,
         short_with_title: bool = False,
         title_max_length: int = 15,
@@ -62,6 +74,8 @@ class GitHubIssues:
                 short_with_title=short_with_title,
                 title_max_length=title_max_length,
             )
+        if isinstance(thing, PTBContrib):
+            return f'ptbcontrib/{thing.name}'
         return self.pretty_format_commit(
             thing,
             short=short,
@@ -141,7 +155,6 @@ class GitHubIssues:
         except GithubException:
             return None
 
-    @no_type_check
     def _job(self, job_queue: JobQueue, page: int = 0) -> None:
         logging.info('Getting issues for page %d', page)
 
@@ -174,6 +187,22 @@ class GitHubIssues:
     def init_issues(self, job_queue: JobQueue) -> None:
         self._job(job_queue)
 
+    def _ptbcontrib_job(self, _: CallbackContext) -> None:
+        files = self.repos[PTBCONTRIB_REPO_NAME].get_contents(PTBCONTRIB_REPO_NAME)
+        effective_files = [files] if not isinstance(files, list) else files
+        with self.ptbcontrib_lock:
+            self.ptbcontribs.clear()
+            self.ptbcontribs.update(
+                {
+                    file.name: PTBContrib(file.name, file.html_url)
+                    for file in effective_files
+                    if file.type == 'dir'
+                }
+            )
+
+    def init_ptb_contribs(self, job_queue: JobQueue) -> Job:
+        return job_queue.run_repeating(self._ptbcontrib_job, interval=60 * 60)
+
     def search(self, query: str) -> List[Issue]:
         def processor(str_or_issue: Union[str, Issue]) -> str:
             string = str_or_issue.title if isinstance(str_or_issue, Issue) else str_or_issue
@@ -189,17 +218,41 @@ class GitHubIssues:
                 )
             ]
 
+    def search_ptbcontrib(self, query: str) -> List[PTBContrib]:
+        def processor(str_or_contrib: PTBContrib) -> str:
+            string = (
+                str_or_contrib.name if isinstance(str_or_contrib, PTBContrib) else str_or_contrib
+            )
+            return string.strip().lower().replace('_', '')
+
+        # We don't care about the score, so return first element
+        # This must not happen while updating the self.issues dict so acquire the lock
+        with self.ptbcontrib_lock:
+            return [
+                result[0]
+                for result in process.extract(
+                    query,
+                    self.ptbcontribs,
+                    scorer=fuzz.partial_ratio,
+                    processor=processor,
+                    limit=1000,
+                )
+            ]
+
     def get_examples_directory(self, pattern: Union[str, Pattern] = None) -> List[Tuple[str, str]]:
         if isinstance(pattern, str):
             effective_pattern: Optional[Pattern[Any]] = re.compile(pattern)
         else:
             effective_pattern = pattern
 
-        files = self.repos[self.default_repo].get_dir_contents('examples')
+        files = self.repos[self.default_repo].get_contents('examples')
+        effective_files = [files] if not isinstance(files, list) else files
         if effective_pattern is None:
-            return [(file.name, file.html_url) for file in files]
+            return [(file.name, file.html_url) for file in effective_files]
         return [
-            (file.name, file.html_url) for file in files if effective_pattern.search(file.name)
+            (file.name, file.html_url)
+            for file in effective_files
+            if effective_pattern.search(file.name)
         ]
 
 

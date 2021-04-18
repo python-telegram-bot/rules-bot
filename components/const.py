@@ -5,6 +5,7 @@ ARROW_CHARACTER = '➜'
 GITHUB_URL = "https://github.com/"
 DEFAULT_REPO_OWNER = 'python-telegram-bot'
 DEFAULT_REPO_NAME = 'python-telegram-bot'
+PTBCONTRIB_REPO_NAME = 'ptbcontrib'
 DEFAULT_REPO = f'{DEFAULT_REPO_OWNER}/{DEFAULT_REPO_NAME}'
 # Require x non-command messages between each /rules etc.
 RATE_LIMIT_SPACING = 2
@@ -79,7 +80,11 @@ master/CODE_OF_CONDUCT.md">Code of Conduct</a>
 - Use <code>@admin</code> to report spam or abuse and <i>only</i> for that.
 """
 
-# Github username
+# Github Pattern
+# This matches two different kinds of things:
+# 1. ptbcontrib/description
+# 2. owner/repo(#|GH-|PR-|@)number/query, where both owner/ and repo are optional
+#
 # Per https://github.com/join
 # Github username may only contain alphanumeric characters or hyphens.
 # Github username cannot have multiple consecutive hyphens.
@@ -87,7 +92,7 @@ master/CODE_OF_CONDUCT.md">Code of Conduct</a>
 # Maximum is 39 characters.
 # Therefore we use:
 # [a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}
-
+#
 # Repo names seem to allow alphanumeric, -, . and _
 # And the form at https://github.com/new has a maxlength of 100
 # Therefore we use
@@ -98,23 +103,27 @@ GITHUB_PATTERN = re.compile(
     (?i)  # Case insensitivity
     [\s\S]*?  # Any characters
     (?P<full>  # Capture for the the whole thing
-        (?:  # Optional non-capture group for username/repo
-  # Matches username or org - only if ends with slash
-            (?:(?P<owner>[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38})/)?
-            (?P<repo>[A-Za-z0-9-._]{0,100})?  # Optionally matches repo
-        )?  # End optional non-capture group
-        (?:  # Match either
-            (
-                (?P<number_type>\#|GH-|PR-)  # Hashtag or "GH-" or "PR-"
-                (?:  # Followed by either
-                    (?P<number>\d+)  # Numbers
-                    |  # Or
-                    (?P<query>\S+)  # A search query (without spaces) (only works inline)
+        (?:  # Optional non-capture group for owner/repo#number/sha/query matches
+            (?:  # Optional non-capture group for username/repo
+                # Matches username or org - only if ends with slash
+                (?:(?P<owner>[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38})/)?
+                (?P<repo>[A-Za-z0-9-._]{0,100})?  # Optionally matches repo
+            )?  # End optional non-capture group
+            (?:  # Match either
+                (
+                    (?P<number_type>\#|GH-|PR-)  # Hashtag or "GH-" or "PR-"
+                    (?:  # Followed by either
+                        (?P<number>\d+)  # Numbers
+                        |  # Or
+                        (?P<query>\S+)  # A search query (without spaces) (only works inline)
+                    )
                 )
+            |  # Or
+                (?:@?(?P<sha>[0-9a-f]{40}))  # at sign followed by 40 hexadecimal characters
             )
-        |  # Or
-            (?:@?(?P<sha>[0-9a-f]{40}))  # at sign followed by 40 hexadecimal characters
         )
+        |  # Or ptbcontrib match
+        ptbcontrib/(?P<ptbcontrib>[\w_]+)
     )
 """,
     re.VERBOSE,

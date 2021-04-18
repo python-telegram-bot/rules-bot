@@ -22,13 +22,17 @@ All search is fuzzy, i.e. a few typos won't matter.
 
 ## Search GitHub
 
-The inline mode can also be used to search for threads and commits in the [GitHub repository](https://github.com/python-telegram-bot/python-telegram-bot) of python-telegram-bot. Simply type `@roolsbot #<your search keyword>` and select the result. The search keyword may be either
+The inline mode can also be used to search for threads and commits in the [GitHub repository](https://github.com/python-telegram-bot/python-telegram-bot) of python-telegram-bot. Simply type `@roolsbot <your query>` and select the result. The search query may be of the form
 
-* the number of an issue/pull request
-* a phrase to search for in issue/pull request titles
-* a commit SHA
+* `ptbcontrib/name` with the (directory) name of a contribution of [ptbcontrib](https://github.com/python-telegram-bot/ptbcontrib/tree/main/ptbcontrib)
+* `#number` with the number of an issue/pull request
+* `#phares` with a phrase to search for in issue/pull request titles
+* `@sha` with a commit SHA
 
-Optionally you may prepend the name of a repository within the [python-telegram-bot GitHub organization](https://github.com/python-telegram-bot) (`@roolsbot repo#<your search keyword>`) to search in that repo instead of the default repository.
+In the list three cases, `#` may be replaced by `GH-` or `PR-` and you can prepend
+
+* `repo` to search in the repo `https://github.com/python-telegram-bot/repo`
+* `owner/` to search in the repo `https://github.com/owner/repo`
 
 Of course, you can also insert those links directly into your message, e.g.
 
@@ -52,7 +56,7 @@ To redirect a user to the on-/off-topic group simply reply with `on-topic` or `o
 
 ### Link to GitHub Threads
 
-When mentioning issues, pull requests or commit SHAs in the same manner as described above in [Search GitHub](#search-github), rules-bot will automatically reply to your message with the corresponding links. If your message is a reply to another message, the links will be sent as reply to that message.
+When mentioning issues, pull requests, commit SHAs or `ptbcontrib` contributions in the same manner as described above in [Search GitHub](#search-github), rules-bot will automatically reply to your message with the corresponding links. If your message is a reply to another message, the links will be sent as reply to that message.
 
 ### Welcome members
 

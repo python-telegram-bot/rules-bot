@@ -23,7 +23,7 @@ from components.const import (
     WIKI_URL,
 )
 from components.search import search
-from components.github import CustomCommit, github_issues, Issue
+from components.github import CustomCommit, github_issues, Issue, PTBContrib
 
 
 def article(
@@ -97,7 +97,7 @@ def unwrap(things):
     last_search = [None]
 
     for k, candidate in reversed(things.items()):
-        if not isinstance(candidate, (Issue, CustomCommit)):
+        if not isinstance(candidate, (Issue, CustomCommit, PTBContrib)):
             last_search = candidate
             break
 
@@ -107,7 +107,7 @@ def unwrap(things):
         if elem_merged is last_search:
             for i, elem_last in enumerate(elem_merged):
                 out[i][k] = elem_last
-        elif not isinstance(elem_merged, (Issue, CustomCommit)):
+        elif not isinstance(elem_merged, (Issue, CustomCommit, PTBContrib)):
             for i, _ in enumerate(out):
                 out[i][k] = elem_merged[0]
         else:
@@ -123,6 +123,8 @@ def inline_github(query: str) -> List[InlineQueryResultArticle]:
     Returns a list of `articles`.
 
     Examples:
+        `ptbcontrib/search` - [(title=🔍 A contrib with search in its description,
+                                description=ptbcontrib/that contrib), …]
         `#10` - [(title=Replace via GitHub,
                  description=#10: tenth issue title)]
         `#10 #9` - [(title=Replace via GitHub,
@@ -152,13 +154,16 @@ def inline_github(query: str) -> List[InlineQueryResultArticle]:
                                     #6: search2 result2), ... (3 more)]
     """
     # Issues/PRs/Commits
-    things: Dict[str, Union[Issue, CustomCommit, List[Issue]]] = OrderedDict()
+    things: Dict[
+        str, Union[Issue, CustomCommit, List[Issue], PTBContrib, List[PTBContrib]]
+    ] = OrderedDict()
     results = []
 
     # Search for Issues, PRs and commits in the query and add them to things
     for match in GITHUB_PATTERN.finditer(query):
-        owner, repo, number, sha, search_query, full = [
-            match.groupdict()[x] for x in ('owner', 'repo', 'number', 'sha', 'query', 'full')
+        owner, repo, number, sha, search_query, full, ptbcontrib = [
+            match.groupdict()[x]
+            for x in ('owner', 'repo', 'number', 'sha', 'query', 'full', 'ptbcontrib')
         ]
         # If it's an issue
         if number:
@@ -174,6 +179,13 @@ def inline_github(query: str) -> List[InlineQueryResultArticle]:
         elif search_query:
             search_results = github_issues.search(search_query)
             things['#' + search_query] = search_results
+        elif ptbcontrib:
+            contrib = github_issues.ptbcontribs.get(ptbcontrib)
+            if contrib is not None:
+                things[full] = contrib
+            else:
+                contrib_search_results = github_issues.search_ptbcontrib(ptbcontrib)
+                things[full] = contrib_search_results
 
     if not things:
         # We didn't find anything
@@ -258,7 +270,7 @@ def inline_query(update: Update, _: CallbackContext, threshold: int = 15) -> Non
                 ]
             )
 
-        if '#' in query or '@' in query:
+        if '#' in query or '@' in query or 'ptbcontrib/' in query:
             results_list.extend(inline_github(query))
 
         if ENCLOSING_REPLACEMENT_CHARACTER in query:

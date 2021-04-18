@@ -4,7 +4,7 @@ import logging
 import time
 from typing import cast, Match
 
-from telegram import Update, ParseMode, MessageEntity, ChatAction, Message, Chat
+from telegram import Update, ParseMode, ChatAction, Message, Chat
 from telegram.ext import CallbackContext
 from telegram.utils.helpers import escape_markdown
 
@@ -221,24 +221,17 @@ def github(update: Update, context: CallbackContext) -> None:
     thing_matches = []
     things = {}
 
-    # Due to bug in ptb we need to convert entities of type URL to TEXT_LINK
-    # for them to be converted to html
-    for entity in message.entities:
-        if entity.type == MessageEntity.URL:
-            entity.type = MessageEntity.TEXT_LINK
-            entity.url = message.parse_entity(entity)
-
     for match in GITHUB_PATTERN.finditer(get_text_not_in_entities(message.text_html)):
         logging.debug(match.groupdict())
-        owner, repo, number, sha = [
-            match.groupdict()[x] for x in ('owner', 'repo', 'number', 'sha')
+        owner, repo, number, sha, ptbcontrib = [
+            match.groupdict()[x] for x in ('owner', 'repo', 'number', 'sha', 'ptbcontrib')
         ]
-        if number or sha:
-            thing_matches.append((owner, repo, number, sha))
+        if number or sha or ptbcontrib:
+            thing_matches.append((owner, repo, number, sha, ptbcontrib))
 
     for thing_match in thing_matches:
         last = keep_typing(last, cast(Chat, update.effective_chat), ChatAction.TYPING)
-        owner, repo, number, sha = thing_match
+        owner, repo, number, sha, ptbcontrib = thing_match
         if number:
             issue = github_issues.get_issue(int(number), owner, repo)
             if issue is not None:
@@ -247,6 +240,10 @@ def github(update: Update, context: CallbackContext) -> None:
             commit = github_issues.get_commit(sha, owner, repo)
             if commit is not None:
                 things[commit.commit.html_url] = github_issues.pretty_format_commit(commit)
+        elif ptbcontrib:
+            contrib = github_issues.ptbcontribs.get(ptbcontrib)
+            if contrib:
+                things[contrib.html_url] = f'ptbcontrib/{contrib.name}'
 
     if things:
         reply_or_edit(

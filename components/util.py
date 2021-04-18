@@ -11,6 +11,7 @@ from typing import (
 
 from bs4 import BeautifulSoup
 from telegram import Update, InlineKeyboardButton, Message
+from telegram.error import BadRequest
 from telegram.ext import CallbackContext
 
 from .const import RATE_LIMIT_SPACING
@@ -25,7 +26,13 @@ def get_reply_id(update: Update) -> Optional[int]:
 def reply_or_edit(update: Update, context: CallbackContext, text: str) -> None:
     chat_data = cast(Dict, context.chat_data)
     if update.edited_message:
-        chat_data[update.edited_message.message_id].edit_text(text, disable_web_page_preview=True)
+        try:
+            chat_data[update.edited_message.message_id].edit_text(
+                text, disable_web_page_preview=True
+            )
+        except BadRequest as exc:
+            if 'not modified' not in str(exc):
+                raise exc
     else:
         message = cast(Message, update.message)
         issued_reply = get_reply_id(update)
