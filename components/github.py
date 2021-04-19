@@ -1,15 +1,27 @@
 import logging
 import re
 import threading
-from typing import Dict, NamedTuple, Union, Optional, no_type_check, List, Pattern, Tuple, Any
+from typing import (
+    Dict,
+    NamedTuple,
+    Union,
+    Optional,
+    no_type_check,
+    List,
+    Pattern,
+    Tuple,
+    Any,
+    TYPE_CHECKING,
+)
 
 from fuzzywuzzy import process, fuzz
-from github import Github, GithubException, RateLimitExceededException
+from telegram.ext import JobQueue, CallbackContext, Job
+
 from github.Commit import Commit
 from github.Issue import Issue
 from github.Organization import Organization
 from github.Repository import Repository
-from telegram.ext import JobQueue, CallbackContext, Job
+from github import Github, GithubException, RateLimitExceededException
 
 from components.const import (
     DEFAULT_REPO_OWNER,
@@ -19,6 +31,9 @@ from components.const import (
 )
 from components.util import truncate_str
 
+if TYPE_CHECKING:
+    from github.PaginatedList import PaginatedList  # pylint: disable=C0412
+
 
 class RepoDict(Dict[str, Repository]):
     def __init__(self, org: Organization):
@@ -26,7 +41,9 @@ class RepoDict(Dict[str, Repository]):
         self.org = org
 
     def __missing__(self, key: str) -> Repository:
-        return self.org.get_repo(key)
+        if key not in self:
+            self[key] = self.org.get_repo(key)
+        return self[key]
 
 
 class CustomCommit(NamedTuple):
@@ -53,6 +70,7 @@ class GitHubIssues:
 
         self.repos = RepoDict(self.default_org)
         self.issues: Dict[int, Issue] = {}
+        self.issue_paginator: Optional['PaginatedList[Issue]'] = None
         self.ptbcontribs: Dict[str, PTBContrib] = {}
         self.issues_lock = threading.Lock()
         self.ptbcontrib_lock = threading.Lock()
@@ -161,8 +179,9 @@ class GitHubIssues:
         # Load 100 issues
         # We pass the ETag if we have one (not called from init_issues)
         try:
-            issue_paginator = self.repos[self.default_repo].get_issues(state='all')
-            issues = issue_paginator.get_page(page)
+            if self.issue_paginator is None:
+                self.issue_paginator = self.repos[self.default_repo].get_issues(state='all')
+            issues = self.issue_paginator.get_page(page)
 
             # Add to issue cache
             # Acquire lock so we don't add while a func (like self.search) is iterating over it
@@ -180,7 +199,7 @@ class GitHubIssues:
             return
 
         # If more issues
-        if issue_paginator.totalCount > (page + 1) * 100:
+        if len(issues) == 100:
             # Process next page after 10 sec to not get rate-limited
             job_queue.run_once(lambda _: self._job(job_queue, page + 1), 10)
         # No more issues

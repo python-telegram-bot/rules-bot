@@ -2,7 +2,7 @@ import datetime as dtm
 import html
 import logging
 import time
-from typing import cast, Match
+from typing import cast, Match, List, Tuple
 
 from telegram import Update, ParseMode, ChatAction, Message, Chat
 from telegram.ext import CallbackContext, JobQueue
@@ -247,16 +247,12 @@ def delete_new_chat_members_message(update: Update, _: CallbackContext) -> None:
     cast(Message, update.effective_message).delete()
 
 
-def do_greeting(context: CallbackContext, chat_id: str = None) -> None:
+def do_greeting(context: CallbackContext, chat_id: str = None, users: List[str] = None) -> None:
     if context.job:
-        group_user_name = cast(str, context.job.context)
+        group_user_name, users = cast(Tuple[str, List[str]], context.job.context)
     else:
         group_user_name = cast(str, chat_id)
-
-    chat_data = cast(dict, context.chat_data)
-    # Get saved users
-    user_lists = chat_data.setdefault('new_chat_members', {})
-    users = user_lists.setdefault(group_user_name, [])
+        users = cast(List[str], users)
 
     link = (
         ONTOPIC_RULES_MESSAGE_LINK
@@ -305,10 +301,10 @@ def greet_new_chat_members(update: Update, context: CallbackContext) -> None:
             job_queue.run_once(
                 callback=do_greeting,
                 when=(next_possible_greeting_time - dtm.datetime.now()).seconds,
-                context=group_user_name,
+                context=(group_user_name, users),
                 name='greetings_job',
             )
     else:
         # save new timestamp
         cast(dict, context.chat_data)['new_chat_members_timeout'] = dtm.datetime.now()
-        do_greeting(context, chat_id=group_user_name)
+        do_greeting(context, chat_id=group_user_name, users=users)

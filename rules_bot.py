@@ -75,7 +75,7 @@ def main() -> None:
     config = configparser.ConfigParser()
     config.read('bot.ini')
 
-    defaults = Defaults(parse_mode=ParseMode.HTML)
+    defaults = Defaults(parse_mode=ParseMode.HTML, disable_web_page_preview=True)
     updater = Updater(token=config['KEYS']['bot_api'], defaults=defaults)
     dispatcher = updater.dispatcher
     update_rules_messages(updater.bot)
