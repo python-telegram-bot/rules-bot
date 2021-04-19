@@ -225,15 +225,15 @@ def github(update: Update, context: CallbackContext) -> None:
         if number:
             issue = github_issues.get_issue(int(number), owner, repo)
             if issue is not None:
-                things[issue.html_url] = github_issues.pretty_format_issue(issue)
+                things[issue.url] = github_issues.pretty_format_issue(issue)
         elif sha:
             commit = github_issues.get_commit(sha, owner, repo)
             if commit is not None:
-                things[commit.commit.html_url] = github_issues.pretty_format_commit(commit)
+                things[commit.url] = github_issues.pretty_format_commit(commit)
         elif ptbcontrib:
             contrib = github_issues.ptbcontribs.get(ptbcontrib)
             if contrib:
-                things[contrib.html_url] = f'ptbcontrib/{contrib.name}'
+                things[contrib.url] = f'ptbcontrib/{contrib.name}'
 
     if things:
         reply_or_edit(

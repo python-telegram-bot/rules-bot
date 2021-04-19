@@ -48,6 +48,7 @@ else:
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
     )
     logging.getLogger('apscheduler').setLevel(logging.WARNING)
+    logging.getLogger('github3').setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
@@ -146,9 +147,9 @@ def main() -> None:
     except KeyError:
         logging.info('No github api token set. Rate-limit is 60 requests/hour without auth.')
 
-    github_issues.init_issues(dispatcher.job_queue)  # type: ignore[arg-type]
     job = github_issues.init_ptb_contribs(dispatcher.job_queue)  # type: ignore[arg-type]
     job.run(dispatcher)
+    github_issues.init_issues(dispatcher.job_queue)  # type: ignore[arg-type]
 
     # set commands
     updater.bot.set_my_commands(

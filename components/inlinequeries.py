@@ -23,7 +23,7 @@ from components.const import (
     WIKI_URL,
 )
 from components.search import search
-from components.github import CustomCommit, github_issues, Issue, PTBContrib
+from components.github import Commit, github_issues, Issue, PTBContrib
 
 
 def article(
@@ -95,7 +95,7 @@ def unwrap(things):
     last_search = [None]
 
     for k, candidate in reversed(things.items()):
-        if not isinstance(candidate, (Issue, CustomCommit, PTBContrib)):
+        if not isinstance(candidate, (Issue, Commit, PTBContrib)):
             last_search = candidate
             break
 
@@ -105,7 +105,7 @@ def unwrap(things):
         if elem_merged is last_search:
             for i, elem_last in enumerate(elem_merged):
                 out[i][k] = elem_last
-        elif not isinstance(elem_merged, (Issue, CustomCommit, PTBContrib)):
+        elif not isinstance(elem_merged, (Issue, Commit, PTBContrib)):
             for i, _ in enumerate(out):
                 out[i][k] = elem_merged[0]
         else:
@@ -153,7 +153,7 @@ def inline_github(query: str) -> List[InlineQueryResultArticle]:
     """
     # Issues/PRs/Commits
     things: Dict[
-        str, Union[Issue, CustomCommit, List[Issue], PTBContrib, List[PTBContrib]]
+        str, Union[Issue, Commit, List[Issue], PTBContrib, List[PTBContrib]]
     ] = OrderedDict()
     results = []
 
@@ -232,14 +232,14 @@ def inline_github(query: str) -> List[InlineQueryResultArticle]:
             # which isn't even valid markdown
             text = re.sub(
                 pattern,
-                lambda x: f'<a href="{items[x.group(0)].html_url}">'  # pylint: disable=W0640
+                lambda x: f'<a href="{items[x.group(0)].url}">'  # pylint: disable=W0640
                 f'{github_issues.pretty_format(items[x.group(0)], short=True)}</a>',
                 query,
             )
 
         # Add full format to bottom of message
         text += '\n\n' + '\n'.join(
-            f'<a href="{thing.html_url}">{github_issues.pretty_format(thing)}</a>'
+            f'<a href="{thing.url}">{github_issues.pretty_format(thing)}</a>'
             for thing in items.values()
         )
 
@@ -273,8 +273,8 @@ def inline_query(update: Update, _: CallbackContext, threshold: int = 15) -> Non
 
         if ENCLOSING_REPLACEMENT_CHARACTER in query:
             modified, replaced = fuzzy_replacements_html(query, official_api_links=True)
-            assert modified and replaced
             if modified:
+                assert replaced  # for mypy
                 results_list.append(
                     article(
                         title="Replace links and show official Bot API documentation",
@@ -284,8 +284,8 @@ def inline_query(update: Update, _: CallbackContext, threshold: int = 15) -> Non
                 )
 
             modified, replaced = fuzzy_replacements_html(query, official_api_links=False)
-            assert modified and replaced
             if modified:
+                assert replaced  # for mypy
                 results_list.append(
                     article(
                         title="Replace links",

@@ -11,76 +11,136 @@ from typing import (
     Pattern,
     Tuple,
     Any,
-    TYPE_CHECKING,
+    cast,
+    Iterable,
 )
 
 from fuzzywuzzy import process, fuzz
+from github3.repos.contents import Contents
+from github3 import login, GitHub
+from github3.exceptions import GitHubException
+from github3.git import Commit as GHCommit
+from github3.repos import Repository as GHRepo
+from github3.issues import Issue as GHIssue
+from github3.structs import GitHubIterator
 from telegram.ext import JobQueue, CallbackContext, Job
-
-from github.Commit import Commit
-from github.Issue import Issue
-from github.Organization import Organization
-from github.Repository import Repository
-from github import Github, GithubException, RateLimitExceededException
 
 from components.const import (
     DEFAULT_REPO_OWNER,
     DEFAULT_REPO_NAME,
-    USER_AGENT,
     PTBCONTRIB_REPO_NAME,
 )
 from components.util import truncate_str
 
-if TYPE_CHECKING:
-    from github.PaginatedList import PaginatedList  # pylint: disable=C0412
 
-
-class RepoDict(Dict[str, Repository]):
-    def __init__(self, org: Organization):
+class RepoDict(Dict[str, GHRepo]):
+    def __init__(self, owner: str, session: GitHub):
         super().__init__()
-        self.org = org
+        self._owner = owner
+        self._session = session
 
-    def __missing__(self, key: str) -> Repository:
+    def __missing__(self, key: str) -> GHRepo:
         if key not in self:
-            self[key] = self.org.get_repo(key)
+            self[key] = self._session.repository(self._owner, key)
         return self[key]
 
+    def update_session(self, session: GitHub) -> None:
+        self._session = session
 
-class CustomCommit(NamedTuple):
-    commit: Commit
-    owner: str
-    repo: str
+
+class Commit:
+    def __init__(self, commit: GHCommit, repository: GHRepo) -> None:
+        self._commit = commit
+        self._repository = repository
+
+    @property
+    def owner(self) -> str:
+        return self._repository.owner.login
+
+    @property
+    def repo(self) -> str:
+        return self._repository.name
+
+    @property
+    def sha(self) -> str:
+        return self._commit.sha
+
+    @property
+    def url(self) -> str:
+        return self._commit.html_url
+
+    @property
+    def title(self) -> str:
+        return self._commit.message
+
+    @property
+    def author(self) -> str:
+        return self._commit.author.login
+
+
+class Issue:
+    def __init__(self, issue: GHIssue, repository: GHRepo) -> None:
+        self._issue = issue
+        self._repository = repository
+
+    @property
+    def type(self) -> str:
+        return 'Issue' if not self._issue.pull_request_urls else 'PR'
+
+    @property
+    def owner(self) -> str:
+        return self._repository.owner.login
+
+    @property
+    def repo(self) -> str:
+        return self._repository.name
+
+    @property
+    def number(self) -> int:
+        return self._issue.number
+
+    @property
+    def url(self) -> str:
+        return self._issue.html_url
+
+    @property
+    def title(self) -> str:
+        return self._issue.title
+
+    @property
+    def author(self) -> str:
+        return self._issue.user.login
 
 
 class PTBContrib(NamedTuple):
     name: str
-    html_url: str
+    url: str
 
 
 class GitHubIssues:
     def __init__(
         self, default_owner: str = DEFAULT_REPO_OWNER, default_repo: str = DEFAULT_REPO_NAME
     ) -> None:
-        self.session = Github(user_agent=USER_AGENT, per_page=100)
+        self.session = GitHub()
         self.default_owner = default_owner
         self.default_repo = default_repo
-        self.default_org = self.session.get_organization(self.default_owner)
 
         self.logger = logging.getLogger(self.__class__.__qualname__)
 
-        self.repos = RepoDict(self.default_org)
+        self.repos = RepoDict(self.default_owner, self.session)
         self.issues: Dict[int, Issue] = {}
-        self.issue_paginator: Optional['PaginatedList[Issue]'] = None
+        self.issue_iterator: Optional[Iterable[Issue]] = None
         self.ptbcontribs: Dict[str, PTBContrib] = {}
         self.issues_lock = threading.Lock()
         self.ptbcontrib_lock = threading.Lock()
 
     def set_auth(self, client_id: str, client_secret: str) -> None:
-        self.session = Github(client_id, client_secret, user_agent=USER_AGENT, per_page=100)
+        self.session = login(client_id, client_secret)
+        self.repos.update_session(self.session)
 
     def pretty_format(
         self,
-        thing: Union[Issue, CustomCommit, PTBContrib],
+        thing: Union[Issue, Commit, PTBContrib],
         short: bool = False,
         short_with_title: bool = False,
         title_max_length: int = 15,
@@ -110,117 +170,132 @@ class GitHubIssues:
     ) -> str:
         # PR OwnerIfNotDefault/RepoIfNotDefault#9999: Title by Author
         # OwnerIfNotDefault/RepoIfNotDefault#9999 if short=True
-        owner_name = issue.repository.owner.name or issue.repository.owner.login
-        user_name = issue.user.name or issue.user.login
-        issue_type = 'Issue' if not issue.pull_request else 'PR'
         short_text = (
-            f'{"" if owner_name == self.default_owner else owner_name + "/"}'
-            f'{"" if issue.repository.name == self.default_repo else issue.repository.name}'
+            f'{"" if issue.owner == self.default_owner else issue.owner + "/"}'
+            f'{"" if issue.repo == self.default_repo else issue.repo}'
             f'#{issue.number}'
         )
         if short:
             return short_text
         if short_with_title:
             return f'{short_text}: {truncate_str(issue.title, title_max_length)}'
-        return f'{issue_type} {short_text}: {issue.title} by {user_name}'
+        return f'{issue.type} {short_text}: {issue.title} by {issue.author}'
 
     def pretty_format_commit(
         self,
-        commit: CustomCommit,
+        commit: Commit,
         short: bool = False,
         short_with_title: bool = False,
         title_max_length: int = 15,
     ) -> str:
         # Commit OwnerIfNotDefault/RepoIfNotDefault@abcdf123456789: Title by Author
         # OwnerIfNotDefault/RepoIfNotDefault@abcdf123456789 if short=True
-        author = commit.commit.author.name or commit.commit.author.login
         short_text = (
             f'{"" if commit.owner == self.default_owner else commit.owner + "/"}'
             f'{"" if commit.repo == self.default_repo else commit.repo}'
-            f'@{commit.commit.sha[:7]}'
+            f'@{commit.sha[:7]}'
         )
         if short:
             return short_text
         if short_with_title:
-            return f'{short_text}: {truncate_str(commit.commit.commit.message, title_max_length)}'
-        return f'Commit {short_text}: {commit.commit.commit.message} by {author}'
+            return f'{short_text}: {truncate_str(commit.title, title_max_length)}'
+        return f'Commit {short_text}: {commit.title} by {commit.author}'
 
     def get_issue(self, number: int, owner: str = None, repo: str = None) -> Optional[Issue]:
+        if owner or repo:
+            self.logger.info(
+                'Getting issue %d for %s/%s',
+                number,
+                owner or self.default_owner,
+                repo or self.default_repo,
+            )
         try:
             if owner is not None:
-                repository = self.session.get_repo(f'{owner}/{repo or self.default_repo}')
-                return repository.get_issue(number)
+                repository = self.session.repository(owner, repo or self.default_repo)
+                gh_issue = repository.issue(number)
+            else:
+                repository = self.repos[repo or self.default_repo]
+                if repo is None:
+                    if issue := self.issues.get(number):
+                        return issue
+                    gh_issue = repository.issue(number)
+                else:
+                    gh_issue = repository.issue(number)
+            issue = Issue(gh_issue, repository)
 
-            repository = self.repos[repo or self.default_repo]
             if repo is None:
-                return self.issues.setdefault(number, repository.get_issue(number))
-            return repository.get_issue(number)
-        except GithubException:
+                self.issues[number] = issue
+
+            return issue
+        except GitHubException:
             return None
 
     @no_type_check
     def get_commit(
         self, sha: Union[int, str], owner: str = None, repo: str = None
-    ) -> Optional[CustomCommit]:
-        try:
-            if owner is None:
-                repository = self.repos[repo or self.default_repo]
-            else:
-                repository = self.session.get_repo(f'{owner}/{repo or self.default_repo}')
-            return CustomCommit(
-                repository.get_commit(sha), owner or self.default_owner, repo or self.default_repo
+    ) -> Optional[Commit]:
+        if owner or repo:
+            self.logger.info(
+                'Getting commit %s for %s/%s',
+                sha[:7],
+                owner or self.default_owner,
+                repo or self.default_repo,
             )
-        except GithubException:
+        try:
+            if owner is not None:
+                repository = self.session.repository(owner, repo or self.default_repo)
+                gh_commit = repository.commit(sha)
+            else:
+                repository = self.repos[repo or self.default_repo]
+                if repo is None:
+                    if commit := self.issues.get(sha):
+                        return commit
+                    gh_commit = sha, repository.commit(sha)
+                else:
+                    gh_commit = repository.commit(sha)
+            return Commit(gh_commit, repository)
+        except GitHubException:
             return None
 
-    def _job(self, job_queue: JobQueue, page: int = 0) -> None:
-        logging.info('Getting issues for page %d', page)
+    def _job(self, job_queue: JobQueue) -> None:
+        self.logger.info('Getting issues for default repo.')
 
-        # Load 100 issues
-        # We pass the ETag if we have one (not called from init_issues)
-        try:
-            if self.issue_paginator is None:
-                self.issue_paginator = self.repos[self.default_repo].get_issues(state='all')
-            issues = self.issue_paginator.get_page(page)
-
-            # Add to issue cache
-            # Acquire lock so we don't add while a func (like self.search) is iterating over it
-            with self.issues_lock:
-                for issue in issues:
-                    self.issues[issue.number] = issue
-        except RateLimitExceededException:
-            logging.info('Exceeded rate limit while fetching issues. Retrying in 30 min')
-            job_queue.run_once(lambda _: self._job(job_queue, page), 30 * 60)
-            return
-        except GithubException as exc:
-            logging.warning('Encountered an exception while fetching GH issues. Retrying in 10s.')
-            logging.warning('%s', exc)
-            job_queue.run_once(lambda _: self._job(job_queue, page), 10)
-            return
-
-        # If more issues
-        if len(issues) == 100:
-            # Process next page after 10 sec to not get rate-limited
-            job_queue.run_once(lambda _: self._job(job_queue, page + 1), 10)
-        # No more issues
+        repo = self.repos[self.default_repo]
+        if self.issue_iterator is None:
+            self.issue_iterator = self.repos[self.default_repo].issues(state='all')
         else:
-            # In 1h check if the 100 first issues changed,
-            # and update them in our cache if needed
-            job_queue.run_once(lambda _: self._job(job_queue), 60 * 60)
+            # The GitHubIterator automatically takes care of passing the ETag
+            # which reduces the number of API requests that count towards the rate limit - neat!
+            cast(GitHubIterator, self.issue_iterator).refresh(True)
+
+        with self.issues_lock:
+            for i, gh_issue in enumerate(self.issue_iterator):
+                self.issues[gh_issue.number] = Issue(gh_issue, repo)
+                # Sleeping a moment after 100 issues to give the API some rest - we're not in a
+                # hurry. The 100 is the max. per page number and as of 2.0.0 what github3.py uses
+                # sleeping doesn't block the bot, as jobs run in their own thread.
+                if (i + 1) % 100 == 0:
+                    self.logger.info('Done with %d issues.', i + 1)
+
+        # Rerun in 15 minutes
+        job_queue.run_once(lambda _: self._job(job_queue), 60 * 15)
 
     def init_issues(self, job_queue: JobQueue) -> None:
         self._job(job_queue)
 
     def _ptbcontrib_job(self, _: CallbackContext) -> None:
-        files = self.repos[PTBCONTRIB_REPO_NAME].get_contents(PTBCONTRIB_REPO_NAME)
-        effective_files = [files] if not isinstance(files, list) else files
+        self.logger.info('Getting ptbcontrib data.')
+        files = cast(
+            List[Tuple[str, Contents]],
+            self.repos[PTBCONTRIB_REPO_NAME].directory_contents(PTBCONTRIB_REPO_NAME),
+        )
         with self.ptbcontrib_lock:
             self.ptbcontribs.clear()
             self.ptbcontribs.update(
                 {
-                    file.name: PTBContrib(file.name, file.html_url)
-                    for file in effective_files
-                    if file.type == 'dir'
+                    name: PTBContrib(name, content.html_url)
+                    for name, content in files
+                    if content.type == 'dir'
                 }
             )
 
@@ -269,14 +344,14 @@ class GitHubIssues:
         else:
             effective_pattern = pattern
 
-        files = self.repos[self.default_repo].get_contents('examples')
-        effective_files = [files] if not isinstance(files, list) else files
+        files = cast(
+            List[Tuple[str, Contents]],
+            self.repos[self.default_repo].directory_contents('examples'),
+        )
         if effective_pattern is None:
-            return [(file.name, file.html_url) for file in effective_files]
+            return [(name, content.html_url) for name, content in files]
         return [
-            (file.name, file.html_url)
-            for file in effective_files
-            if effective_pattern.search(file.name)
+            (name, content.html_url) for name, content in files if effective_pattern.search(name)
         ]
 
 
