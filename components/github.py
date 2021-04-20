@@ -280,7 +280,7 @@ class GitHubIssues:
                         self.logger.info('Done with %d issues. Sleeping a moment.', i + 1)
                         time.sleep(10)
 
-            # Rerun in 15 minutes
+            # Rerun in 20 minutes
             job_queue.run_once(lambda _: self._job(job_queue), 60 * 20)
         except GitHubError as exc:
             if 'rate limit' in str(exc):
@@ -290,7 +290,7 @@ class GitHubIssues:
                 self.logger.exception(
                     'Something went wrong fetching issues. Retrying in 10s.', exc_info=exc
                 )
-                job_queue.run_once(lambda _: self._job(job_queue), 10 * 70)
+                job_queue.run_once(lambda _: self._job(job_queue), 10)
 
     def init_issues(self, job_queue: JobQueue) -> None:
         job_queue.run_once(lambda _: self._job(job_queue), 10)
@@ -312,6 +312,9 @@ class GitHubIssues:
                         if content.type == 'dir'
                     }
                 )
+
+            # Rerun in two hours minutes
+            job_queue.run_once(lambda _: self._ptbcontrib_job(job_queue), 2 * 60 * 60)
         except GitHubError as exc:
             if 'rate limit' in str(exc):
                 self.logger.warning('GH API rate limit exceeded. Retrying in 70 minutes.')
@@ -320,7 +323,7 @@ class GitHubIssues:
                 self.logger.exception(
                     'Something went wrong fetching issues. Retrying in 10s.', exc_info=exc
                 )
-                job_queue.run_once(lambda _: self._ptbcontrib_job(job_queue), 60 * 60)
+                job_queue.run_once(lambda _: self._ptbcontrib_job(job_queue), 10)
 
     def init_ptb_contribs(self, job_queue: JobQueue) -> None:
         job_queue.run_once(lambda _: self._ptbcontrib_job(job_queue), 5)
