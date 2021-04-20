@@ -110,7 +110,7 @@ HINTS: Dict[str, HintDict] = {
         ),
         'help': "Other Python wrappers for Telegram",
         'default': (
-            "Hey, I think you're wrong 🧐\nIt looks like you're not using the python-telegram-bot"
+            "Hey, I think you're wrong 🧐\nIt looks like you're not using the python-telegram-bot "
             "library."
         ),
     },
