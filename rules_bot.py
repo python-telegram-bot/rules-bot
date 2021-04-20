@@ -147,8 +147,7 @@ def main() -> None:
     except KeyError:
         logging.info('No github api token set. Rate-limit is 60 requests/hour without auth.')
 
-    job = github_issues.init_ptb_contribs(dispatcher.job_queue)  # type: ignore[arg-type]
-    job.run(dispatcher)
+    github_issues.init_ptb_contribs(dispatcher.job_queue)  # type: ignore[arg-type]
     github_issues.init_issues(dispatcher.job_queue)  # type: ignore[arg-type]
 
     # set commands

@@ -1,6 +1,7 @@
 import logging
 import re
 import threading
+import time
 from typing import (
     Dict,
     NamedTuple,
@@ -18,12 +19,12 @@ from typing import (
 from fuzzywuzzy import process, fuzz
 from github3.repos.contents import Contents
 from github3 import login, GitHub
-from github3.exceptions import GitHubException
+from github3.exceptions import GitHubException, GitHubError
 from github3.git import Commit as GHCommit
 from github3.repos import Repository as GHRepo
 from github3.issues import Issue as GHIssue
 from github3.structs import GitHubIterator
-from telegram.ext import JobQueue, CallbackContext, Job
+from telegram.ext import JobQueue
 
 from components.const import (
     DEFAULT_REPO_OWNER,
@@ -260,47 +261,69 @@ class GitHubIssues:
     def _job(self, job_queue: JobQueue) -> None:
         self.logger.info('Getting issues for default repo.')
 
-        repo = self.repos[self.default_repo]
-        if self.issue_iterator is None:
-            self.issue_iterator = self.repos[self.default_repo].issues(state='all')
-        else:
-            # The GitHubIterator automatically takes care of passing the ETag
-            # which reduces the number of API requests that count towards the rate limit - neat!
-            cast(GitHubIterator, self.issue_iterator).refresh(True)
+        try:
+            repo = self.repos[self.default_repo]
+            if self.issue_iterator is None:
+                self.issue_iterator = self.repos[self.default_repo].issues(state='all')
+            else:
+                # The GitHubIterator automatically takes care of passing the ETag
+                # which reduces the number of API requests that count towards the rate limit
+                cast(GitHubIterator, self.issue_iterator).refresh(True)
 
-        with self.issues_lock:
-            for i, gh_issue in enumerate(self.issue_iterator):
-                self.issues[gh_issue.number] = Issue(gh_issue, repo)
-                # Sleeping a moment after 100 issues to give the API some rest - we're not in a
-                # hurry. The 100 is the max. per page number and as of 2.0.0 what github3.py uses
-                # sleeping doesn't block the bot, as jobs run in their own thread.
-                if (i + 1) % 100 == 0:
-                    self.logger.info('Done with %d issues.', i + 1)
+            with self.issues_lock:
+                for i, gh_issue in enumerate(self.issue_iterator):
+                    self.issues[gh_issue.number] = Issue(gh_issue, repo)
+                    # Sleeping a moment after 100 issues to give the API some rest - we're not in a
+                    # hurry. The 100 is the max. per page number and as of 2.0.0 what github3.py
+                    # uses sleeping doesn't block the bot, as jobs run in their own thread.
+                    if (i + 1) % 100 == 0:
+                        self.logger.info('Done with %d issues. Sleeping a moment.', i + 1)
+                        time.sleep(10)
 
-        # Rerun in 15 minutes
-        job_queue.run_once(lambda _: self._job(job_queue), 60 * 15)
+            # Rerun in 15 minutes
+            job_queue.run_once(lambda _: self._job(job_queue), 60 * 20)
+        except GitHubError as exc:
+            if 'rate limit' in str(exc):
+                self.logger.warning('GH API rate limit exceeded. Retrying in 70 minutes.')
+                job_queue.run_once(lambda _: self._job(job_queue), 60 * 70)
+            else:
+                self.logger.exception(
+                    'Something went wrong fetching issues. Retrying in 10s.', exc_info=exc
+                )
+                job_queue.run_once(lambda _: self._job(job_queue), 10 * 70)
 
     def init_issues(self, job_queue: JobQueue) -> None:
-        self._job(job_queue)
+        job_queue.run_once(lambda _: self._job(job_queue), 10)
 
-    def _ptbcontrib_job(self, _: CallbackContext) -> None:
+    def _ptbcontrib_job(self, job_queue: JobQueue) -> None:
         self.logger.info('Getting ptbcontrib data.')
-        files = cast(
-            List[Tuple[str, Contents]],
-            self.repos[PTBCONTRIB_REPO_NAME].directory_contents(PTBCONTRIB_REPO_NAME),
-        )
-        with self.ptbcontrib_lock:
-            self.ptbcontribs.clear()
-            self.ptbcontribs.update(
-                {
-                    name: PTBContrib(name, content.html_url)
-                    for name, content in files
-                    if content.type == 'dir'
-                }
-            )
 
-    def init_ptb_contribs(self, job_queue: JobQueue) -> Job:
-        return job_queue.run_repeating(self._ptbcontrib_job, interval=60 * 60)
+        try:
+            files = cast(
+                List[Tuple[str, Contents]],
+                self.repos[PTBCONTRIB_REPO_NAME].directory_contents(PTBCONTRIB_REPO_NAME),
+            )
+            with self.ptbcontrib_lock:
+                self.ptbcontribs.clear()
+                self.ptbcontribs.update(
+                    {
+                        name: PTBContrib(name, content.html_url)
+                        for name, content in files
+                        if content.type == 'dir'
+                    }
+                )
+        except GitHubError as exc:
+            if 'rate limit' in str(exc):
+                self.logger.warning('GH API rate limit exceeded. Retrying in 70 minutes.')
+                job_queue.run_once(lambda _: self._ptbcontrib_job(job_queue), 60 * 70)
+            else:
+                self.logger.exception(
+                    'Something went wrong fetching issues. Retrying in 10s.', exc_info=exc
+                )
+                job_queue.run_once(lambda _: self._ptbcontrib_job(job_queue), 60 * 60)
+
+    def init_ptb_contribs(self, job_queue: JobQueue) -> None:
+        job_queue.run_once(lambda _: self._ptbcontrib_job(job_queue), 5)
 
     def search(self, query: str) -> List[Issue]:
         def processor(str_or_issue: Union[str, Issue]) -> str:
