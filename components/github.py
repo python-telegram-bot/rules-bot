@@ -19,7 +19,7 @@ from typing import (
 from fuzzywuzzy import process, fuzz
 from github3.repos.contents import Contents
 from github3 import login, GitHub
-from github3.exceptions import GitHubException, GitHubError
+from github3.exceptions import GitHubException
 from github3.git import Commit as GHCommit
 from github3.repos import Repository as GHRepo
 from github3.issues import Issue as GHIssue
@@ -286,7 +286,7 @@ class GitHubIssues:
 
             # Rerun in 20 minutes
             job_queue.run_once(lambda _: self._job(job_queue), 60 * 20)
-        except GitHubError as exc:
+        except GitHubException as exc:
             if 'rate limit' in str(exc):
                 self.logger.warning('GH API rate limit exceeded. Retrying in 70 minutes.')
                 job_queue.run_once(lambda _: self._job(job_queue), 60 * 70)
@@ -319,7 +319,7 @@ class GitHubIssues:
 
             # Rerun in two hours minutes
             job_queue.run_once(lambda _: self._ptbcontrib_job(job_queue), 2 * 60 * 60)
-        except GitHubError as exc:
+        except GitHubException as exc:
             if 'rate limit' in str(exc):
                 self.logger.warning('GH API rate limit exceeded. Retrying in 70 minutes.')
                 job_queue.run_once(lambda _: self._ptbcontrib_job(job_queue), 60 * 70)
