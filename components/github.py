@@ -276,12 +276,13 @@ class GitHubIssues:
                 # would block self.search during the loop which takes a while
                 with self.issues_lock:
                     self.issues[gh_issue.number] = Issue(gh_issue, repo)
-                    # Sleeping a moment after 100 issues to give the API some rest - we're not in a
-                    # hurry. The 100 is the max. per page number and as of 2.0.0 what github3.py
-                    # uses sleeping doesn't block the bot, as jobs run in their own thread.
-                    if (i + 1) % 100 == 0:
-                        self.logger.info('Done with %d issues. Sleeping a moment.', i + 1)
-                        time.sleep(10)
+                # Sleeping a moment after 100 issues to give the API some rest - we're not in a
+                # hurry. The 100 is the max. per page number and as of 2.0.0 what github3.py
+                # uses. sleeping doesn't block the bot, as jobs run in their own thread.
+                # This is outside the lock! (see above commit)
+                if (i + 1) % 100 == 0:
+                    self.logger.info('Done with %d issues. Sleeping a moment.', i + 1)
+                    time.sleep(10)
 
             # Rerun in 20 minutes
             job_queue.run_once(lambda _: self._job(job_queue), 60 * 20)
