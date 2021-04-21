@@ -2,9 +2,9 @@ import datetime as dtm
 import html
 import logging
 import time
-from typing import cast, Match, List, Tuple
+from typing import cast, Match, List, Dict, Any
 
-from telegram import Update, ParseMode, ChatAction, Message, Chat
+from telegram import Update, ParseMode, ChatAction, Message, Chat, Bot
 from telegram.ext import CallbackContext, JobQueue
 from telegram.utils.helpers import escape_markdown
 
@@ -247,13 +247,9 @@ def delete_new_chat_members_message(update: Update, _: CallbackContext) -> None:
     cast(Message, update.effective_message).delete()
 
 
-def do_greeting(context: CallbackContext, chat_id: str = None, users: List[str] = None) -> None:
-    if context.job:
-        group_user_name, users = cast(Tuple[str, List[str]], context.job.context)
-    else:
-        group_user_name = cast(str, chat_id)
-        users = cast(List[str], users)
-
+def do_greeting(
+    bot: Bot, chat_data: Dict[str, Any], group_user_name: str, users: List[str]
+) -> None:
     link = (
         ONTOPIC_RULES_MESSAGE_LINK
         if group_user_name == ONTOPIC_USERNAME
@@ -267,12 +263,15 @@ def do_greeting(context: CallbackContext, chat_id: str = None, users: List[str] 
     # Clear users list
     users.clear()
 
+    # save new timestamp
+    chat_data['new_chat_members_timeout'] = dtm.datetime.now()
+
     # Send message
-    context.bot.send_message(chat_id=f'@{group_user_name}', text=text)
+    bot.send_message(chat_id=f'@{group_user_name}', text=text)
 
 
 def greet_new_chat_members(update: Update, context: CallbackContext) -> None:
-    group_user_name = cast(Chat, update.effective_chat).username
+    group_user_name = cast(str, cast(Chat, update.effective_chat).username)
     chat_data = cast(dict, context.chat_data)
     # Get saved users
     user_lists = chat_data.setdefault('new_chat_members', {})
@@ -299,12 +298,16 @@ def greet_new_chat_members(update: Update, context: CallbackContext) -> None:
         jobs = job_queue.get_jobs_by_name('greetings_job')
         if not jobs:
             job_queue.run_once(
-                callback=do_greeting,
+                callback=lambda _: do_greeting(
+                    bot=context.bot,
+                    chat_data=chat_data,
+                    group_user_name=group_user_name,
+                    users=users,
+                ),
                 when=(next_possible_greeting_time - dtm.datetime.now()).seconds,
-                context=(group_user_name, users),
                 name='greetings_job',
             )
     else:
-        # save new timestamp
-        cast(dict, context.chat_data)['new_chat_members_timeout'] = dtm.datetime.now()
-        do_greeting(context, chat_id=group_user_name, users=users)
+        do_greeting(
+            bot=context.bot, chat_data=chat_data, group_user_name=group_user_name, users=users
+        )
