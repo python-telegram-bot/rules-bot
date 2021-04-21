@@ -270,8 +270,11 @@ class GitHubIssues:
                 # which reduces the number of API requests that count towards the rate limit
                 cast(GitHubIterator, self.issue_iterator).refresh(True)
 
-            with self.issues_lock:
-                for i, gh_issue in enumerate(self.issue_iterator):
+            for i, gh_issue in enumerate(self.issue_iterator):
+                # Acquire lock so we don't add while a func (like self.search) is iterating over it
+                # We do this for ever single issue instead of before the for-loop, because that
+                # would block self.search during the loop which takes a while
+                with self.issues_lock:
                     self.issues[gh_issue.number] = Issue(gh_issue, repo)
                     # Sleeping a moment after 100 issues to give the API some rest - we're not in a
                     # hurry. The 100 is the max. per page number and as of 2.0.0 what github3.py
