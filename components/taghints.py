@@ -1,3 +1,4 @@
+import re
 from collections import namedtuple
 from typing import cast, Dict, Optional, TypedDict, List
 
@@ -239,35 +240,48 @@ def list_available_hints(update: Update, _: CallbackContext) -> None:
 
 # Sort the hints by hey
 HINTS = dict(sorted(HINTS.items()))
+HINTS_PATTERN = re.compile(rf'(?i){"|".join(HINTS.keys())}')
 
 Hint = namedtuple('Hint', 'help, msg, reply_markup')
 
 
 def get_hints(query: str) -> Dict[str, Hint]:
     results = {}
-    hashtag, _, query = query.partition(' ')
+    matches = re.findall(HINTS_PATTERN, query)
 
-    for key, value in sorted(HINTS.items()):
-        if key.lower().startswith(hashtag.lower()):
-            reply_markup = (
-                InlineKeyboardMarkup(
-                    util.build_menu(
-                        [
-                            InlineKeyboardButton(
-                                **{k: v.format(query=query) for k, v in b.items()}  # type: ignore
-                            )
-                            for b in value['buttons']
-                        ],
-                        1,
+    for idx, tag in enumerate(matches):
+        if idx < len(matches) - 1:
+            _, _, temp = query.partition(tag)
+            insertion_query, _, _ = temp.partition(matches[idx + 1])
+        else:
+            _, _, insertion_query = query.partition(tag)
+
+        for key, value in sorted(HINTS.items()):
+            if key.lower().startswith(tag.lower()):
+                reply_markup = (
+                    InlineKeyboardMarkup(
+                        util.build_menu(
+                            [
+                                InlineKeyboardButton(
+                                    **{
+                                        k: v.format(query=insertion_query)
+                                        for k, v in b.items()  # type: ignore
+                                    }
+                                )
+                                for b in value['buttons']
+                            ],
+                            1,
+                        )
                     )
+                    if 'buttons' in value
+                    else None
                 )
-                if 'buttons' in value
-                else None
-            )
 
-            msg = value['message'].format(query=query if query else value.get('default', ''))
+                msg = value['message'].format(
+                    query=insertion_query if insertion_query else value.get('default', '')
+                )
 
-            results[key] = Hint(help=value.get('help', ''), msg=msg, reply_markup=reply_markup)
+                results[key] = Hint(help=value.get('help', ''), msg=msg, reply_markup=reply_markup)
 
     return results
 
@@ -276,25 +290,28 @@ def hint_handler(update: Update, _: CallbackContext) -> None:
     message = cast(Message, update.effective_message)
     reply_to = message.reply_to_message
 
-    hint = get_hints(cast(str, message.text)).popitem()[1]
+    hints = get_hints(cast(str, message.text))
+    if not hints:
+        return
 
-    if hint is not None:
+    deleted = False
+    for hint in hints.values():
         message.reply_text(
             hint.msg,
             reply_markup=hint.reply_markup,
             reply_to_message_id=reply_to.message_id if reply_to else None,
         )
-        try:
-            message.delete()
-        except BadRequest:
-            pass
+        if not deleted:
+            try:
+                deleted = True
+                message.delete()
+            except BadRequest:
+                pass
 
 
 def register(dispatcher: Dispatcher) -> None:
     dispatcher.add_handler(
-        MessageHandler(
-            Filters.regex(rf'(?i){"|".join(HINTS.keys())}'), hint_handler, run_async=True
-        )
+        MessageHandler(Filters.regex(HINTS_PATTERN), hint_handler, run_async=True)
     )
     dispatcher.add_handler(
         CommandHandler(['hints', 'listhints'], list_available_hints, run_async=True)

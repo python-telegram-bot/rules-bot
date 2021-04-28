@@ -42,9 +42,9 @@ Of course, you can also insert those links directly into your message, e.g.
 
 ## Short-Replies
 
-rules-bot provides a number of predefined messages that are frequently needed. A list of available tag hints is available via the `/hints` command. Simply send `#<taghint>` and rules-bot will delete your message and send the corresponding text instead. Reply to a message with `#<taghint>` to make rules-bot send the message as reply to that message.
+rules-bot provides a number of predefined messages that are frequently needed. A list of available tag hints is available via the `/hints` command. Simply send `#<taghint>` and rules-bot will delete your message and send the corresponding text instead. Reply to a message with `#<taghint>` to make rules-bot send the message as reply to that message. Type `#<taghint> <a personal message>`, to insert the personal message at a meaningful spot within the message. For most tag hints this will just prepend the personal message. You can even send multiple short messages at once by typing `#<taghint 1> <message 1> #<taghint 2> <message 2> ...`
 
-Tag hints are also available via the inline mode. Typing `@roolsbot #taghint` allows you to send the message yourself instead of having rules-bot send it. You can even type `@roolsbot #taghint <a personal message>`, to insert the personal message at a meaningful spot within the message. For most tag hints this will just prepend the personal message.
+Tag hints are also available via the inline mode. Typing `@roolsbot #taghint` allows you to send the message yourself instead of having rules-bot send it. Personal messages work just like described above, though inline mode only supports one tag hint at a time.
 
 ## Things it does automatically
 
