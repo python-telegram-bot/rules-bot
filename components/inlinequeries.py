@@ -254,7 +254,7 @@ def inline_query(update: Update, _: CallbackContext, threshold: int = 15) -> Non
 
     if len(query) > 0:
         if query.startswith('#'):
-            hints = taghints.get_hints(query)
+            hints = taghints.get_hints(query, full_match=False)
             results_list.extend(
                 [
                     article(

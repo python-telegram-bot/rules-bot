@@ -245,9 +245,12 @@ HINTS_PATTERN = re.compile(rf'(?i){"|".join(HINTS.keys())}')
 Hint = namedtuple('Hint', 'help, msg, reply_markup')
 
 
-def get_hints(query: str) -> Dict[str, Hint]:
+def get_hints(query: str, full_match: bool = True) -> Dict[str, Hint]:
     results = {}
-    matches = re.findall(HINTS_PATTERN, query)
+    if full_match:
+        matches = re.findall(HINTS_PATTERN, query)
+    else:
+        matches = re.findall(r'#\w+', query)
 
     for idx, tag in enumerate(matches):
         if idx < len(matches) - 1:
