@@ -3,7 +3,7 @@
 beautifulsoup4
 fuzzywuzzy
 python-Levenshtein
-python-telegram-bot==13.4.1
+python-telegram-bot==13.5
 Sphinx
 requests
 github3.py==2.0.0

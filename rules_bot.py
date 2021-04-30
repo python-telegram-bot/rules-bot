@@ -2,7 +2,7 @@ import configparser
 import logging
 import os
 
-from telegram import ParseMode, Bot
+from telegram import ParseMode, Bot, Update
 from telegram.error import BadRequest, Unauthorized
 from telegram.ext import (
     CommandHandler,
@@ -10,6 +10,7 @@ from telegram.ext import (
     MessageHandler,
     Filters,
     Defaults,
+    ChatMemberHandler,
 )
 
 from components import inlinequeries, taghints
@@ -116,11 +117,7 @@ def main() -> None:
 
     # Status updates
     dispatcher.add_handler(
-        MessageHandler(
-            Filters.chat(username=[ONTOPIC_USERNAME, OFFTOPIC_USERNAME])
-            & Filters.status_update.new_chat_members,
-            greet_new_chat_members,
-        )
+        ChatMemberHandler(greet_new_chat_members, chat_member_types=ChatMemberHandler.CHAT_MEMBER)
     )
     dispatcher.add_handler(
         MessageHandler(
@@ -137,7 +134,7 @@ def main() -> None:
     # Error Handler
     dispatcher.add_error_handler(error_handler)
 
-    updater.start_polling()
+    updater.start_polling(allowed_updates=Update.ALL_TYPES)
     logger.info('Listening...')
 
     try:
