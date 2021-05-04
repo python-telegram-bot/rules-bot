@@ -11,6 +11,7 @@ from telegram import (
     InlineQuery,
     InlineKeyboardMarkup,
 )
+from telegram.error import BadRequest
 from telegram.ext import InlineQueryHandler, CallbackContext, Dispatcher
 
 from components import taghints
@@ -248,7 +249,9 @@ def inline_github(query: str) -> List[InlineQueryResultArticle]:
     return results
 
 
-def inline_query(update: Update, _: CallbackContext, threshold: int = 15) -> None:
+def inline_query(  # pylint: disable=R0915
+    update: Update, _: CallbackContext, threshold: int = 15
+) -> None:
     query = cast(InlineQuery, update.inline_query).query
     results_list = list()
 
@@ -397,13 +400,23 @@ def inline_query(update: Update, _: CallbackContext, threshold: int = 15) -> Non
                 )
             )
 
-    cast(InlineQuery, update.inline_query).answer(
-        results=results_list,
-        switch_pm_text='Help',
-        switch_pm_parameter='inline-help',
-        cache_time=0,
-        auto_pagination=True,
-    )
+    ilq = cast(InlineQuery, update.inline_query)
+    try:
+        ilq.answer(
+            results=results_list,
+            switch_pm_text='Help',
+            switch_pm_parameter='inline-help',
+            cache_time=0,
+            auto_pagination=True,
+        )
+    except BadRequest as exc:
+        if "can't parse entities" not in exc.message:
+            raise exc
+        ilq.answer(
+            results=[],
+            switch_pm_text='❌ Invalid entities. Click me.',
+            switch_pm_parameter='inline-entity-parsing',
+        )
 
 
 def register(dispatcher: Dispatcher) -> None:

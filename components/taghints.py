@@ -188,7 +188,7 @@ HINTS: Dict[str, HintDict] = {
         'message': (
             "{query} Please only mention or reply to users directly if you're following up on a "
             "conversation with them. Otherwise just ask your question and wait if someone has a "
-            "solution for you - that's how this group works 😉 Also note the the "
+            "solution for you - that's how this group works 😉 Also note that the "
             "<code>@admin</code> tag is only to be used to report spam or abuse!"
         ),
         'default': 'Hey.',

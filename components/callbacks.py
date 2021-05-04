@@ -45,6 +45,8 @@ def start(update: Update, context: CallbackContext) -> None:
     if args:
         if args[0] == 'inline-help':
             inlinequery_help(update, context)
+        if args[0] == 'inline-entity-parsing':
+            inlinequery_entity_parsing(update, context)
     elif username not in (OFFTOPIC_USERNAME, ONTOPIC_USERNAME):
         message.reply_text(
             "Hi. I'm a bot that will announce the rules of the "
@@ -72,6 +74,18 @@ def inlinequery_help(update: Update, context: CallbackContext) -> None:
         f"The bot will automatically change them back desired space."
     )
     context.bot.send_message(chat_id, text, parse_mode=ParseMode.MARKDOWN)
+
+
+def inlinequery_entity_parsing(update: Update, _: CallbackContext) -> None:
+    text = (
+        "Your inline query produced invalid message entities. If you are trying to combine "
+        "custom text with a tag hint or search result, please keep in mind that the text is "
+        "is processed with <code>telegram.ParseMode.HTML</code> formatting. You will therefore "
+        "have to either use valid HTML-formatted text or escape reserved characters. For a list "
+        "of reserved characters, please see the official "
+        "<a href='https://core.telegram.org/bots/api#html-style'>Telegram docs</a>."
+    )
+    cast(Message, update.message).reply_text(text)
 
 
 @rate_limit
