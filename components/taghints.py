@@ -107,7 +107,8 @@ HINTS: Dict[str, HintDict] = {
             '<a href="https://github.com/nickoala/telepot">Telepot</a>, '
             '<a href="https://t.me/Pyrogram">pyrogram</a>, '
             '<a href="https://t.me/TelethonChat">Telethon</a>, '
-            '<a href="https://t.me/aiogram">aiogram</a>.'
+            '<a href="https://t.me/aiogram">aiogram</a>, '
+            '<a href="https://t.me/botogram_users">botogram</a>.'
         ),
         'help': "Other Python wrappers for Telegram",
         'default': (
