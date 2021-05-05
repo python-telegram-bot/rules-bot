@@ -20,7 +20,7 @@ from fuzzywuzzy import process, fuzz
 from github3.repos.contents import Contents
 from github3 import login, GitHub
 from github3.exceptions import GitHubException, GitHubError
-from github3.git import Commit as GHCommit
+from github3.repos.commit import RepoCommit as GHCommit
 from github3.repos import Repository as GHRepo
 from github3.issues import Issue as GHIssue
 from github3.structs import GitHubIterator
@@ -72,11 +72,11 @@ class Commit:
 
     @property
     def title(self) -> str:
-        return self._commit.message
+        return self._commit.commit['message']
 
     @property
     def author(self) -> str:
-        return self._commit.author.login
+        return self._commit.author['login']
 
 
 class Issue:
