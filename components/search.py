@@ -101,7 +101,9 @@ class Search:
     def parse_wiki_code_snippets(self) -> None:
         request = Request(WIKI_CODE_SNIPPETS_URL, headers={'User-Agent': USER_AGENT})
         code_snippet_soup = BeautifulSoup(urlopen(request), 'html.parser')
-        for headline in code_snippet_soup.select('div#wiki-body h4'):
+        for headline in code_snippet_soup.select(
+            'div#wiki-body h4,div#wiki-body h3,div#wiki-body h2'
+        ):
             name = f'Code snippets {ARROW_CHARACTER} {headline.text.strip()}'
             self._wiki[name] = urljoin(WIKI_CODE_SNIPPETS_URL, headline.a['href'])
             self._snippets[name] = self._wiki[name]

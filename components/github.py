@@ -19,7 +19,7 @@ from typing import (
 from fuzzywuzzy import process, fuzz
 from github3.repos.contents import Contents
 from github3 import login, GitHub
-from github3.exceptions import GitHubException, GitHubError
+from github3.exceptions import GitHubException
 from github3.repos.commit import RepoCommit as GHCommit
 from github3.repos import Repository as GHRepo
 from github3.issues import Issue as GHIssue
@@ -30,6 +30,7 @@ from components.const import (
     DEFAULT_REPO_OWNER,
     DEFAULT_REPO_NAME,
     PTBCONTRIB_REPO_NAME,
+    EXAMPLES_URL,
 )
 from components.util import truncate_str
 
@@ -286,7 +287,7 @@ class GitHubIssues:
 
             # Rerun in 20 minutes
             job_queue.run_once(lambda _: self._job(job_queue), 60 * 20)
-        except GitHubError as exc:
+        except GitHubException as exc:
             if 'rate limit' in str(exc):
                 self.logger.warning('GH API rate limit exceeded. Retrying in 70 minutes.')
                 job_queue.run_once(lambda _: self._job(job_queue), 60 * 70)
@@ -319,7 +320,7 @@ class GitHubIssues:
 
             # Rerun in two hours minutes
             job_queue.run_once(lambda _: self._ptbcontrib_job(job_queue), 2 * 60 * 60)
-        except GitHubError as exc:
+        except GitHubException as exc:
             if 'rate limit' in str(exc):
                 self.logger.warning('GH API rate limit exceeded. Retrying in 70 minutes.')
                 job_queue.run_once(lambda _: self._ptbcontrib_job(job_queue), 60 * 70)
@@ -368,6 +369,10 @@ class GitHubIssues:
                 )
             ]
 
+    @staticmethod
+    def _build_example_url(example_file_name: str) -> str:
+        return f'{EXAMPLES_URL}#{example_file_name.replace(".", "")}'
+
     def get_examples_directory(self, pattern: Union[str, Pattern] = None) -> List[Tuple[str, str]]:
         if isinstance(pattern, str):
             effective_pattern: Optional[Pattern[Any]] = re.compile(pattern)
@@ -379,9 +384,11 @@ class GitHubIssues:
             self.repos[self.default_repo].directory_contents('examples'),
         )
         if effective_pattern is None:
-            return [(name, content.html_url) for name, content in files]
+            return [(name, self._build_example_url(name)) for name, _ in files]
         return [
-            (name, content.html_url) for name, content in files if effective_pattern.search(name)
+            (name, self._build_example_url(name))
+            for name, _ in files
+            if effective_pattern.search(name)
         ]
 
 

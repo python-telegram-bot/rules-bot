@@ -2,9 +2,18 @@ import datetime as dtm
 import html
 import logging
 import time
-from typing import cast, Match, List, Tuple
+from typing import cast, Match, List, Dict, Any, Optional, Tuple
 
-from telegram import Update, ParseMode, ChatAction, Message, Chat
+from telegram import (
+    Update,
+    ParseMode,
+    ChatAction,
+    Message,
+    Chat,
+    Bot,
+    ChatMemberUpdated,
+    ChatMember,
+)
 from telegram.ext import CallbackContext, JobQueue
 from telegram.utils.helpers import escape_markdown
 
@@ -36,6 +45,8 @@ def start(update: Update, context: CallbackContext) -> None:
     if args:
         if args[0] == 'inline-help':
             inlinequery_help(update, context)
+        if args[0] == 'inline-entity-parsing':
+            inlinequery_entity_parsing(update, context)
     elif username not in (OFFTOPIC_USERNAME, ONTOPIC_USERNAME):
         message.reply_text(
             "Hi. I'm a bot that will announce the rules of the "
@@ -63,6 +74,18 @@ def inlinequery_help(update: Update, context: CallbackContext) -> None:
         f"The bot will automatically change them back desired space."
     )
     context.bot.send_message(chat_id, text, parse_mode=ParseMode.MARKDOWN)
+
+
+def inlinequery_entity_parsing(update: Update, _: CallbackContext) -> None:
+    text = (
+        "Your inline query produced invalid message entities. If you are trying to combine "
+        "custom text with a tag hint or search result, please keep in mind that the text is "
+        "is processed with <code>telegram.ParseMode.HTML</code> formatting. You will therefore "
+        "have to either use valid HTML-formatted text or escape reserved characters. For a list "
+        "of reserved characters, please see the official "
+        "<a href='https://core.telegram.org/bots/api#html-style'>Telegram docs</a>."
+    )
+    cast(Message, update.message).reply_text(text)
 
 
 @rate_limit
@@ -247,13 +270,44 @@ def delete_new_chat_members_message(update: Update, _: CallbackContext) -> None:
     cast(Message, update.effective_message).delete()
 
 
-def do_greeting(context: CallbackContext, chat_id: str = None, users: List[str] = None) -> None:
-    if context.job:
-        group_user_name, users = cast(Tuple[str, List[str]], context.job.context)
-    else:
-        group_user_name = cast(str, chat_id)
-        users = cast(List[str], users)
+def extract_status_change(
+    chat_member_update: ChatMemberUpdated,
+) -> Optional[Tuple[bool, bool]]:
+    """Takes a ChatMemberUpdated instance and extracts whether the 'old_chat_member' was a member
+    of the chat and whether the 'new_chat_member' is a member of the chat. Returns None, if
+    the status didn't change."""
+    status_change = chat_member_update.difference().get("status")
+    old_is_member, new_is_member = chat_member_update.difference().get("is_member", (None, None))
 
+    if status_change is None:
+        return None
+
+    old_status, new_status = status_change
+    was_member = (
+        old_status
+        in [
+            ChatMember.MEMBER,
+            ChatMember.CREATOR,
+            ChatMember.ADMINISTRATOR,
+        ]
+        or (old_status == ChatMember.RESTRICTED and old_is_member is True)
+    )
+    is_member = (
+        new_status
+        in [
+            ChatMember.MEMBER,
+            ChatMember.CREATOR,
+            ChatMember.ADMINISTRATOR,
+        ]
+        or (new_status == ChatMember.RESTRICTED and new_is_member is True)
+    )
+
+    return was_member, is_member
+
+
+def do_greeting(
+    bot: Bot, chat_data: Dict[str, Any], group_user_name: str, users: List[str]
+) -> None:
     link = (
         ONTOPIC_RULES_MESSAGE_LINK
         if group_user_name == ONTOPIC_USERNAME
@@ -267,21 +321,38 @@ def do_greeting(context: CallbackContext, chat_id: str = None, users: List[str] 
     # Clear users list
     users.clear()
 
+    # save new timestamp
+    chat_data['new_chat_members_timeout'] = dtm.datetime.now()
+
     # Send message
-    context.bot.send_message(chat_id=f'@{group_user_name}', text=text)
+    bot.send_message(chat_id=f'@{group_user_name}', text=text)
 
 
 def greet_new_chat_members(update: Update, context: CallbackContext) -> None:
-    group_user_name = cast(Chat, update.effective_chat).username
-    chat_data = cast(dict, context.chat_data)
+    chat_member = cast(ChatMemberUpdated, update.chat_member)
+    result = extract_status_change(chat_member)
+    if result is None:
+        return
+
+    # Only greet members how newly joined the group
+    was_member, is_member = result
+    if not (was_member is False and is_member is True):
+        return
+
+    # Get groups name
+    group_user_name = cast(str, cast(Chat, update.effective_chat).username)
+
+    # Just a precaution in case the bot was added to a different group
+    if group_user_name not in [ONTOPIC_USERNAME, OFFTOPIC_USERNAME]:
+        return
+
     # Get saved users
+    chat_data = cast(dict, context.chat_data)
     user_lists = chat_data.setdefault('new_chat_members', {})
     users = user_lists.setdefault(group_user_name, [])
 
-    # save new users
-    new_chat_members = cast(Message, update.effective_message).new_chat_members
-    for user in new_chat_members:
-        users.append(user.mention_html())
+    # save new user
+    users.append(chat_member.new_chat_member.user.mention_html())
 
     # check rate limit
     last_message_date = chat_data.setdefault(
@@ -299,12 +370,16 @@ def greet_new_chat_members(update: Update, context: CallbackContext) -> None:
         jobs = job_queue.get_jobs_by_name('greetings_job')
         if not jobs:
             job_queue.run_once(
-                callback=do_greeting,
+                callback=lambda _: do_greeting(
+                    bot=context.bot,
+                    chat_data=chat_data,
+                    group_user_name=group_user_name,
+                    users=users,
+                ),
                 when=(next_possible_greeting_time - dtm.datetime.now()).seconds,
-                context=(group_user_name, users),
                 name='greetings_job',
             )
     else:
-        # save new timestamp
-        cast(dict, context.chat_data)['new_chat_members_timeout'] = dtm.datetime.now()
-        do_greeting(context, chat_id=group_user_name, users=users)
+        do_greeting(
+            bot=context.bot, chat_data=chat_data, group_user_name=group_user_name, users=users
+        )
