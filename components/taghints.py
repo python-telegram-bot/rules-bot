@@ -216,10 +216,10 @@ HINTS: Dict[str, HintDict] = {
     },
     '#botlists': {
         'message': (
-            '{query} This group for questions that come up while you code your own Telegram '
-            'bot. If you are looking for ready-to-use bots, please have a look at channels '
-            'like @BotsArchive or @BotList. There are also a number of websites that list '
-            'existing bots.'
+            '{query} This group is for technical questions that come up while you code your own '
+            'Telegram bot. If you are looking for ready-to-use bots, please have a look at '
+            'channels like @BotsArchive or @BotList. There are also a number of websites that '
+            'list existing bots.'
         ),
         'default': 'Hey.',
         'help': "Redirect users to lists of existing bots.",
