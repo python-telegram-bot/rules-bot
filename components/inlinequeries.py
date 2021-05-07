@@ -81,6 +81,9 @@ def fuzzy_replacements_html(
         char = ENCLOSING_REPLACEMENT_CHARACTER
         result = result.replace(f'{char}{symbol}{char}', text)
 
+    if not result:
+        return None, None
+
     result_changed = [x[0] for x in replacements]
     return result_changed, result
 
@@ -277,7 +280,7 @@ def inline_query(  # pylint: disable=R0915
         if ENCLOSING_REPLACEMENT_CHARACTER in query:
             modified, replaced = fuzzy_replacements_html(query, official_api_links=True)
             if modified:
-                assert replaced  # for mypy
+                assert replaced is not None  # for mypy
                 results_list.append(
                     article(
                         title="Replace links and show official Bot API documentation",
@@ -288,7 +291,7 @@ def inline_query(  # pylint: disable=R0915
 
             modified, replaced = fuzzy_replacements_html(query, official_api_links=False)
             if modified:
-                assert replaced  # for mypy
+                assert replaced is not None  # for mypy
                 results_list.append(
                     article(
                         title="Replace links",
