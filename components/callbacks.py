@@ -14,7 +14,6 @@ from telegram import (
     ChatMemberUpdated,
     ChatMember,
 )
-from telegram.error import BadRequest
 from telegram.ext import CallbackContext, JobQueue
 from telegram.utils.helpers import escape_markdown
 
@@ -388,11 +387,4 @@ def greet_new_chat_members(update: Update, context: CallbackContext) -> None:
 
 def leave_group(update: Update, _: CallbackContext) -> None:
     """Leaves a group chat. Make sure to not call this for our groups"""
-    try:
-        cast(Message, update.effective_message).reply_text(
-            f'Sorry, I exclusively work for @{ONTOPIC_USERNAME} and @{OFFTOPIC_USERNAME}'
-        )
-    except BadRequest:
-        pass
-
     cast(Chat, update.effective_chat).leave()
