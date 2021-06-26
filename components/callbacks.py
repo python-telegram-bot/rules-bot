@@ -13,6 +13,7 @@ from telegram import (
     Bot,
     ChatMemberUpdated,
     ChatMember,
+    TelegramError,
 )
 from telegram.ext import CallbackContext, JobQueue
 from telegram.utils.helpers import escape_markdown
@@ -120,7 +121,10 @@ def docs(update: Update, _: CallbackContext) -> None:
         quote=False,
         reply_to_message_id=reply_id,
     )
-    message.delete()
+    try:
+        message.delete()
+    except TelegramError:
+        pass
 
 
 @rate_limit
@@ -383,8 +387,3 @@ def greet_new_chat_members(update: Update, context: CallbackContext) -> None:
         do_greeting(
             bot=context.bot, chat_data=chat_data, group_user_name=group_user_name, users=users
         )
-
-
-def leave_group(update: Update, _: CallbackContext) -> None:
-    """Leaves a group chat. Make sure to not call this for our groups"""
-    cast(Chat, update.effective_chat).leave()
