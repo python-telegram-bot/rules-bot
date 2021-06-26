@@ -25,7 +25,6 @@ from components.callbacks import (
     github,
     delete_new_chat_members_message,
     greet_new_chat_members,
-    leave_group,
 )
 from components.errorhandler import error_handler
 from components.const import (
@@ -88,15 +87,6 @@ def main() -> None:
     # Note: Order matters!
     # Taghints - works with regex
     taghints.register(dispatcher)
-
-    # Leave groups that are not ours
-    dispatcher.add_handler(
-        MessageHandler(
-            Filters.chat_type.groups
-            & ~Filters.chat(username=[OFFTOPIC_USERNAME, ONTOPIC_USERNAME]),
-            leave_group,
-        )
-    )
 
     # Simple commands
     dispatcher.add_handler(CommandHandler('start', start))
