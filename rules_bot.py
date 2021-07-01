@@ -2,7 +2,14 @@ import configparser
 import logging
 import os
 
-from telegram import ParseMode, Bot, Update, BotCommandScopeAllPrivateChats, BotCommandScopeChat
+from telegram import (
+    ParseMode,
+    Bot,
+    Update,
+    BotCommandScopeAllPrivateChats,
+    BotCommandScopeChat,
+    BotCommandScopeAllGroupChats,
+)
 from telegram.error import BadRequest, Unauthorized
 from telegram.ext import (
     CommandHandler,
@@ -155,18 +162,25 @@ def main() -> None:
             ('docs', 'Send the link to the docs.'),
             ('wiki', 'Send the link to the wiki.'),
             ('help', 'Send the link to this bots README.'),
-        ],
-    )
-    updater.bot.set_my_commands(
-        [
             ('hints', 'List available tag hints.'),
         ],
         scope=BotCommandScopeAllPrivateChats(),
     )
+    updater.bot.set_my_commands(
+        [
+            ('docs', 'Send the link to the docs.'),
+            ('wiki', 'Send the link to the wiki.'),
+            ('help', 'Send the link to this bots README.'),
+        ],
+        scope=BotCommandScopeAllGroupChats(),
+    )
     for group_name in [ONTOPIC_CHAT_ID, OFFTOPIC_CHAT_ID]:
         updater.bot.set_my_commands(
             [
+                ('docs', 'Send the link to the docs.'),
+                ('wiki', 'Send the link to the wiki.'),
                 ('rules', 'Show the rules for this group.'),
+                ('help', 'Send the link to this bots README.'),
             ],
             scope=BotCommandScopeChat(group_name),
         )
