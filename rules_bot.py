@@ -2,7 +2,7 @@ import configparser
 import logging
 import os
 
-from telegram import ParseMode, Bot, Update
+from telegram import ParseMode, Bot, Update, BotCommandScopeAllPrivateChats, BotCommandScopeChat
 from telegram.error import BadRequest, Unauthorized
 from telegram.ext import (
     CommandHandler,
@@ -34,6 +34,8 @@ from components.const import (
     ONTOPIC_USERNAME,
     ONTOPIC_RULES_MESSAGE_ID,
     OFFTOPIC_RULES_MESSAGE_ID,
+    ONTOPIC_CHAT_ID,
+    OFFTOPIC_CHAT_ID,
 )
 from components.util import (
     rate_limit_tracker,
@@ -57,7 +59,7 @@ logger = logging.getLogger(__name__)
 def update_rules_messages(bot: Bot) -> None:
     try:
         bot.edit_message_text(
-            chat_id='@' + ONTOPIC_USERNAME,
+            chat_id=ONTOPIC_CHAT_ID,
             message_id=ONTOPIC_RULES_MESSAGE_ID,
             text=ONTOPIC_RULES,
         )
@@ -65,7 +67,7 @@ def update_rules_messages(bot: Bot) -> None:
         logger.warning('Updating on-topic rules failed: %s', exc)
     try:
         bot.edit_message_text(
-            chat_id='@' + OFFTOPIC_USERNAME,
+            chat_id=OFFTOPIC_CHAT_ID,
             message_id=OFFTOPIC_RULES_MESSAGE_ID,
             text=OFFTOPIC_RULES,
         )
@@ -150,12 +152,24 @@ def main() -> None:
     # set commands
     updater.bot.set_my_commands(
         [
-            ('docs', 'Send the link to the docs. Use in private chat with rools.'),
-            ('wiki', 'Send the link to the wiki. Use in private chat with rools.'),
-            ('hints', 'List available tag hints. Use in private chat with rools.'),
-            ('help', 'Send the link to this bots README. Use in private chat with rools.'),
-        ]
+            ('docs', 'Send the link to the docs.'),
+            ('wiki', 'Send the link to the wiki.'),
+            ('help', 'Send the link to this bots README.'),
+        ],
     )
+    updater.bot.set_my_commands(
+        [
+            ('hints', 'List available tag hints.'),
+        ],
+        scope=BotCommandScopeAllPrivateChats(),
+    )
+    for group_name in [ONTOPIC_CHAT_ID, OFFTOPIC_CHAT_ID]:
+        updater.bot.set_my_commands(
+            [
+                ('rules', 'Show the rules for this group.'),
+            ],
+            scope=BotCommandScopeChat(group_name),
+        )
 
     updater.idle()
 

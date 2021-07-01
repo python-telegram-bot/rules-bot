@@ -19,6 +19,7 @@ ENCLOSED_REGEX = (
 OFFTOPIC_USERNAME = 'pythontelegrambottalk'
 ONTOPIC_USERNAME = 'pythontelegrambotgroup'
 OFFTOPIC_CHAT_ID = '@' + OFFTOPIC_USERNAME
+ONTOPIC_CHAT_ID = '@' + ONTOPIC_USERNAME
 ERROR_CHANNEL_CHAT_ID = -1001397960657
 TELEGRAM_SUPERSCRIPT = 'ᵀᴱᴸᴱᴳᴿᴬᴹ'
 FAQ_CHANNEL_ID = '@ptbfaq'
@@ -45,7 +46,8 @@ Telegram bots in general.
 - Stay on topic
 - No meta questions (eg. <i>"Can I ask something?"</i>)
 - Use a pastebin when you have a question about your code, like <a href="https://www.codepile.net"\
->this one</a>.
+>this one</a>. If you <i>really</i> can't explain your problem without showing a picture, upload\
+ it somewhere and share a link.
 - Use <code>/wiki</code> and <code>/docs</code> in a private chat if possible.
 - Only mention or reply to users directly if you're answering their question or following up on a \
 conversation with them.
@@ -70,7 +72,8 @@ OFFTOPIC_RULES = """
 
 <b>Rules:</b>
 - The group language is English
-- Use a pastebin to share code
+- Use a pastebin to share code. If you <i>really</i> can't explain your problem without showing a\
+ picture, upload it somewhere and share a link.
 - No shitposting, flamewars or excessive trolling
 - Max. 1 meme per user per day
 - Only mention or reply to users directly if you're answering their question or following up on a \
