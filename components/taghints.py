@@ -3,11 +3,11 @@ from collections import namedtuple
 from typing import cast, Dict, Optional, TypedDict, List
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, Chat, Message
-from telegram.error import BadRequest
 from telegram.ext import CommandHandler, Filters, MessageHandler, CallbackContext, Dispatcher
 
 from components import const, util
 from components.const import PTBCONTRIB_LINK
+from components.util import try_to_delete
 
 
 class HintDictRequired(TypedDict):
@@ -229,7 +229,7 @@ HINTS: Dict[str, HintDict] = {
 
 def list_available_hints(update: Update, _: CallbackContext) -> None:
     if cast(Chat, update.effective_chat).type != Chat.PRIVATE:
-        text = "Please use this command in private chat with me."
+        text = "Please use the `/hint` command in private chat with me."
         reply_markup: Optional[InlineKeyboardMarkup] = InlineKeyboardMarkup.from_button(
             InlineKeyboardButton('Take me there!', url=f"https://t.me/{const.SELF_BOT_NAME}")
         )
@@ -316,11 +316,8 @@ def hint_handler(update: Update, _: CallbackContext) -> None:
             reply_to_message_id=reply_to.message_id if reply_to else None,
         )
         if not deleted:
-            try:
-                deleted = True
-                message.delete()
-            except BadRequest:
-                pass
+            deleted = True
+            try_to_delete(message)
 
 
 def register(dispatcher: Dispatcher) -> None:

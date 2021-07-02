@@ -11,7 +11,7 @@ from typing import (
 
 from bs4 import BeautifulSoup
 from telegram import Update, InlineKeyboardButton, Message
-from telegram.error import BadRequest
+from telegram.error import BadRequest, Unauthorized
 from telegram.ext import CallbackContext
 
 from .const import RATE_LIMIT_SPACING
@@ -103,3 +103,10 @@ def rate_limit(
 
 def truncate_str(string: str, max_length: int) -> str:
     return (string[:max_length] + '…') if len(string) > max_length else string
+
+
+def try_to_delete(message: Message) -> bool:
+    try:
+        return message.delete()
+    except (BadRequest, Unauthorized):
+        return False

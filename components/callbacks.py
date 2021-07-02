@@ -13,7 +13,6 @@ from telegram import (
     Bot,
     ChatMemberUpdated,
     ChatMember,
-    TelegramError,
 )
 from telegram.ext import CallbackContext, JobQueue
 from telegram.utils.helpers import escape_markdown
@@ -35,6 +34,7 @@ from components.util import (
     get_reply_id,
     get_text_not_in_entities,
     reply_or_edit,
+    try_to_delete,
 )
 from components.github import github_issues
 
@@ -95,10 +95,10 @@ def rules(update: Update, _: CallbackContext) -> None:
     message = cast(Message, update.effective_message)
     if message.chat.username == ONTOPIC_USERNAME:
         message.reply_text(ONTOPIC_RULES, quote=False)
-        message.delete()
+        try_to_delete(message)
     elif message.chat.username == OFFTOPIC_USERNAME:
         message.reply_text(OFFTOPIC_RULES, quote=False)
-        message.delete()
+        try_to_delete(message)
     else:
         message.reply_text(
             "Hmm. You're not in a python-telegram-bot group, "
@@ -121,10 +121,7 @@ def docs(update: Update, _: CallbackContext) -> None:
         quote=False,
         reply_to_message_id=reply_id,
     )
-    try:
-        message.delete()
-    except TelegramError:
-        pass
+    try_to_delete(message)
 
 
 @rate_limit
@@ -142,7 +139,7 @@ def wiki(update: Update, _: CallbackContext) -> None:
         quote=False,
         reply_to_message_id=reply_id,
     )
-    message.delete()
+    try_to_delete(message)
 
 
 @rate_limit
@@ -160,7 +157,7 @@ def help_callback(update: Update, context: CallbackContext) -> None:
         quote=False,
         reply_to_message_id=reply_id,
     )
-    message.delete()
+    try_to_delete(message)
 
 
 def off_on_topic(update: Update, context: CallbackContext) -> None:
