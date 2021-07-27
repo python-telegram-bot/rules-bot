@@ -251,7 +251,8 @@ def list_available_hints(update: Update, _: CallbackContext) -> None:
 
 # Sort the hints by hey
 HINTS = dict(sorted(HINTS.items()))
-HINTS_PATTERN = re.compile(rf'(?i){"|".join(HINTS.keys())}')
+_SEP = r'\w* *|'
+HINTS_PATTERN = re.compile(rf'(?i){_SEP.join(HINTS.keys())}\w* *')
 
 Hint = namedtuple('Hint', 'help, msg, reply_markup')
 
@@ -271,7 +272,7 @@ def get_hints(query: str, full_match: bool = True) -> Dict[str, Hint]:
             _, _, insertion_query = query.partition(tag)
 
         for key, value in sorted(HINTS.items()):
-            if key.lower().startswith(tag.lower()):
+            if key.lower().startswith(tag.lower()) or tag.lower().startswith(key.lower()):
                 reply_markup = (
                     InlineKeyboardMarkup(
                         util.build_menu(
