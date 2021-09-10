@@ -13,9 +13,8 @@ RATE_LIMIT_SPACING = 2
 NEW_CHAT_MEMBERS_LIMIT_SPACING = 60
 USER_AGENT = 'Github: python-telegram-bot/rules-bot'
 ENCLOSING_REPLACEMENT_CHARACTER = '+'
-ENCLOSED_REGEX = (
-    rf'\{ENCLOSING_REPLACEMENT_CHARACTER}([a-zA-Z_.0-9]*)\{ENCLOSING_REPLACEMENT_CHARACTER}'
-)
+_ERC = ENCLOSING_REPLACEMENT_CHARACTER
+ENCLOSED_REGEX = rf'\{_ERC}([^{_ERC}]*)\{_ERC}'
 OFFTOPIC_USERNAME = 'pythontelegrambottalk'
 ONTOPIC_USERNAME = 'pythontelegrambotgroup'
 OFFTOPIC_CHAT_ID = '@' + OFFTOPIC_USERNAME
@@ -118,7 +117,7 @@ GITHUB_PATTERN = re.compile(
                     (?:  # Followed by either
                         (?P<number>\d+)  # Numbers
                         |  # Or
-                        (?P<query>\S+)  # A search query (without spaces) (only works inline)
+                        (?P<query>.+)  # A search query (only works inline)
                     )
                 )
             |  # Or

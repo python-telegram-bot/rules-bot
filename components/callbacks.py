@@ -30,6 +30,7 @@ from components.const import (
     OFFTOPIC_RULES_MESSAGE_LINK,
     NEW_CHAT_MEMBERS_LIMIT_SPACING,
 )
+from components.entrytypes import BaseEntry
 from components.util import (
     rate_limit,
     get_reply_id,
@@ -236,7 +237,7 @@ def github(update: Update, context: CallbackContext) -> None:
     message = cast(Message, update.effective_message)
     last = 0.0
     thing_matches = []
-    things = {}
+    things: List[BaseEntry] = []
 
     for match in GITHUB_PATTERN.finditer(get_text_not_in_entities(message.text_html)):
         logging.debug(match.groupdict())
@@ -252,21 +253,21 @@ def github(update: Update, context: CallbackContext) -> None:
         if number:
             issue = github_issues.get_issue(int(number), owner, repo)
             if issue is not None:
-                things[issue.url] = github_issues.pretty_format_issue(issue)
+                things.append(issue)
         elif sha:
             commit = github_issues.get_commit(sha, owner, repo)
             if commit is not None:
-                things[commit.url] = github_issues.pretty_format_commit(commit)
+                things.append(commit)
         elif ptbcontrib:
             contrib = github_issues.ptbcontribs.get(ptbcontrib)
             if contrib:
-                things[contrib.url] = f'ptbcontrib/{contrib.name}'
+                things.append(contrib)
 
     if things:
         reply_or_edit(
             update,
             context,
-            '\n'.join([f'<a href="{url}">{name}</a>' for url, name in things.items()]),
+            '\n'.join([thing.html_markup for thing in things]),
         )
 
 

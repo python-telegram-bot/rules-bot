@@ -147,9 +147,7 @@ def main() -> None:
     logger.info('Listening...')
 
     try:
-        github_issues.set_auth(
-            config['KEYS']['github_client_id'], config['KEYS']['github_client_secret']
-        )
+        github_issues.set_auth(None, None)
     except KeyError:
         logging.info('No github api token set. Rate-limit is 60 requests/hour without auth.')
 

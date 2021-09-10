@@ -4,7 +4,6 @@ import threading
 import time
 from typing import (
     Dict,
-    NamedTuple,
     Union,
     Optional,
     no_type_check,
@@ -16,13 +15,10 @@ from typing import (
     Iterable,
 )
 
-from fuzzywuzzy import process, fuzz
 from github3.repos.contents import Contents
 from github3 import login, GitHub
 from github3.exceptions import GitHubException
-from github3.repos.commit import RepoCommit as GHCommit
 from github3.repos import Repository as GHRepo
-from github3.issues import Issue as GHIssue
 from github3.structs import GitHubIterator
 from telegram.ext import JobQueue
 
@@ -32,7 +28,7 @@ from components.const import (
     PTBCONTRIB_REPO_NAME,
     EXAMPLES_URL,
 )
-from components.util import truncate_str
+from components.entrytypes import Issue, PTBContrib, Commit
 
 
 class RepoDict(Dict[str, GHRepo]):
@@ -48,75 +44,6 @@ class RepoDict(Dict[str, GHRepo]):
 
     def update_session(self, session: GitHub) -> None:
         self._session = session
-
-
-class Commit:
-    def __init__(self, commit: GHCommit, repository: GHRepo) -> None:
-        self._commit = commit
-        self._repository = repository
-
-    @property
-    def owner(self) -> str:
-        return self._repository.owner.login
-
-    @property
-    def repo(self) -> str:
-        return self._repository.name
-
-    @property
-    def sha(self) -> str:
-        return self._commit.sha
-
-    @property
-    def url(self) -> str:
-        return self._commit.html_url
-
-    @property
-    def title(self) -> str:
-        return self._commit.commit['message']
-
-    @property
-    def author(self) -> str:
-        return self._commit.author['login']
-
-
-class Issue:
-    def __init__(self, issue: GHIssue, repository: GHRepo) -> None:
-        self._issue = issue
-        self._repository = repository
-
-    @property
-    def type(self) -> str:
-        return 'Issue' if not self._issue.pull_request_urls else 'PR'
-
-    @property
-    def owner(self) -> str:
-        return self._repository.owner.login
-
-    @property
-    def repo(self) -> str:
-        return self._repository.name
-
-    @property
-    def number(self) -> int:
-        return self._issue.number
-
-    @property
-    def url(self) -> str:
-        return self._issue.html_url
-
-    @property
-    def title(self) -> str:
-        return self._issue.title
-
-    @property
-    def author(self) -> str:
-        return self._issue.user.login
-
-
-class PTBContrib(NamedTuple):
-    name: str
-    url: str
 
 
 class GitHubIssues:
@@ -140,68 +67,15 @@ class GitHubIssues:
         self.session = login(client_id, client_secret)
         self.repos.update_session(self.session)
 
-    def pretty_format(
-        self,
-        thing: Union[Issue, Commit, PTBContrib],
-        short: bool = False,
-        short_with_title: bool = False,
-        title_max_length: int = 15,
-    ) -> str:
-        if isinstance(thing, Issue):
-            return self.pretty_format_issue(
-                thing,
-                short=short,
-                short_with_title=short_with_title,
-                title_max_length=title_max_length,
-            )
-        if isinstance(thing, PTBContrib):
-            return f'ptbcontrib/{thing.name}'
-        return self.pretty_format_commit(
-            thing,
-            short=short,
-            short_with_title=short_with_title,
-            title_max_length=title_max_length,
-        )
+    @property
+    def all_ptbcontribs(self) -> List[PTBContrib]:
+        with self.ptbcontrib_lock:
+            return list(self.ptbcontribs.values())
 
-    def pretty_format_issue(
-        self,
-        issue: Issue,
-        short: bool = False,
-        short_with_title: bool = False,
-        title_max_length: int = 15,
-    ) -> str:
-        # PR OwnerIfNotDefault/RepoIfNotDefault#9999: Title by Author
-        # OwnerIfNotDefault/RepoIfNotDefault#9999 if short=True
-        short_text = (
-            f'{"" if issue.owner == self.default_owner else issue.owner + "/"}'
-            f'{"" if issue.repo == self.default_repo else issue.repo}'
-            f'#{issue.number}'
-        )
-        if short:
-            return short_text
-        if short_with_title:
-            return f'{short_text}: {truncate_str(issue.title, title_max_length)}'
-        return f'{issue.type} {short_text}: {issue.title} by {issue.author}'
-
-    def pretty_format_commit(
-        self,
-        commit: Commit,
-        short: bool = False,
-        short_with_title: bool = False,
-        title_max_length: int = 15,
-    ) -> str:
-        # Commit OwnerIfNotDefault/RepoIfNotDefault@abcdf123456789: Title by Author
-        # OwnerIfNotDefault/RepoIfNotDefault@abcdf123456789 if short=True
-        short_text = (
-            f'{"" if commit.owner == self.default_owner else commit.owner + "/"}'
-            f'{"" if commit.repo == self.default_repo else commit.repo}'
-            f'@{commit.sha[:7]}'
-        )
-        if short:
-            return short_text
-        if short_with_title:
-            return f'{short_text}: {truncate_str(commit.title, title_max_length)}'
-        return f'Commit {short_text}: {commit.title} by {commit.author}'
+    @property
+    def all_issues(self) -> List[Issue]:
+        with self.issues_lock:
+            return list(self.issues.values())
 
     def get_issue(self, number: int, owner: str = None, repo: str = None) -> Optional[Issue]:
         if owner or repo:
@@ -332,42 +206,6 @@ class GitHubIssues:
 
     def init_ptb_contribs(self, job_queue: JobQueue) -> None:
         job_queue.run_once(lambda _: self._ptbcontrib_job(job_queue), 5)
-
-    def search(self, query: str) -> List[Issue]:
-        def processor(str_or_issue: Union[str, Issue]) -> str:
-            string = str_or_issue.title if isinstance(str_or_issue, Issue) else str_or_issue
-            return string.strip().lower()
-
-        # We don't care about the score, so return first element
-        # This must not happen while updating the self.issues dict so acquire the lock
-        with self.issues_lock:
-            return [
-                result[0]
-                for result in process.extract(
-                    query, self.issues, scorer=fuzz.partial_ratio, processor=processor, limit=1000
-                )
-            ]
-
-    def search_ptbcontrib(self, query: str) -> List[PTBContrib]:
-        def processor(str_or_contrib: PTBContrib) -> str:
-            string = (
-                str_or_contrib.name if isinstance(str_or_contrib, PTBContrib) else str_or_contrib
-            )
-            return string.strip().lower().replace('_', '')
-
-        # We don't care about the score, so return first element
-        # This must not happen while updating the self.issues dict so acquire the lock
-        with self.ptbcontrib_lock:
-            return [
-                result[0]
-                for result in process.extract(
-                    query,
-                    self.ptbcontribs,
-                    scorer=fuzz.partial_ratio,
-                    processor=processor,
-                    limit=1000,
-                )
-            ]
 
     @staticmethod
     def _build_example_url(example_file_name: str) -> str:
