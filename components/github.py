@@ -80,7 +80,7 @@ class GitHubIssues:
     def get_issue(self, number: int, owner: str = None, repo: str = None) -> Optional[Issue]:
         if owner or repo:
             self.logger.info(
-                'Getting issue %d for %s/%s',
+                "Getting issue %d for %s/%s",
                 number,
                 owner or self.default_owner,
                 repo or self.default_repo,
@@ -112,7 +112,7 @@ class GitHubIssues:
     ) -> Optional[Commit]:
         if owner or repo:
             self.logger.info(
-                'Getting commit %s for %s/%s',
+                "Getting commit %s for %s/%s",
                 sha[:7],
                 owner or self.default_owner,
                 repo or self.default_repo,
@@ -134,12 +134,12 @@ class GitHubIssues:
             return None
 
     def _job(self, job_queue: JobQueue) -> None:
-        self.logger.info('Getting issues for default repo.')
+        self.logger.info("Getting issues for default repo.")
 
         try:
             repo = self.repos[self.default_repo]
             if self.issue_iterator is None:
-                self.issue_iterator = self.repos[self.default_repo].issues(state='all')
+                self.issue_iterator = self.repos[self.default_repo].issues(state="all")
             else:
                 # The GitHubIterator automatically takes care of passing the ETag
                 # which reduces the number of API requests that count towards the rate limit
@@ -156,18 +156,18 @@ class GitHubIssues:
                 # uses. sleeping doesn't block the bot, as jobs run in their own thread.
                 # This is outside the lock! (see above commit)
                 if (i + 1) % 100 == 0:
-                    self.logger.info('Done with %d issues. Sleeping a moment.', i + 1)
+                    self.logger.info("Done with %d issues. Sleeping a moment.", i + 1)
                     time.sleep(10)
 
             # Rerun in 20 minutes
             job_queue.run_once(lambda _: self._job(job_queue), 60 * 20)
         except GitHubException as exc:
-            if 'rate limit' in str(exc):
-                self.logger.warning('GH API rate limit exceeded. Retrying in 70 minutes.')
+            if "rate limit" in str(exc):
+                self.logger.warning("GH API rate limit exceeded. Retrying in 70 minutes.")
                 job_queue.run_once(lambda _: self._job(job_queue), 60 * 70)
             else:
                 self.logger.exception(
-                    'Something went wrong fetching issues. Retrying in 10s.', exc_info=exc
+                    "Something went wrong fetching issues. Retrying in 10s.", exc_info=exc
                 )
                 job_queue.run_once(lambda _: self._job(job_queue), 10)
 
@@ -175,7 +175,7 @@ class GitHubIssues:
         job_queue.run_once(lambda _: self._job(job_queue), 10)
 
     def _ptbcontrib_job(self, job_queue: JobQueue) -> None:
-        self.logger.info('Getting ptbcontrib data.')
+        self.logger.info("Getting ptbcontrib data.")
 
         try:
             files = cast(
@@ -188,19 +188,19 @@ class GitHubIssues:
                     {
                         name: PTBContrib(name, content.html_url)
                         for name, content in files
-                        if content.type == 'dir'
+                        if content.type == "dir"
                     }
                 )
 
             # Rerun in two hours minutes
             job_queue.run_once(lambda _: self._ptbcontrib_job(job_queue), 2 * 60 * 60)
         except GitHubException as exc:
-            if 'rate limit' in str(exc):
-                self.logger.warning('GH API rate limit exceeded. Retrying in 70 minutes.')
+            if "rate limit" in str(exc):
+                self.logger.warning("GH API rate limit exceeded. Retrying in 70 minutes.")
                 job_queue.run_once(lambda _: self._ptbcontrib_job(job_queue), 60 * 70)
             else:
                 self.logger.exception(
-                    'Something went wrong fetching issues. Retrying in 10s.', exc_info=exc
+                    "Something went wrong fetching issues. Retrying in 10s.", exc_info=exc
                 )
                 job_queue.run_once(lambda _: self._ptbcontrib_job(job_queue), 10)
 
@@ -219,7 +219,7 @@ class GitHubIssues:
 
         files = cast(
             List[Tuple[str, Contents]],
-            self.repos[self.default_repo].directory_contents('examples'),
+            self.repos[self.default_repo].directory_contents("examples"),
         )
         if effective_pattern is None:
             return [(name, self._build_example_url(name)) for name, _ in files]

@@ -1,11 +1,12 @@
 import re
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Optional
 
 from github3.repos.commit import RepoCommit as GHCommit
 from github3.repos import Repository as GHRepo
 from github3.issues import Issue as GHIssue
 from fuzzywuzzy import fuzz
+from telegram import InlineKeyboardMarkup
 
 from components.const import (
     ARROW_CHARACTER,
@@ -34,18 +35,29 @@ class BaseEntry(ABC):
         """Description of the entry to display in the search results"""
 
     @property
-    @abstractmethod
-    def html_markup(self) -> str:
-        """HTML markup to be used if this entry is selected in the search"""
+    def short_description(self) -> str:
+        """Short description of the entry ot display in the search results. Useful when displaying
+        multiple search results in one entry. Defaults to :attr:`short_name` if not overridden."""
+        return self.short_name
 
-    @property
     @abstractmethod
-    def html_insertion_markup(self) -> str:
-        """HTML markup to be used for insertion search"""
+    def html_markup(self, search_query: str = None) -> str:
+        """HTML markup to be used if this entry is selected in the search. May depend on the search
+        query."""
+
+    @abstractmethod
+    def html_insertion_markup(self, search_query: str = None) -> str:
+        """HTML markup to be used for insertion search. May depend on the search query."""
 
     @abstractmethod
     def compare_to_query(self, search_query: str) -> float:
         """Gives a number ∈[0,100] describing how similar the search query is to this entry."""
+
+    @property
+    def inline_keyboard(self) -> Optional[InlineKeyboardMarkup]:
+        """Inline Keyboard markup that can be attached to this entry. Returns :obj:`None`, if
+        not overridden."""
+        return None
 
 
 class Example(BaseEntry):
@@ -57,7 +69,7 @@ class Example(BaseEntry):
     """
 
     def __init__(self, name: str, url: str):
-        if name.endswith('.py'):
+        if name.endswith(".py"):
             self._name = name[:-3]
         else:
             self._name = name
@@ -65,30 +77,31 @@ class Example(BaseEntry):
 
     @property
     def display_name(self) -> str:
-        return f'Examples {ARROW_CHARACTER} {self._name}'
+        return f"Examples {ARROW_CHARACTER} {self._name}"
 
     @property
     def short_name(self) -> str:
-        return f'{self._name}.py'
+        return f"{self._name}.py"
 
     @property
     def description(self) -> str:
-        return 'Examples directory of python-telegram-bot'
+        return "Examples directory of python-telegram-bot"
 
-    @property
-    def html_markup(self) -> str:
-        return f'Examples directory of <i>python-telegram-bot</i>:\n{self.html_insertion_markup}'
+    def html_markup(self, search_query: str = None) -> str:
+        return (
+            "Examples directory of <i>python-telegram-bot</i>:"
+            f"\n{self.html_insertion_markup(search_query)}"
+        )
 
-    @property
-    def html_insertion_markup(self) -> str:
+    def html_insertion_markup(self, _: str = None) -> str:
         return f'<a href="{self.url}">{self.short_name}</a>'
 
     def compare_to_query(self, search_query: str) -> float:
-        if search_query.endswith('.py'):
+        if search_query.endswith(".py"):
             search_query = search_query[:-3]
 
-        search_query = search_query.replace(' ', '')
-        return fuzz.partial_ratio(self._name, search_query)
+        search_query = search_query.replace(" ", "")
+        return fuzz.partial_ratio(self._name.lower(), search_query.lower())
 
 
 class WikiPage(BaseEntry):
@@ -104,11 +117,11 @@ class WikiPage(BaseEntry):
         self.category = category
         self.name = name
         self.url = url
-        self._compare_name = f'{self.category} {self.name}'
+        self._compare_name = f"{self.category} {self.name}".lower()
 
     @property
     def display_name(self) -> str:
-        return f'{self.category} {ARROW_CHARACTER} {self.name}'
+        return f"{self.category} {ARROW_CHARACTER} {self.name}"
 
     @property
     def short_name(self) -> str:
@@ -116,21 +129,19 @@ class WikiPage(BaseEntry):
 
     @property
     def description(self) -> str:
-        return 'Wiki of python-telegram-bot'
+        return "Wiki of python-telegram-bot"
 
-    @property
-    def html_markup(self) -> str:
+    def html_markup(self, search_query: str = None) -> str:
         return (
-            f'Wiki of <i>python-telegram-bot</i> - Category <i>{self.category}</i>\n'
-            f'{self.html_insertion_markup}'
+            f"Wiki of <i>python-telegram-bot</i> - Category <i>{self.category}</i>\n"
+            f"{self.html_insertion_markup(search_query)}"
         )
 
-    @property
-    def html_insertion_markup(self) -> str:
+    def html_insertion_markup(self, _: str = None) -> str:
         return f'<a href="{self.url}">{self.short_name}</a>'
 
     def compare_to_query(self, search_query: str) -> float:
-        return fuzz.token_set_ratio(self._compare_name, search_query)
+        return fuzz.token_set_ratio(self._compare_name, search_query.lower())
 
 
 class CodeSnippet(WikiPage):
@@ -142,7 +153,7 @@ class CodeSnippet(WikiPage):
     """
 
     def __init__(self, name: str, url: str):
-        super().__init__(category='Code Snippets', name=name, url=url)
+        super().__init__(category="Code Snippets", name=name, url=url)
 
 
 class FAQEntry(WikiPage):
@@ -154,7 +165,7 @@ class FAQEntry(WikiPage):
     """
 
     def __init__(self, name: str, url: str):
-        super().__init__(category='FAQ', name=name, url=url)
+        super().__init__(category="FAQ", name=name, url=url)
 
 
 class DocEntry(BaseEntry):
@@ -180,7 +191,7 @@ class DocEntry(BaseEntry):
     ):
         self.url = url
         self.entry_type = entry_type
-        self.effective_type = self.entry_type.split(':')[-1]
+        self.effective_type = self.entry_type.split(":")[-1]
         self.name = name
         self._display_name = display_name
         self.telegram_url = telegram_url
@@ -200,54 +211,52 @@ class DocEntry(BaseEntry):
         """
         # reversed, so that 'class' matches the 'class' part of 'module.class' exactly instead of
         # not matching the 'module' part
-        return list(reversed(re.split(r'\.|/|-', search_query.strip())))
+        return list(reversed(re.split(r"\.|/|-", search_query.strip())))
 
     @property
     def display_name(self) -> str:
         name = self._display_name or self.name
-        return name.replace('filters.', '')
+        return name.replace("filters.", "")
 
     @property
     def short_name(self) -> str:
         name = self._display_name or self.name
 
-        if name.startswith('telegram.ext.filters.'):
+        if name.startswith("telegram.ext.filters."):
             return f"ext.{name[len('telegram.ext.filters.') :]}"
-        if name.startswith('telegram.'):
-            return name[len('telegram.') :]
+        if name.startswith("telegram."):
+            return name[len("telegram.") :]
         return name
 
     @property
     def description(self) -> str:
-        return 'Documentation of python-telegram-bot'
+        return "Documentation of python-telegram-bot"
 
-    @property
-    def html_markup(self) -> str:
+    def html_markup(self, _: str = None) -> str:
         base = (
-            f'<code>{self.short_name}</code>\n'
-            f'<i>python-telegram-bot</i> documentation for this {self.effective_type}:\n'
-            f'{self.html_markup_no_telegram}'
+            f"<code>{self.short_name}</code>\n"
+            f"<i>python-telegram-bot</i> documentation for this {self.effective_type}:\n"
+            f"{self.html_markup_no_telegram}"
         )
         if not self.telegram_url and not self.telegram_name:
-            tg_text = ''
+            tg_text = ""
         else:
             tg_text = (
-                '\n\nTelegrams official Bot API documentation has more info about'
-                f'<a href="{self.telegram_url}">{self.telegram_name}</a>'
+                "\n\nTelegrams official Bot API documentation has more info about"
+                f'<a href="{self.telegram_url}">{self.telegram_name}</a>.'
             )
         return base + tg_text
 
     @property
     def html_markup_no_telegram(self) -> str:
-        return f'<a href="{self.url}">{self.short_name}</a>'
+        return f'<a href="{self.url}">{self.name}</a>'
 
-    @property
-    def html_insertion_markup(self) -> str:
+    def html_insertion_markup(self, _: str = None) -> str:
         if not self.telegram_name and not self.telegram_url:
             return self.html_markup_no_telegram
         return (
             f'{self.html_markup_no_telegram} <a href="{self.telegram_url}">'
-            f'{TELEGRAM_SUPERSCRIPT}</a>'
+            f"{TELEGRAM_SUPERSCRIPT}</a>"
         )
 
     def compare_to_query(self, search_query: str) -> float:
@@ -256,13 +265,13 @@ class DocEntry(BaseEntry):
 
         # We compare all the single parts of the query …
         for target, value in zip(processed_query, self._parsed_name):
-            score += fuzz.ratio(target, value)
+            score += fuzz.ratio(target.lower(), value.lower())
         # ... and the full name because we're generous
-        score += fuzz.ratio(search_query, self.name)
+        score += fuzz.ratio(search_query.lower(), self.name.lower())
 
         # IISC std: is the domain for general stuff like headlines and chapters.
         # we'll wanna give those a little less weight
-        if self.entry_type.startswith('std:'):
+        if self.entry_type.startswith("std:"):
             score *= 0.8
         return score
 
@@ -301,38 +310,36 @@ class Commit(BaseEntry):
 
     @property
     def title(self) -> str:
-        return self._commit.commit['message']
+        return self._commit.commit["message"]
 
     @property
     def author(self) -> str:
-        return self._commit.author['login']
+        return self._commit.author["login"]
 
     @property
     def short_name(self) -> str:
         return (
             f'{"" if self.owner == DEFAULT_REPO_OWNER else self.owner + "/"}'
             f'{"" if self.repo == DEFAULT_REPO_NAME else self.repo}'
-            f'@{self.short_sha}'
+            f"@{self.short_sha}"
         )
 
     @property
     def display_name(self) -> str:
-        return f'Commit {self.short_name}: {self.title} by {self.author}'
+        return f"Commit {self.short_name}: {self.title} by {self.author}"
 
     @property
     def description(self) -> str:
-        return 'Search on GitHub'
+        return "Search on GitHub"
 
-    @property
-    def html_markup(self) -> str:
+    def html_markup(self, _: str = None) -> str:
         return f'<a href="{self.display_name}">{self.url}</a>'
 
-    @property
-    def html_insertion_markup(self) -> str:
+    def html_insertion_markup(self, _: str = None) -> str:
         return f'<a href="{self.short_name}">{self.url}</a>'
 
     def compare_to_query(self, search_query: str) -> float:
-        search_query = search_query.lstrip('@ ')
+        search_query = search_query.lstrip("@ ")
         if self.sha.startswith(search_query):
             return 100
         return 0
@@ -352,7 +359,7 @@ class Issue(BaseEntry):
 
     @property
     def type(self) -> str:
-        return 'Issue' if not self._issue.pull_request_urls else 'PR'
+        return "Issue" if not self._issue.pull_request_urls else "PR"
 
     @property
     def owner(self) -> str:
@@ -383,30 +390,33 @@ class Issue(BaseEntry):
         return (
             f'{"" if self.owner == DEFAULT_REPO_OWNER else self.owner + "/"}'
             f'{"" if self.repo == DEFAULT_REPO_NAME else self.repo}'
-            f'#{self.number}'
+            f"#{self.number}"
         )
 
     @property
     def display_name(self) -> str:
-        return f'{self.type} {self.short_name}: {self.title} by {self.author}'
+        return f"{self.type} {self.short_name}: {self.title} by {self.author}"
 
     @property
     def description(self) -> str:
-        return 'Search on GitHub'
+        return "Search on GitHub"
 
     @property
-    def html_markup(self) -> str:
+    def short_description(self) -> str:
+        string = f"{self.type} {self.short_name}: {self.title}"
+        return (string[:25] + "…") if len(string) > 25 else string
+
+    def html_markup(self, _: str = None) -> str:
         return f'<a href="{self.url}">{self.display_name}</a>'
 
-    @property
-    def html_insertion_markup(self) -> str:
+    def html_insertion_markup(self, _: str = None) -> str:
         return f'<a href="{self.url}">{self.short_name}</a>'
 
     def compare_to_query(self, search_query: str) -> float:
-        search_query = search_query.lstrip('# ')
+        search_query = search_query.lstrip("# ")
         if str(self.number) == search_query:
             return 100
-        return fuzz.token_set_ratio(self.title, search_query)
+        return fuzz.token_set_ratio(self.title.lower(), search_query.lower())
 
 
 class PTBContrib(BaseEntry):
@@ -423,7 +433,7 @@ class PTBContrib(BaseEntry):
 
     @property
     def display_name(self) -> str:
-        return f'ptbcontrib/{self.name}'
+        return f"ptbcontrib/{self.name}"
 
     @property
     def short_name(self) -> str:
@@ -431,18 +441,71 @@ class PTBContrib(BaseEntry):
 
     @property
     def description(self) -> str:
-        return 'Community base extensions for python-telegram-bot'
+        return "Community base extensions for python-telegram-bot"
 
-    @property
-    def html_markup(self) -> str:
+    def html_markup(self, _: str = None) -> str:
         return f'<a href="{self.url}">{self.display_name}</a>'
 
-    @property
-    def html_insertion_markup(self) -> str:
-        return self.html_markup
+    def html_insertion_markup(self, search_query: str = None) -> str:
+        return self.html_markup(search_query)
 
     def compare_to_query(self, search_query: str) -> float:
         # Here we just assume that everything before thi first / is ptbcontrib
         # (modulo typos). That could be wrong, but then it's the users fault :)
-        search_query = search_query.split('/', maxsplit=1)[-1]
-        return fuzz.ratio(self.name, search_query)
+        search_query = search_query.split("/", maxsplit=1)[-1]
+        return fuzz.ratio(self.name.lower(), search_query.lower())
+
+
+class TagHint(BaseEntry):
+    """A tag hint for frequently used texts in the groups.
+
+    Attributes:
+        tag: The tag of this hint.
+        message: The message to display in HTML layout. It may contain a ``{query}`` part, which
+            will be filled appropriately.
+        description: Description of the tag hint.
+        default_query: Optional. Inserted into the ``message`` if no other query is provided.
+        inline_keyboard: Optional. In InlineKeyboardMarkup to attach to the hint.
+    """
+
+    def __init__(
+        self,
+        tag: str,
+        message: str,
+        description: str,
+        default_query: str = None,
+        inline_keyboard: InlineKeyboardMarkup = None,
+    ):
+        self.tag = tag
+        self._message = message
+        self._default_query = default_query
+        self._description = description
+        self._inline_keyboard = inline_keyboard
+
+    @property
+    def display_name(self) -> str:
+        return f"Tag hint: {self.short_name}"
+
+    @property
+    def short_name(self) -> str:
+        return f"/{self.tag}"
+
+    @property
+    def description(self) -> str:
+        return self._description
+
+    def html_markup(self, search_query: str = None) -> str:
+        return self._message.format(
+            query=search_query.split(maxsplit=1)[-1] if search_query else self._default_query
+        )
+
+    def html_insertion_markup(self, search_query: str = None) -> str:
+        return self.html_markup(search_query=search_query)
+
+    def compare_to_query(self, search_query: str) -> float:
+        first = search_query.lstrip("/").split(maxsplit=1)[0]
+        return fuzz.ratio(self.tag.lower(), first.lower())
+
+    @property
+    def inline_keyboard(self) -> Optional[InlineKeyboardMarkup]:
+        return self._inline_keyboard

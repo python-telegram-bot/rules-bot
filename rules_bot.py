@@ -9,6 +9,7 @@ from telegram import (
     BotCommandScopeAllPrivateChats,
     BotCommandScopeChat,
     BotCommandScopeAllGroupChats,
+    BotCommandScopeChatAdministrators,
 )
 from telegram.error import BadRequest, Unauthorized
 from telegram.ext import (
@@ -18,9 +19,10 @@ from telegram.ext import (
     Filters,
     Defaults,
     ChatMemberHandler,
+    InlineQueryHandler,
 )
 
-from components import inlinequeries, taghints
+from components import inlinequeries
 from components.callbacks import (
     start,
     rules,
@@ -32,6 +34,8 @@ from components.callbacks import (
     github,
     delete_new_chat_members_message,
     greet_new_chat_members,
+    tag_hint,
+    say_potato_command,
 )
 from components.errorhandler import error_handler
 from components.const import (
@@ -44,21 +48,23 @@ from components.const import (
     ONTOPIC_CHAT_ID,
     OFFTOPIC_CHAT_ID,
 )
+from components.taghints import TAG_HINTS_PATTERN
 from components.util import (
     rate_limit_tracker,
+    build_command_list,
 )
 from components.github import github_issues
 
-if os.environ.get('ROOLSBOT_DEBUG'):
+if os.environ.get("ROOLSBOT_DEBUG"):
     logging.basicConfig(
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.DEBUG
     )
 else:
     logging.basicConfig(
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
     )
-    logging.getLogger('apscheduler').setLevel(logging.WARNING)
-    logging.getLogger('github3').setLevel(logging.WARNING)
+    logging.getLogger("apscheduler").setLevel(logging.WARNING)
+    logging.getLogger("github3").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +77,7 @@ def update_rules_messages(bot: Bot) -> None:
             text=ONTOPIC_RULES,
         )
     except (BadRequest, Unauthorized) as exc:
-        logger.warning('Updating on-topic rules failed: %s', exc)
+        logger.warning("Updating on-topic rules failed: %s", exc)
     try:
         bot.edit_message_text(
             chat_id=OFFTOPIC_CHAT_ID,
@@ -79,43 +85,41 @@ def update_rules_messages(bot: Bot) -> None:
             text=OFFTOPIC_RULES,
         )
     except (BadRequest, Unauthorized) as exc:
-        logger.warning('Updating off-topic rules failed: %s', exc)
+        logger.warning("Updating off-topic rules failed: %s", exc)
 
 
 def main() -> None:
     config = configparser.ConfigParser()
-    config.read('bot.ini')
+    config.read("bot.ini")
 
     defaults = Defaults(parse_mode=ParseMode.HTML, disable_web_page_preview=True)
-    updater = Updater(token=config['KEYS']['bot_api'], defaults=defaults)
+    updater = Updater(token=config["KEYS"]["bot_api"], defaults=defaults)
     dispatcher = updater.dispatcher
     update_rules_messages(updater.bot)
 
     dispatcher.add_handler(MessageHandler(~Filters.command, rate_limit_tracker), group=-1)
 
     # Note: Order matters!
-    # Taghints - works with regex
-    taghints.register(dispatcher)
 
     # Simple commands
-    dispatcher.add_handler(CommandHandler('start', start))
-    dispatcher.add_handler(CommandHandler('rules', rules))
-    dispatcher.add_handler(MessageHandler(Filters.regex(r'.*#rules.*'), rules))
-    dispatcher.add_handler(CommandHandler('docs', docs))
-    dispatcher.add_handler(CommandHandler('wiki', wiki))
-    dispatcher.add_handler(CommandHandler('help', help_callback))
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(CommandHandler("rules", rules))
+    dispatcher.add_handler(CommandHandler("rules", rules))
+    dispatcher.add_handler(CommandHandler("docs", docs))
+    dispatcher.add_handler(CommandHandler("wiki", wiki))
+    dispatcher.add_handler(CommandHandler("help", help_callback))
 
     # Stuff that runs on every message with regex
     dispatcher.add_handler(
         MessageHandler(
-            Filters.regex(r'(?i)[\s\S]*?((sudo )?make me a sandwich)[\s\S]*?'), sandwich
+            Filters.regex(r"(?i)[\s\S]*?((sudo )?make me a sandwich)[\s\S]*?"), sandwich
         )
     )
-    dispatcher.add_handler(
-        MessageHandler(
-            Filters.regex(r'(?i)[\s\S]*?\b(?<!["\\])(off|on)[- _]?topic\b'), off_on_topic
-        )
-    )
+    dispatcher.add_handler(MessageHandler(Filters.regex("/(on|off)_topic"), off_on_topic))
+
+    # Tag hints - works with regex
+    dispatcher.add_handler(MessageHandler(Filters.regex(TAG_HINTS_PATTERN), tag_hint))
+
     # We need several matches so Filters.regex is basically useless
     # therefore we catch everything and do regex ourselves
     # This should probably be in another dispatcher group
@@ -138,53 +142,49 @@ def main() -> None:
     )
 
     # Inline Queries
-    inlinequeries.register(dispatcher)
+    dispatcher.add_handler(InlineQueryHandler(inlinequeries.inline_query))
+
+    # Captcha for userbots
+    dispatcher.add_handler(CommandHandler("say_potato", say_potato_command))
 
     # Error Handler
     dispatcher.add_error_handler(error_handler)
 
     updater.start_polling(allowed_updates=Update.ALL_TYPES)
-    logger.info('Listening...')
+    logger.info("Listening...")
 
     try:
-        github_issues.set_auth(None, None)
+        github_issues.set_auth(
+            config["KEYS"]["github_client_id"], config["KEYS"]["github_client_secret"]
+        )
     except KeyError:
-        logging.info('No github api token set. Rate-limit is 60 requests/hour without auth.')
+        logging.info("No github api token set. Rate-limit is 60 requests/hour without auth.")
 
     github_issues.init_ptb_contribs(dispatcher.job_queue)  # type: ignore[arg-type]
     github_issues.init_issues(dispatcher.job_queue)  # type: ignore[arg-type]
 
     # set commands
     updater.bot.set_my_commands(
-        [
-            ('docs', 'Send the link to the docs.'),
-            ('wiki', 'Send the link to the wiki.'),
-            ('help', 'Send the link to this bots README.'),
-            ('hints', 'List available tag hints.'),
-        ],
+        build_command_list(private=True),
         scope=BotCommandScopeAllPrivateChats(),
     )
     updater.bot.set_my_commands(
-        [
-            ('docs', 'Send the link to the docs.'),
-            ('wiki', 'Send the link to the wiki.'),
-            ('help', 'Send the link to this bots README.'),
-        ],
+        build_command_list(private=False),
         scope=BotCommandScopeAllGroupChats(),
     )
+
     for group_name in [ONTOPIC_CHAT_ID, OFFTOPIC_CHAT_ID]:
         updater.bot.set_my_commands(
-            [
-                ('docs', 'Send the link to the docs.'),
-                ('wiki', 'Send the link to the wiki.'),
-                ('rules', 'Show the rules for this group.'),
-                ('help', 'Send the link to this bots README.'),
-            ],
+            build_command_list(private=False, group_name=group_name),
             scope=BotCommandScopeChat(group_name),
+        )
+        updater.bot.set_my_commands(
+            build_command_list(private=False, group_name=group_name, admins=True),
+            scope=BotCommandScopeChatAdministrators(group_name),
         )
 
     updater.idle()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
