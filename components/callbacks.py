@@ -461,7 +461,7 @@ def tag_hint(update: Update, _: CallbackContext) -> None:
     )
 
     if reply_to:
-        message.delete()
+        try_to_delete(message)
 
 
 def say_potato_job(context: CallbackContext) -> None:
