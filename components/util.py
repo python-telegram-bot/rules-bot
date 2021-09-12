@@ -12,7 +12,7 @@ from typing import (
 
 from bs4 import BeautifulSoup
 from telegram import Update, InlineKeyboardButton, Message
-from telegram.error import BadRequest
+from telegram.error import BadRequest, Unauthorized
 from telegram.ext import CallbackContext
 
 from .const import RATE_LIMIT_SPACING, ONTOPIC_CHAT_ID, OFFTOPIC_CHAT_ID
@@ -20,21 +20,21 @@ from .taghints import TAG_HINTS
 
 
 def get_reply_id(update: Update) -> Optional[int]:
-    if update.message and update.message.reply_to_message:
-        return update.message.reply_to_message.message_id
+    if update.effective_message and update.effective_message.reply_to_message:
+        return update.effective_message.reply_to_message.message_id
     return None
 
 
 def reply_or_edit(update: Update, context: CallbackContext, text: str) -> None:
     chat_data = cast(Dict, context.chat_data)
-    if update.edited_message:
+    if update.edited_message and update.edited_message.message_id in chat_data:
         try:
             chat_data[update.edited_message.message_id].edit_text(text)
         except BadRequest as exc:
             if "not modified" not in str(exc):
                 raise exc
     else:
-        message = cast(Message, update.message)
+        message = cast(Message, update.effective_message)
         issued_reply = get_reply_id(update)
         if issued_reply:
             chat_data[message.message_id] = context.bot.send_message(
@@ -140,3 +140,10 @@ def build_command_list(
     say_potato = [("say_potato", "Send captcha to a potential userbot")]
 
     return base_commands + on_off_topic + say_potato + hint_commands
+
+
+def try_to_delete(message: Message) -> bool:
+    try:
+        return message.delete()
+    except (BadRequest, Unauthorized):
+        return False
