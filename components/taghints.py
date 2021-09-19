@@ -7,7 +7,29 @@ from components import const
 from components.const import PTBCONTRIB_LINK
 from components.entrytypes import TagHint
 
+# Tag hints should be used for "meta" hints, i.e. pointing out how to use the PTB groups
+# Explaining functionality should be done in the wiki instead.
+#
+# Note that wiki pages are available through the search directly, but the Ask-Right and MWE pages
+# are needed so frequently that we provide tag hints for them ...
 _TAG_HINTS: Dict[str, Dict[str, Any]] = {
+    "askright": {
+        "message": (
+            "{query} In order for someone to be able to help you, you must ask a <b>good "
+            'technical question</b>. Please read <a href="https://github.com/python-telegram-bot/'
+            'python-telegram-bot/wiki/Ask-Right">this short article</a> and try again ;)'
+        ),
+        "help": "The wiki page about asking technical questions",
+        "default": "Hey.",
+    },
+    "mwe": {
+        "message": (
+            '{query} Have a look at <a href="https://telegra.ph/Minimal-Working-Example-for-PTB-'
+            '07-18">this short article</a> for information on what a MWE is.'
+        ),
+        "help": "How to build an MWE for PTB.",
+        "default": "Hey. Please provide a minimal working example (MWE).",
+    },
     "inline": {
         "message": (
             f"Consider using me in inline-mode 😎 <code>@{const.SELF_BOT_NAME} " + "{query}</code>"
@@ -36,25 +58,6 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
         ),
         "help": "What are Userbots?",
         "default": "",
-    },
-    "snippets": {
-        "message": (
-            '<a href="https://github.com/python-telegram-bot/python-telegram-bot/wiki/'
-            'Code-snippets">Here</a> '
-            "you can find many useful code snippets for the work with python-telegram-bot"
-        ),
-        "help": "Link to the wiki's snippets section",
-    },
-    "pprint": {
-        "message": (
-            "The most convenient way of <b>pretty-printing an update</b> is:\n\n"
-            "<pre>from pprint import pprint\npprint(update.to_dict())</pre>\n\n"
-            "It shows you what attributes are available in an update. Alternatively, use a json "
-            "dumping bot like @JsonDumpBot or @JsonDumpBetaBot for a general overview, but keep "
-            "in mind that this method won't be entirely consistent with your bots updates "
-            "(different file_ids for example)."
-        ),
-        "help": "Explain how to pretty-print an update",
     },
     "meta": {
         "message": (
@@ -109,36 +112,10 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
             "library."
         ),
     },
-    "askright": {
-        "message": (
-            "{query} In order for someone to be able to help you, you must ask a <b>good "
-            'technical question</b>. Please read <a href="https://github.com/python-telegram-bot/'
-            'python-telegram-bot/wiki/Ask-Right">this short article</a> and try again ;)'
-        ),
-        "help": "The wiki page about asking technical questions",
-        "default": "Hey.",
-    },
-    "broadcast": {
-        "message": (
-            '{query} Broadcasting to users is a common use case. This <a href="https://telegra.ph/'
-            'Sending-notifications-to-all-users-07-17">short article</a> summarizes the most '
-            "important tips for that."
-        ),
-        "help": "FAQ for broadcasting to users.",
-        "default": "Hey.",
-    },
-    "mwe": {
-        "message": (
-            '{query} Have a look at <a href="https://telegra.ph/Minimal-Working-Example-for-PTB-'
-            '07-18">this short article</a> for information on what a MWE is.'
-        ),
-        "help": "How to build an MWE for PTB.",
-        "default": "Hey. Please provide a minimal working example (MWE).",
-    },
     "pastebin": {
         "message": (
-            "{query} Please post code using a pastebin rather then as plain text or screenshots. "
-            "https://pastebin.com/ is quite popular, but there are many alternatives out there."
+            "{query} Please post code or tracebacks using a pastebin rather then as plain text or."
+            " https://pastebin.com/ is quite popular, but there are many alternatives out there."
             " Of course, for very short snippets, text is fine. Please at least format it as "
             "monospace in that case."
         ),
@@ -152,23 +129,6 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
         ),
         "help": "Ask users not to post the same question in both on- and off-topic.",
         "default": "Hey.",
-    },
-    "formatting": {
-        "message": (
-            "{query} Telegram supports some formatting options for text. All the details about "
-            'what is supported can be found <a href="https://core.telegram.org/bots/api#formatting'
-            '-options">here</a>. You can format text with every API method/type that has a '
-            "<code>parse_mode</code> parameter. In addition to editing your text as described in "
-            "the link above, pass one of the parse modes available through "
-            '<a href="https://python-telegram-bot.readthedocs.io/en/stable/telegram.parsemode.html'
-            '">telegram.ParseMode</a> to the <code>parse_mode</code> parameter. Since the '
-            "<code>5.0</code> update of the Bot API (version <code>13.1+</code> of our library), "
-            'you can alternatively pass a list of <a href="https://python-telegram-bot.'
-            'readthedocs.io/en/stable/telegram.messageentity.html">telegram.MessageEntities</a> '
-            "to the <code>entities</code> parameter."
-        ),
-        "default": "Hey.",
-        "help": "How to use text formatting.",
     },
     "xy": {
         "message": (
