@@ -510,14 +510,22 @@ def say_potato_command(update: Update, context: CallbackContext) -> None:
         return
 
     user = cast(User, message.reply_to_message.from_user)
-    time_limit = (int(context.args[0]) if context.args else None) or 60
+
+    if context.args:
+        try:
+            time_limit = int(context.args[0])
+        except ValueError:
+            time_limit = 60
+    else:
+        time_limit = 60
+
     correct, incorrect_1, incorrect_2 = random.sample(VEGETABLES, 3)
 
     message_text = (
         f"You display behavior that is common for userbots, i.e. automated Telegram "
         f"accounts that usually produce spam. Please verify that you are not a userbot by "
-        f"clicking the button that says {correct}. If you don't press the button within "
-        f"{time_limit} minutes, you will be banned from the PTB groups. If you miss the "
+        f"clicking the button that says <code>{correct}</code>. If you don't press the button "
+        f"within {time_limit} minutes, you will be banned from the PTB groups. If you miss the "
         f"time limit but are not a userbot and want to get unbanned, please contact "
         f"{cast(User, message.from_user).mention_html()}."
     )
@@ -530,4 +538,15 @@ def say_potato_command(update: Update, context: CallbackContext) -> None:
         ]
     )
 
-    message.reply_to_message.reply_text(message_text, reply_markup=keyboard)
+    potato_message = message.reply_to_message.reply_text(message_text, reply_markup=keyboard)
+    user_id = cast(User, message.reply_to_message.from_user).id
+    cast(JobQueue, context.job_queue).run_once(
+        say_potato_job,
+        time_limit * 60,
+        context=(
+            user_id,
+            potato_message,
+            message.from_user,
+        ),
+        name=f"POTATO {user_id}",
+    )

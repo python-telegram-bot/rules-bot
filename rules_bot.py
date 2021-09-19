@@ -20,6 +20,7 @@ from telegram.ext import (
     Defaults,
     ChatMemberHandler,
     InlineQueryHandler,
+    CallbackQueryHandler,
 )
 
 from components import inlinequeries
@@ -36,6 +37,7 @@ from components.callbacks import (
     greet_new_chat_members,
     tag_hint,
     say_potato_command,
+    say_potato_button,
 )
 from components.errorhandler import error_handler
 from components.const import (
@@ -146,6 +148,7 @@ def main() -> None:
 
     # Captcha for userbots
     dispatcher.add_handler(CommandHandler("say_potato", say_potato_command))
+    dispatcher.add_handler(CallbackQueryHandler(say_potato_button, pattern="^POTATO"))
 
     # Error Handler
     dispatcher.add_error_handler(error_handler)
