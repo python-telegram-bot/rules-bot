@@ -99,7 +99,7 @@ def inlinequery_entity_parsing(update: Update, _: CallbackContext) -> None:
         "of reserved characters, please see the official "
         "<a href='https://core.telegram.org/bots/api#html-style'>Telegram docs</a>."
     )
-    cast(Message, update.message).reply_text(text)
+    cast(Message, update.effective_message).reply_text(text)
 
 
 @rate_limit
