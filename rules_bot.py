@@ -104,8 +104,8 @@ def main() -> None:
     # Note: Order matters!
 
     # Simple commands
+    # The first one also handles deep linking /start commands
     dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(CommandHandler("rules", rules))
     dispatcher.add_handler(CommandHandler("rules", rules))
     dispatcher.add_handler(CommandHandler("docs", docs))
     dispatcher.add_handler(CommandHandler("wiki", wiki))

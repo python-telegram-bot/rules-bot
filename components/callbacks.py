@@ -54,6 +54,8 @@ def start(update: Update, context: CallbackContext) -> None:
     message = cast(Message, update.message)
     username = cast(Chat, update.effective_chat)
     args = context.args
+
+    # For deep linking
     if args:
         if args[0] == "inline-help":
             inlinequery_help(update, context)
@@ -143,12 +145,11 @@ def wiki(update: Update, _: CallbackContext) -> None:
         "You can find our wiki on "
         "[GitHub](https://github.com/python-telegram-bot/python-telegram-bot/wiki)"
     )
-    reply_id = message.reply_to_message.message_id if message.reply_to_message else None
     message.reply_text(
         text,
         parse_mode="Markdown",
         quote=False,
-        reply_to_message_id=reply_id,
+        reply_to_message_id=get_reply_id(update),
     )
     try_to_delete(message)
 
@@ -162,17 +163,18 @@ def help_callback(update: Update, context: CallbackContext) -> None:
         'wiki on <a href="https://github.com/python-telegram-bot/rules-bot/blob/master/README.md">'
         "GitHub</a>."
     )
-    reply_id = message.reply_to_message.message_id if message.reply_to_message else None
     message.reply_text(
         text,
         quote=False,
-        reply_to_message_id=reply_id,
+        reply_to_message_id=get_reply_id(update),
     )
     try_to_delete(message)
 
 
 def off_on_topic(update: Update, context: CallbackContext) -> None:
     # Minimal effort LRU cache
+    # We store the newest 64 messages that lead to redirection to minimize the chance that
+    # editing a message falsely triggers the redirect again
     parsed_messages = cast(Dict, context.chat_data).setdefault(
         "redirect_messages", Queue(maxsize=64)
     )
@@ -180,15 +182,11 @@ def off_on_topic(update: Update, context: CallbackContext) -> None:
     message = cast(Message, update.effective_message)
     if message.message_id in parsed_messages:
         return
-    if parsed_messages.full():
-        parsed_messages.get()
-        parsed_messages.task_done()
 
     chat_username = cast(Chat, update.effective_chat).username
     group_one = cast(Match, context.match).group(1)
     if chat_username == ONTOPIC_USERNAME and group_one.lower() == "off":
         reply = message.reply_to_message
-        moved_notification = "I moved this discussion to the [off-topic Group]({})."
         if reply and reply.text:
             issued_reply = get_reply_id(update)
 
@@ -198,13 +196,14 @@ def off_on_topic(update: Update, context: CallbackContext) -> None:
                 else:
                     name = reply.from_user.first_name
             else:
+                # Probably never happens anyway ...
                 name = "Somebody"
 
             replied_message_text = reply.text_html
             replied_message_id = reply.message_id
 
             text = (
-                f'{name} <a href="t.me/pythontelegrambotgroup/{replied_message_id}">wrote</a>:\n'
+                f'{name} <a href="t.me/{ONTOPIC_USERNAME}/{replied_message_id}">wrote</a>:\n'
                 f"{replied_message_text}\n\n"
                 f"⬇️ ᴘʟᴇᴀsᴇ ᴄᴏɴᴛɪɴᴜᴇ ʜᴇʀᴇ ⬇️"
             )
@@ -212,10 +211,10 @@ def off_on_topic(update: Update, context: CallbackContext) -> None:
             offtopic_msg = context.bot.send_message(OFFTOPIC_CHAT_ID, text)
 
             message.reply_text(
-                moved_notification.format(
-                    "https://telegram.me/pythontelegrambottalk/" + str(offtopic_msg.message_id)
+                text=(
+                    'I moved this discussion to the <a href="https://t.me/'
+                    f'{OFFTOPIC_USERNAME}/{offtopic_msg.message_id}">off-topic group</a>.'
                 ),
-                parse_mode=ParseMode.MARKDOWN,
                 reply_to_message_id=issued_reply,
             )
 
@@ -226,8 +225,6 @@ def off_on_topic(update: Update, context: CallbackContext) -> None:
                 parse_mode=ParseMode.MARKDOWN,
             )
 
-        parsed_messages.put(message.message_id)
-
     elif chat_username == OFFTOPIC_USERNAME and group_one.lower() == "on":
         message.reply_text(
             "The on-topic group is [here](https://telegram.me/pythontelegrambotgroup). "
@@ -235,7 +232,10 @@ def off_on_topic(update: Update, context: CallbackContext) -> None:
             parse_mode=ParseMode.MARKDOWN,
         )
 
-        parsed_messages.put(message.message_id)
+    if parsed_messages.full():
+        parsed_messages.get()
+        parsed_messages.task_done()
+    parsed_messages.put(message.message_id)
 
 
 def sandwich(update: Update, context: CallbackContext) -> None:
@@ -447,6 +447,7 @@ def tag_hint(update: Update, _: CallbackContext) -> None:
         hint = TAG_HINTS[match.group(2).lstrip("/")]
         messages.append(hint.html_markup())
 
+        # Merge keyboards into one
         if entry_kb := hint.inline_keyboard:
             if keyboard is None:
                 keyboard = entry_kb
@@ -465,13 +466,13 @@ def tag_hint(update: Update, _: CallbackContext) -> None:
 
 
 def say_potato_job(context: CallbackContext) -> None:
-    user_id, message, ban_person = cast(Tuple[int, Message, User], cast(Job, context.job).context)
+    user_id, message, who_banned = cast(Tuple[int, Message, User], cast(Job, context.job).context)
     context.bot.ban_chat_member(chat_id=ONTOPIC_CHAT_ID, user_id=user_id)
     context.bot.ban_chat_member(chat_id=OFFTOPIC_CHAT_ID, user_id=user_id)
 
     text = (
         "You have been banned for userbot-like behavior. If you are not a userbot and wish to be"
-        f"unbanned, please contact {ban_person.mention_html()}."
+        f"unbanned, please contact {who_banned.mention_html()}."
     )
     message.edit_text(text=text)
 
@@ -539,14 +540,13 @@ def say_potato_command(update: Update, context: CallbackContext) -> None:
     )
 
     potato_message = message.reply_to_message.reply_text(message_text, reply_markup=keyboard)
-    user_id = cast(User, message.reply_to_message.from_user).id
     cast(JobQueue, context.job_queue).run_once(
         say_potato_job,
         time_limit * 60,
         context=(
-            user_id,
+            user.id,
             potato_message,
             message.from_user,
         ),
-        name=f"POTATO {user_id}",
+        name=f"POTATO {user.id}",
     )

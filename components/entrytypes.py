@@ -5,7 +5,7 @@ from typing import List, Optional
 from github3.repos.commit import RepoCommit as GHCommit
 from github3.repos import Repository as GHRepo
 from github3.issues import Issue as GHIssue
-from fuzzywuzzy import fuzz
+from thefuzz import fuzz
 from telegram import InlineKeyboardMarkup
 
 from components.const import (
@@ -26,7 +26,7 @@ class BaseEntry(ABC):
 
     @property
     def short_name(self) -> str:
-        """Potentially shorter name name to display. Defaults to :attr:`display_name`"""
+        """Potentially shorter name to display. Defaults to :attr:`display_name`"""
         return self.display_name
 
     @property
@@ -36,7 +36,7 @@ class BaseEntry(ABC):
 
     @property
     def short_description(self) -> str:
-        """Short description of the entry ot display in the search results. Useful when displaying
+        """Short description of the entry to display in the search results. Useful when displaying
         multiple search results in one entry. Defaults to :attr:`short_name` if not overridden."""
         return self.short_name
 
@@ -242,7 +242,7 @@ class DocEntry(BaseEntry):
             tg_text = ""
         else:
             tg_text = (
-                "\n\nTelegrams official Bot API documentation has more info about"
+                "\n\nTelegram's official Bot API documentation has more info about"
                 f'<a href="{self.telegram_url}">{self.telegram_name}</a>.'
             )
         return base + tg_text
@@ -336,7 +336,7 @@ class Commit(BaseEntry):
         return f'<a href="{self.display_name}">{self.url}</a>'
 
     def html_insertion_markup(self, _: str = None) -> str:
-        return f'<a href="{self.short_name}">{self.url}</a>'
+        return f'<a href="{self.url}">{self.short_name}</a>'
 
     def compare_to_query(self, search_query: str) -> float:
         search_query = search_query.lstrip("@ ")
@@ -434,10 +434,6 @@ class PTBContrib(BaseEntry):
     @property
     def display_name(self) -> str:
         return f"ptbcontrib/{self.name}"
-
-    @property
-    def short_name(self) -> str:
-        return self.display_name
 
     @property
     def description(self) -> str:

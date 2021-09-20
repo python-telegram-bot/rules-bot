@@ -184,7 +184,7 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
             "it. Note that violation of the CoC can lead to temporary or permanent banishment from"
             " this group."
         ),
-        "default": "Hey",
+        "default": "Hey.",
         "help": "Remind the users of the Code of Conduct.",
     },
 }

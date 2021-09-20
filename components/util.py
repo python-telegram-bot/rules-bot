@@ -92,7 +92,7 @@ def rate_limit(
         # Get rate limit data
         data = cast(Dict, context.chat_data).setdefault("rate_limit", {})
 
-        # If we have not seen two non-command messages since last of type `f`
+        # If we have not seen two non-command messages since last of type `func`
         if data.get(func, RATE_LIMIT_SPACING) < RATE_LIMIT_SPACING:
             logging.debug("Ignoring due to rate limit!")
             cast(Message, update.effective_message).delete()
@@ -124,7 +124,7 @@ def build_command_list(
 
     base_commands += [("rules", "Show the rules for this group.")]
 
-    if not group_name:
+    if group_name is None:
         return base_commands + hint_commands
 
     on_off_topic = [
