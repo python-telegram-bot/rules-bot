@@ -60,7 +60,7 @@ rules-bot tries really hard to provide you with the closest match to your query.
 
 Also, special prefixes restrict the search results:
 
-* Prepending the query with `/` will search *only* for [tag hits](#short-replies)
+* Prepending the query with `/` will search *only* for [tag hints](#short-replies)
 * Prepending the query with `#`/`PR-`/`GH-` will search *only* for entries on GitHub as described [above](#link-to-github-threads). This also allows you to search issues & pull request titles on the [GitHub repository](https://github.com/python-telegram-bot/python-telegram-bot).
 
 ### Insertion Search

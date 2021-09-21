@@ -220,16 +220,14 @@ def off_on_topic(update: Update, context: CallbackContext) -> None:
 
         else:
             message.reply_text(
-                "The off-topic group is [here](https://telegram.me/pythontelegrambottalk). "
+                f'The off-topic group is <a href="https://t.me/{OFFTOPIC_USERNAME}">here</a>. '
                 "Come join us!",
-                parse_mode=ParseMode.MARKDOWN,
             )
 
     elif chat_username == OFFTOPIC_USERNAME and group_one.lower() == "on":
         message.reply_text(
-            "The on-topic group is [here](https://telegram.me/pythontelegrambotgroup). "
+            f'The on-topic group is <a href="https://t.me/{ONTOPIC_USERNAME}">here</a>. '
             "Come join us!",
-            parse_mode=ParseMode.MARKDOWN,
         )
 
     if parsed_messages.full():
@@ -341,7 +339,7 @@ def do_greeting(
         else OFFTOPIC_RULES_MESSAGE_LINK
     )
     text = (
-        f'Welcome {", ".join(users)}! If you haven\'t already, read the rules of this '
+        f"Welcome {', '.join(users)}! If you haven't already, read the rules of this "
         f'group and be sure to follow them. You can find them <a href="{link}">here 🔗</a>.'
     )
 
@@ -505,6 +503,16 @@ def say_potato_button(update: Update, context: CallbackContext) -> None:
 
 def say_potato_command(update: Update, context: CallbackContext) -> None:
     message = cast(Message, update.effective_message)
+    who_banned = cast(User, message.from_user)
+    chat = cast(Chat, update.effective_chat)
+
+    # This check will fail if we add or remove admins at runtime but that is so rare that
+    # we can just restart the bot in that case ...
+    admins = cast(Dict, context.chat_data).setdefault("admins", chat.get_administrators())
+    if who_banned not in [admin.user for admin in admins]:
+        message.reply_text("This command is only available for admins. You are not an admin.")
+        return
+
     message.delete()
 
     if not message.reply_to_message:
@@ -528,7 +536,7 @@ def say_potato_command(update: Update, context: CallbackContext) -> None:
         f"clicking the button that says <code>{correct}</code>. If you don't press the button "
         f"within {time_limit} minutes, you will be banned from the PTB groups. If you miss the "
         f"time limit but are not a userbot and want to get unbanned, please contact "
-        f"{cast(User, message.from_user).mention_html()}."
+        f"{who_banned.mention_html()}."
     )
 
     answers = random.sample([(correct, True), (incorrect_1, False), (incorrect_2, False)], 3)

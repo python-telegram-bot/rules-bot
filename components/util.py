@@ -1,3 +1,5 @@
+# pylint:disable=cyclic-import
+# because we import truncate_str in entrytypes.Issue.short_description
 import logging
 from functools import wraps
 from typing import (

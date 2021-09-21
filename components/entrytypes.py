@@ -242,7 +242,7 @@ class DocEntry(BaseEntry):
             tg_text = ""
         else:
             tg_text = (
-                "\n\nTelegram's official Bot API documentation has more info about"
+                "\n\nTelegram's official Bot API documentation has more info about "
                 f'<a href="{self.telegram_url}">{self.telegram_name}</a>.'
             )
         return base + tg_text
@@ -333,7 +333,7 @@ class Commit(BaseEntry):
         return "Search on GitHub"
 
     def html_markup(self, _: str = None) -> str:
-        return f'<a href="{self.display_name}">{self.url}</a>'
+        return f'<a href="{self.url}">{self.display_name}</a>'
 
     def html_insertion_markup(self, _: str = None) -> str:
         return f'<a href="{self.url}">{self.short_name}</a>'
@@ -403,8 +403,11 @@ class Issue(BaseEntry):
 
     @property
     def short_description(self) -> str:
+        # Needs to be here because of cyclical imports
+        from .util import truncate_str  # pylint:disable=import-outside-toplevel
+
         string = f"{self.type} {self.short_name}: {self.title}"
-        return (string[:25] + "…") if len(string) > 25 else string
+        return truncate_str(string, 25)
 
     def html_markup(self, _: str = None) -> str:
         return f'<a href="{self.url}">{self.display_name}</a>'
