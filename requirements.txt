@@ -1,7 +1,7 @@
 # Make sure to install those as additional_dependencies in the
 # pre-commit hooks for pylint & mypy
 beautifulsoup4
-fuzzywuzzy
+thefuzz==0.19.0
 python-Levenshtein
 python-telegram-bot==13.7
 Sphinx

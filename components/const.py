@@ -1,41 +1,40 @@
 import re
 from urllib.parse import urljoin
 
-ARROW_CHARACTER = '➜'
+ARROW_CHARACTER = "➜"
 GITHUB_URL = "https://github.com/"
-DEFAULT_REPO_OWNER = 'python-telegram-bot'
-DEFAULT_REPO_NAME = 'python-telegram-bot'
-PTBCONTRIB_REPO_NAME = 'ptbcontrib'
-DEFAULT_REPO = f'{DEFAULT_REPO_OWNER}/{DEFAULT_REPO_NAME}'
+DEFAULT_REPO_OWNER = "python-telegram-bot"
+DEFAULT_REPO_NAME = "python-telegram-bot"
+PTBCONTRIB_REPO_NAME = "ptbcontrib"
+DEFAULT_REPO = f"{DEFAULT_REPO_OWNER}/{DEFAULT_REPO_NAME}"
 # Require x non-command messages between each /rules etc.
 RATE_LIMIT_SPACING = 2
 # Welcome new chat members at most ever X minutes
 NEW_CHAT_MEMBERS_LIMIT_SPACING = 60
-USER_AGENT = 'Github: python-telegram-bot/rules-bot'
-ENCLOSING_REPLACEMENT_CHARACTER = '+'
-ENCLOSED_REGEX = (
-    rf'\{ENCLOSING_REPLACEMENT_CHARACTER}([a-zA-Z_.0-9]*)\{ENCLOSING_REPLACEMENT_CHARACTER}'
-)
-OFFTOPIC_USERNAME = 'pythontelegrambottalk'
-ONTOPIC_USERNAME = 'pythontelegrambotgroup'
-OFFTOPIC_CHAT_ID = '@' + OFFTOPIC_USERNAME
-ONTOPIC_CHAT_ID = '@' + ONTOPIC_USERNAME
+USER_AGENT = "Github: python-telegram-bot/rules-bot"
+ENCLOSING_REPLACEMENT_CHARACTER = "+"
+_ERC = ENCLOSING_REPLACEMENT_CHARACTER
+ENCLOSED_REGEX = re.compile(rf"\{_ERC}([^{_ERC}]*)\{_ERC}")
+OFFTOPIC_USERNAME = "pythontelegrambottalk"
+ONTOPIC_USERNAME = "pythontelegrambotgroup"
+OFFTOPIC_CHAT_ID = "@" + OFFTOPIC_USERNAME
+ONTOPIC_CHAT_ID = "@" + ONTOPIC_USERNAME
 ERROR_CHANNEL_CHAT_ID = -1001397960657
-TELEGRAM_SUPERSCRIPT = 'ᵀᴱᴸᴱᴳᴿᴬᴹ'
-FAQ_CHANNEL_ID = '@ptbfaq'
-SELF_BOT_NAME = 'roolsbot'
+TELEGRAM_SUPERSCRIPT = "ᵀᴱᴸᴱᴳᴿᴬᴹ"
+FAQ_CHANNEL_ID = "@ptbfaq"
+SELF_BOT_NAME = "roolsbot"
 ONTOPIC_RULES_MESSAGE_ID = 419903
-ONTOPIC_RULES_MESSAGE_LINK = 'https://t.me/pythontelegrambotgroup/419903'
+ONTOPIC_RULES_MESSAGE_LINK = "https://t.me/pythontelegrambotgroup/419903"
 OFFTOPIC_RULES_MESSAGE_ID = 161133
-OFFTOPIC_RULES_MESSAGE_LINK = 'https://t.me/pythontelegrambottalk/161133'
-PTBCONTRIB_LINK = 'https://github.com/python-telegram-bot/ptbcontrib/'
+OFFTOPIC_RULES_MESSAGE_LINK = "https://t.me/pythontelegrambottalk/161133"
+PTBCONTRIB_LINK = "https://github.com/python-telegram-bot/ptbcontrib/"
 DOCS_URL = "https://python-telegram-bot.readthedocs.io/en/stable/"
 OFFICIAL_URL = "https://core.telegram.org/bots/api"
-PROJECT_URL = urljoin(GITHUB_URL, DEFAULT_REPO + '/')
+PROJECT_URL = urljoin(GITHUB_URL, DEFAULT_REPO + "/")
 WIKI_URL = urljoin(PROJECT_URL, "wiki/")
 WIKI_CODE_SNIPPETS_URL = urljoin(WIKI_URL, "Code-snippets")
 WIKI_FAQ_URL = urljoin(WIKI_URL, "Frequently-Asked-Questions")
-EXAMPLES_URL = urljoin(PROJECT_URL, 'tree/master/examples/')
+EXAMPLES_URL = urljoin(PROJECT_URL, "tree/master/examples/")
 ONTOPIC_RULES = """
 This group is for questions, answers and discussions around the \
 <a href="https://python-telegram-bot.org/">python-telegram-bot library</a> and, to some extent, \
@@ -54,6 +53,7 @@ conversation with them.
 - Please abide by our <a href="https://github.com/python-telegram-bot/python-telegram-bot/blob/\
 master/CODE_OF_CONDUCT.md">Code of Conduct</a>
 - Use <code>@admin</code> to report spam or abuse and <i>only</i> for that.
+- If you have a userbot, deactivate it in here. Otherwise you'll get banned at least temporarily.
 
 Before asking, please take a look at our <a href="https://github.com/python-telegram-bot/\
 python-telegram-bot/wiki">wiki</a> and <a href="https://github.com/python-telegram-bot/\
@@ -81,6 +81,7 @@ conversation with them.
 - Please abide by our <a href="https://github.com/python-telegram-bot/python-telegram-bot/blob/\
 master/CODE_OF_CONDUCT.md">Code of Conduct</a>
 - Use <code>@admin</code> to report spam or abuse and <i>only</i> for that.
+- If you have a userbot, deactivate it in here. Otherwise you'll get banned at least temporarily.
 """
 
 # Github Pattern
@@ -118,7 +119,7 @@ GITHUB_PATTERN = re.compile(
                     (?:  # Followed by either
                         (?P<number>\d+)  # Numbers
                         |  # Or
-                        (?P<query>\S+)  # A search query (without spaces) (only works inline)
+                        (?P<query>.+)  # A search query (only works inline)
                     )
                 )
             |  # Or
@@ -131,3 +132,87 @@ GITHUB_PATTERN = re.compile(
 """,
     re.VERBOSE,
 )
+VEGETABLES = [
+    "amaranth",
+    "anise",
+    "artichoke",
+    "arugula",
+    "asparagus",
+    "aubergine",
+    "basil",
+    "beet",
+    "broccoflower",
+    "broccoli",
+    "cabbage",
+    "calabrese",
+    "caraway",
+    "carrot",
+    "cauliflower",
+    "celeriac",
+    "celery",
+    "chamomile",
+    "chard",
+    "chayote",
+    "chickpea",
+    "chives",
+    "cilantro",
+    "corn",
+    "corn salad",
+    "courgette",
+    "cucumber",
+    "daikon",
+    "delicata",
+    "dill",
+    "eggplant",
+    "endive",
+    "fennel",
+    "fiddlehead",
+    "frisee",
+    "garlic",
+    "ginger",
+    "habanero",
+    "horseradish",
+    "jalapeno",
+    "jicama",
+    "kale",
+    "kohlrabi",
+    "lavender",
+    "leek ",
+    "legume",
+    "lentils",
+    "lettuce",
+    "mamey",
+    "mangetout",
+    "marjoram",
+    "mushroom",
+    "nopale",
+    "okra",
+    "onion",
+    "oregano",
+    "paprika",
+    "parsley",
+    "parsnip",
+    "pea",
+    "potato",
+    "pumpkin",
+    "radicchio",
+    "radish",
+    "rhubarb",
+    "rosemary",
+    "rutabaga",
+    "sage",
+    "scallion",
+    "shallot",
+    "skirret",
+    "spinach",
+    "squash",
+    "taro",
+    "thyme",
+    "topinambur",
+    "tubers",
+    "turnip",
+    "wasabi",
+    "watercress",
+    "yam",
+    "zucchini",
+]
