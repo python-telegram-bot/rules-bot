@@ -147,7 +147,13 @@ def main() -> None:
     dispatcher.add_handler(InlineQueryHandler(inlinequeries.inline_query))
 
     # Captcha for userbots
-    dispatcher.add_handler(CommandHandler("say_potato", say_potato_command))
+    dispatcher.add_handler(
+        CommandHandler(
+            "say_potato",
+            say_potato_command,
+            filters=Filters.chat(username=[ONTOPIC_USERNAME, OFFTOPIC_USERNAME]),
+        )
+    )
     dispatcher.add_handler(CallbackQueryHandler(say_potato_button, pattern="^POTATO"))
 
     # Error Handler
