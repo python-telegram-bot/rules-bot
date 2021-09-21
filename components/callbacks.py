@@ -2,7 +2,7 @@ import datetime as dtm
 import html
 import logging
 import time
-from queue import Queue
+from collections import deque
 import random
 from typing import cast, Match, List, Dict, Any, Optional, Tuple
 
@@ -176,7 +176,7 @@ def off_on_topic(update: Update, context: CallbackContext) -> None:
     # We store the newest 64 messages that lead to redirection to minimize the chance that
     # editing a message falsely triggers the redirect again
     parsed_messages = cast(Dict, context.chat_data).setdefault(
-        "redirect_messages", Queue(maxsize=64)
+        "redirect_messages", deque(maxlen=64)
     )
 
     message = cast(Message, update.effective_message)
@@ -230,10 +230,7 @@ def off_on_topic(update: Update, context: CallbackContext) -> None:
             "Come join us!",
         )
 
-    if parsed_messages.full():
-        parsed_messages.get()
-        parsed_messages.task_done()
-    parsed_messages.put(message.message_id)
+    parsed_messages.append(message.message_id)
 
 
 def sandwich(update: Update, context: CallbackContext) -> None:
@@ -469,7 +466,7 @@ def say_potato_job(context: CallbackContext) -> None:
     context.bot.ban_chat_member(chat_id=OFFTOPIC_CHAT_ID, user_id=user_id)
 
     text = (
-        "You have been banned for userbot-like behavior. If you are not a userbot and wish to be"
+        "You have been banned for userbot-like behavior. If you are not a userbot and wish to be "
         f"unbanned, please contact {who_banned.mention_html()}."
     )
     message.edit_text(text=text)
@@ -479,7 +476,7 @@ def say_potato_button(update: Update, context: CallbackContext) -> None:
     callback_query = cast(CallbackQuery, update.callback_query)
     _, user_id, correct = cast(str, callback_query.data).split()
 
-    if callback_query.from_user.id != user_id:
+    if str(callback_query.from_user.id) != user_id:
         callback_query.answer(
             text="This button is obviously not meant for you. 😉", show_alert=True
         )
@@ -494,6 +491,7 @@ def say_potato_button(update: Update, context: CallbackContext) -> None:
         callback_query.answer(
             text="Thanks for the verification! Have fun in the group 🙂", show_alert=True
         )
+        cast(Message, callback_query.message).delete()
     else:
         callback_query.answer(text="That was wrong. Ciao! 👋", show_alert=True)
         job.run(context.dispatcher)
@@ -533,7 +531,7 @@ def say_potato_command(update: Update, context: CallbackContext) -> None:
     message_text = (
         f"You display behavior that is common for userbots, i.e. automated Telegram "
         f"accounts that usually produce spam. Please verify that you are not a userbot by "
-        f"clicking the button that says <code>{correct}</code>. If you don't press the button "
+        f"clicking the button that says »<code>{correct}</code>«.\nIf you don't press the button "
         f"within {time_limit} minutes, you will be banned from the PTB groups. If you miss the "
         f"time limit but are not a userbot and want to get unbanned, please contact "
         f"{who_banned.mention_html()}."
