@@ -262,8 +262,8 @@ class Search:
         # so we can just build the list once and get slices from the cached result if necessary
 
         results = {}
-        # Remove duplicates
-        effective_queries = set(search_queries)
+        # Remove duplicates while maintaining the order
+        effective_queries = list(dict.fromkeys(search_queries))
         for query in effective_queries:
             if res := self.search(search_query=query, amount=results_per_query):
                 results[query] = res

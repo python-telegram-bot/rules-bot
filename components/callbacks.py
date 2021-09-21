@@ -4,6 +4,7 @@ import logging
 import time
 from collections import deque
 import random
+from copy import deepcopy
 from typing import cast, Match, List, Dict, Any, Optional, Tuple
 
 from telegram import (
@@ -445,7 +446,7 @@ def tag_hint(update: Update, _: CallbackContext) -> None:
         # Merge keyboards into one
         if entry_kb := hint.inline_keyboard:
             if keyboard is None:
-                keyboard = entry_kb
+                keyboard = deepcopy(entry_kb)
             else:
                 keyboard.inline_keyboard.extend(entry_kb.inline_keyboard)
 

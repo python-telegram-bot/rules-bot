@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import cast
 from uuid import uuid4
 
@@ -40,7 +41,7 @@ def inline_query(update: Update, _: CallbackContext) -> None:  # pylint: disable
     query = ilq.query
     switch_pm_text = "❓ Help"
 
-    if ENCLOSED_REGEX.match(query):
+    if ENCLOSED_REGEX.search(query):
         results_list = []
         symbols = tuple(ENCLOSED_REGEX.findall(query))
         search_results = search.multi_search_combinations(symbols)
@@ -58,9 +59,10 @@ def inline_query(update: Update, _: CallbackContext) -> None:  # pylint: disable
                 )
                 if isinstance(entry, Issue):
                     index.append(entry.html_markup(symbol))
+                # Merge keyboards into one
                 if entry_kb := entry.inline_keyboard:
                     if not keyboard:
-                        keyboard = entry_kb
+                        keyboard = deepcopy(entry_kb)
                     else:
                         keyboard.inline_keyboard.extend(entry_kb.inline_keyboard)
 
@@ -86,6 +88,7 @@ def inline_query(update: Update, _: CallbackContext) -> None:  # pylint: disable
                     title=entry.display_name,
                     description=entry.description,
                     message_text=entry.html_markup(query),
+                    reply_markup=entry.inline_keyboard,
                 )
                 for entry in simple_search_results
             ]
