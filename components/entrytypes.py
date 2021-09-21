@@ -73,6 +73,7 @@ class Example(BaseEntry):
             self._name = name[:-3]
         else:
             self._name = name
+        self._search_name = f"example {self._name}".lower()
         self.url = url
 
     @property
@@ -100,8 +101,7 @@ class Example(BaseEntry):
         if search_query.endswith(".py"):
             search_query = search_query[:-3]
 
-        search_query = search_query.replace(" ", "")
-        return fuzz.partial_ratio(self._name.lower(), search_query.lower())
+        return fuzz.partial_token_set_ratio(self._search_name, search_query.lower())
 
 
 class WikiPage(BaseEntry):
@@ -268,6 +268,8 @@ class DocEntry(BaseEntry):
             score += fuzz.ratio(target.lower(), value.lower())
         # ... and the full name because we're generous
         score += fuzz.ratio(search_query.lower(), self.name.lower())
+        # To stay <= 100 as not to overrule other results
+        score = score / 2
 
         # IISC std: is the domain for general stuff like headlines and chapters.
         # we'll wanna give those a little less weight
