@@ -204,5 +204,13 @@ TAG_HINTS: Dict[str, TagHint] = {
     for key, value in _TAG_HINTS.items()
 }
 TAG_HINTS_PATTERN = re.compile(
-    rf'(?i)(({"|".join(hint.short_name for hint in TAG_HINTS.values())})[^\/]*)'
+    # case insensitive
+    rf"(?i)"
+    # join the /tags
+    rf'(({"|".join(hint.short_name for hint in TAG_HINTS.values())})'
+    # don't allow the tag to be followed by '.'. Mainly to prevent pastebin.com from matching
+    rf"(?!\.)"
+    # match everything that comes next - important for inserting a custom query in inline mode
+    # But don't match '/' (could be the start of the next tag)
+    rf"[^\/.]*)"
 )

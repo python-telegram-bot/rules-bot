@@ -1,6 +1,7 @@
 # pylint:disable=cyclic-import
 # because we import truncate_str in entrytypes.Issue.short_description
 import logging
+import warnings
 from functools import wraps
 from typing import (
     Optional,
@@ -12,13 +13,16 @@ from typing import (
     Tuple,
 )
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning
 from telegram import Update, InlineKeyboardButton, Message
 from telegram.error import BadRequest, Unauthorized
 from telegram.ext import CallbackContext
 
 from .const import RATE_LIMIT_SPACING, ONTOPIC_CHAT_ID, OFFTOPIC_CHAT_ID
 from .taghints import TAG_HINTS
+
+# Messages may contain links that we don't care about - so let's ignore the warnings
+warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning, module="bs4")
 
 
 def get_reply_id(update: Update) -> Optional[int]:
