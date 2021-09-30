@@ -502,6 +502,8 @@ class TagHint(BaseEntry):
             query_parts = search_query.split(maxsplit=1)
             if len(query_parts) == 1 and self.short_name.startswith(query_parts[0]):
                 insertion = self._default_query
+            elif query_parts and self.tag.startswith(query_parts[0]):
+                insertion = self._default_query
             else:
                 insertion = query_parts[-1]
         return self._message.format(query=insertion)
@@ -510,8 +512,10 @@ class TagHint(BaseEntry):
         return self.html_markup(search_query=search_query)
 
     def compare_to_query(self, search_query: str) -> float:
-        first = search_query.lstrip("/").split(maxsplit=1)[0]
-        return fuzz.ratio(self.tag.lower(), first.lower())
+        parts = search_query.lstrip("/").split(maxsplit=1)
+        if parts:
+            return fuzz.ratio(self.tag.lower(), parts[0].lower())
+        return 0
 
     @property
     def inline_keyboard(self) -> Optional[InlineKeyboardMarkup]:

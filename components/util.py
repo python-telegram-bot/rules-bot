@@ -71,6 +71,13 @@ def build_menu(
     return menu
 
 
+def try_to_delete(message: Message) -> bool:
+    try:
+        return message.delete()
+    except (BadRequest, Unauthorized):
+        return False
+
+
 def rate_limit_tracker(_: Update, context: CallbackContext) -> None:
     data = cast(Dict, context.chat_data).setdefault("rate_limit", {})
 
@@ -101,7 +108,7 @@ def rate_limit(
         # If we have not seen two non-command messages since last of type `func`
         if data.get(func, RATE_LIMIT_SPACING) < RATE_LIMIT_SPACING:
             logging.debug("Ignoring due to rate limit!")
-            cast(Message, update.effective_message).delete()
+            try_to_delete(cast(Message, update.effective_message))
             return None
 
         data[func] = 0
@@ -146,10 +153,3 @@ def build_command_list(
     say_potato = [("say_potato", "Send captcha to a potential userbot")]
 
     return base_commands + on_off_topic + say_potato + hint_commands
-
-
-def try_to_delete(message: Message) -> bool:
-    try:
-        return message.delete()
-    except (BadRequest, Unauthorized):
-        return False
