@@ -503,7 +503,7 @@ class TagHint(BaseEntry):
             if len(query_parts) == 1 and self.short_name.startswith(query_parts[0]):
                 insertion = self._default_query
             elif query_parts and self.tag.startswith(query_parts[0]):
-                insertion = self._default_query
+                insertion = self._default_query if len(query_parts) == 1 else query_parts[1]
             else:
                 insertion = query_parts[-1]
         return self._message.format(query=insertion)
