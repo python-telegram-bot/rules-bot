@@ -20,6 +20,7 @@ from telegram import (
     InlineKeyboardButton,
     User,
     CallbackQuery,
+    MessageEntity,
 )
 from telegram.ext import CallbackContext, JobQueue, Job
 from telegram.utils.helpers import escape_markdown
@@ -40,7 +41,7 @@ from components.const import (
     ONTOPIC_CHAT_ID,
 )
 from components.entrytypes import BaseEntry
-from components.taghints import TAG_HINTS, TAG_HINTS_PATTERN
+from components.taghints import TAG_HINTS
 from components.util import (
     rate_limit,
     get_reply_id,
@@ -184,11 +185,21 @@ def off_on_topic(update: Update, context: CallbackContext) -> None:
     if message.message_id in parsed_messages:
         return
 
+    # Standalone on/off-topic commands don't make any sense
+    # But we only delete them if they contain nothing but the command
+    if not message.reply_to_message:
+        entities = message.parse_entities()
+        if len(entities) == 1:
+            entity, text = entities.popitem()
+            if entity.type == MessageEntity.BOT_COMMAND and text == message.text:
+                try_to_delete(message)
+        return
+
     chat_username = cast(Chat, update.effective_chat).username
     group_one = cast(Match, context.match).group(1)
     if chat_username == ONTOPIC_USERNAME and group_one.lower() == "off":
         reply = message.reply_to_message
-        if reply and reply.text:
+        if reply.text:
             issued_reply = get_reply_id(update)
 
             if reply.from_user:
@@ -433,13 +444,13 @@ def list_available_hints(update: Update, _: CallbackContext) -> None:
         message.delete()
 
 
-def tag_hint(update: Update, _: CallbackContext) -> None:
+def tag_hint(update: Update, context: CallbackContext) -> None:
     message = cast(Message, update.effective_message)
     reply_to = message.reply_to_message
 
     messages = []
     keyboard = None
-    for match in TAG_HINTS_PATTERN.finditer(cast(str, message.text)):
+    for match in cast(List[Match], context.matches):
         hint = TAG_HINTS[match.group(2).lstrip("/")]
         messages.append(hint.html_markup())
 
