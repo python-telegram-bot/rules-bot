@@ -206,14 +206,16 @@ TAG_HINTS: Dict[str, TagHint] = {
 }
 TAG_HINTS_PATTERN = re.compile(
     # case insensitive
-    rf"(?i)"
+    r"(?i)"
     # join the /tags
     rf'(({"|".join(hint.short_name for hint in TAG_HINTS.values())})'
     # don't allow the tag to be followed by '/' - That could be the start of the next tag
-    rf"(?!/)"
+    r"(?!/)"
+    # Optionally the bots username
+    rf"(@{re.escape(const.SELF_BOT_NAME)})?"
     # match everything that comes next as long as it's separated by a whitespace - important for
     # inserting a custom query in inline mode
-    rf"($| [^\/.]*))"
+    r"($| [^\/.]*))"
 )
 
 
@@ -233,7 +235,7 @@ class TagHintFilter(MessageFilter):
         matches = []
         command_texts = message.parse_entities([MessageEntity.BOT_COMMAND]).values()
         for match in TAG_HINTS_PATTERN.finditer(message.text):
-            if match.group(2) in command_texts:
+            if match.group(1) in command_texts:
                 matches.append(match)
 
         if not matches:
