@@ -50,7 +50,7 @@ from components.const import (
     ONTOPIC_CHAT_ID,
     OFFTOPIC_CHAT_ID,
 )
-from components.taghints import TAG_HINTS_PATTERN
+from components.taghints import TagHintFilter
 from components.util import (
     rate_limit_tracker,
     build_command_list,
@@ -120,7 +120,7 @@ def main() -> None:
     dispatcher.add_handler(MessageHandler(Filters.regex("/(on|off)_topic"), off_on_topic))
 
     # Tag hints - works with regex
-    dispatcher.add_handler(MessageHandler(Filters.regex(TAG_HINTS_PATTERN), tag_hint))
+    dispatcher.add_handler(MessageHandler(TagHintFilter(), tag_hint))
 
     # We need several matches so Filters.regex is basically useless
     # therefore we catch everything and do regex ourselves

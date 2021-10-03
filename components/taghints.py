@@ -1,7 +1,8 @@
 import re
-from typing import Dict, Any
+from typing import Dict, Any, Optional, List, Match
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, MessageEntity
+from telegram.ext import MessageFilter
 
 from components import const
 from components.const import PTBCONTRIB_LINK
@@ -208,9 +209,34 @@ TAG_HINTS_PATTERN = re.compile(
     rf"(?i)"
     # join the /tags
     rf'(({"|".join(hint.short_name for hint in TAG_HINTS.values())})'
-    # don't allow the tag to be followed by '.'. Mainly to prevent pastebin.com from matching
-    rf"(?!\.)"
-    # match everything that comes next - important for inserting a custom query in inline mode
-    # But don't match '/' (could be the start of the next tag)
-    rf"[^\/.]*)"
+    # don't allow the tag to be followed by '/' - That could be the start of the next tag
+    rf"(?!/)"
+    # match everything that comes next as long as it's separated by a whitespace - important for
+    # inserting a custom query in inline mode
+    rf"($| [^\/.]*))"
 )
+
+
+class TagHintFilter(MessageFilter):
+    """Custom filter class for filtering for tag hint messages"""
+
+    def __init__(self) -> None:
+        self.data_filter = True
+
+    def filter(self, message: Message) -> Optional[Dict[str, List[Match]]]:
+        """Does the filtering. Applies the regex and makes sure that only those tag hints are
+        handled, that are also marked as bot command.
+        """
+        if not message.text:
+            return None
+
+        matches = []
+        command_texts = message.parse_entities([MessageEntity.BOT_COMMAND]).values()
+        for match in TAG_HINTS_PATTERN.finditer(message.text):
+            if match.group(2) in command_texts:
+                matches.append(match)
+
+        if not matches:
+            return None
+
+        return {"matches": matches}
