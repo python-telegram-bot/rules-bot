@@ -38,6 +38,7 @@ from components.callbacks import (
     tag_hint,
     say_potato_command,
     say_potato_button,
+    ban_sender_channels,
 )
 from components.errorhandler import error_handler
 from components.const import (
@@ -99,9 +100,14 @@ def main() -> None:
     dispatcher = updater.dispatcher
     update_rules_messages(updater.bot)
 
-    dispatcher.add_handler(MessageHandler(~Filters.command, rate_limit_tracker), group=-1)
-
     # Note: Order matters!
+
+    dispatcher.add_handler(MessageHandler(~Filters.command, rate_limit_tracker), group=-1)
+    dispatcher.add_handler(
+        MessageHandler(
+            Filters.sender_chat.channel & ~Filters.is_automatic_forward, ban_sender_channels
+        )
+    )
 
     # Simple commands
     # The first one also handles deep linking /start commands
