@@ -475,11 +475,6 @@ def tag_hint(update: Update, context: CallbackContext) -> None:
 def ban_sender_channels(update: Update, _: CallbackContext) -> None:
     message = cast(Message, update.effective_message)
     cast(Chat, update.effective_chat).ban_sender_chat(cast(Chat, message.sender_chat).id)
-    message.reply_text(
-        "Hey. Posting as channels is disallowed in this group and I've banned you from doing so. "
-        "If you have an <i>exceptional</i> reason to post as channel, please contact an admin and "
-        "ask to be unbanned."
-    )
     try_to_delete(message)
 
 
