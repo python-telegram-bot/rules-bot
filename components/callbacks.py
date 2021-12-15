@@ -472,6 +472,12 @@ def tag_hint(update: Update, context: CallbackContext) -> None:
         try_to_delete(message)
 
 
+def ban_sender_channels(update: Update, _: CallbackContext) -> None:
+    message = cast(Message, update.effective_message)
+    cast(Chat, update.effective_chat).ban_sender_chat(cast(Chat, message.sender_chat).id)
+    try_to_delete(message)
+
+
 def say_potato_job(context: CallbackContext) -> None:
     user_id, message, who_banned = cast(Tuple[int, Message, User], cast(Job, context.job).context)
     context.bot.ban_chat_member(chat_id=ONTOPIC_CHAT_ID, user_id=user_id)
