@@ -21,6 +21,7 @@ from telegram import (
     User,
     CallbackQuery,
     MessageEntity,
+    MAX_MESSAGE_LENGTH,
 )
 from telegram.ext import CallbackContext, JobQueue, Job
 from telegram.utils.helpers import escape_markdown
@@ -447,13 +448,15 @@ def list_available_hints(update: Update, _: CallbackContext) -> None:
 def tag_hint(update: Update, context: CallbackContext) -> None:
     message = cast(Message, update.effective_message)
     reply_to = message.reply_to_message
+    first_match = MAX_MESSAGE_LENGTH
 
     messages = []
     keyboard = None
     for match in cast(List[Match], context.matches):
-        group_dict = match.groupdict()
-        hint = TAG_HINTS[group_dict["tag_hint"].lstrip("/")]
-        messages.append(hint.html_markup(None or group_dict["query"]))
+        first_match = min(first_match, match.start(0))
+
+        hint = TAG_HINTS[match.groupdict()["tag_hint"].lstrip("/")]
+        messages.append(hint.html_markup(None or match.group(0)))
 
         # Merge keyboards into one
         if entry_kb := hint.inline_keyboard:
@@ -469,7 +472,7 @@ def tag_hint(update: Update, context: CallbackContext) -> None:
         reply_to_message_id=reply_to.message_id if reply_to else None,
     )
 
-    if reply_to:
+    if reply_to and first_match == 0:
         try_to_delete(message)
 
 

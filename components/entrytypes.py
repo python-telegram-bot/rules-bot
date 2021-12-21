@@ -496,7 +496,9 @@ class TagHint(BaseEntry):
         return self._description
 
     def html_markup(self, search_query: str = None) -> str:
-        return self._message.format(query=search_query or self._default_query)
+        parts = search_query.split(maxsplit=1) if search_query else []
+        insert = parts[1] if len(parts) > 1 else None
+        return self._message.format(query=insert or self._default_query)
 
     def html_insertion_markup(self, search_query: str = None) -> str:
         return self.html_markup(search_query=search_query)
