@@ -451,8 +451,9 @@ def tag_hint(update: Update, context: CallbackContext) -> None:
     messages = []
     keyboard = None
     for match in cast(List[Match], context.matches):
-        hint = TAG_HINTS[match.group(2).lstrip("/")]
-        messages.append(hint.html_markup())
+        group_dict = match.groupdict()
+        hint = TAG_HINTS[group_dict["tag_hint"].lstrip("/")]
+        messages.append(hint.html_markup(None or group_dict["query"]))
 
         # Merge keyboards into one
         if entry_kb := hint.inline_keyboard:
