@@ -34,6 +34,7 @@ PROJECT_URL = urljoin(GITHUB_URL, DEFAULT_REPO + "/")
 WIKI_URL = urljoin(PROJECT_URL, "wiki/")
 WIKI_CODE_SNIPPETS_URL = urljoin(WIKI_URL, "Code-snippets")
 WIKI_FAQ_URL = urljoin(WIKI_URL, "Frequently-Asked-Questions")
+WIKI_FRDP_URL = urljoin(WIKI_URL, "Frequently-requested-design-patterns")
 EXAMPLES_URL = urljoin(PROJECT_URL, "tree/master/examples/")
 ONTOPIC_RULES = """
 This group is for questions, answers and discussions around the \

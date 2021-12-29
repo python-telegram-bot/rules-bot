@@ -21,8 +21,9 @@ from .const import (
     WIKI_FAQ_URL,
     EXAMPLES_URL,
     GITHUB_PATTERN,
+    WIKI_FRDP_URL,
 )
-from .entrytypes import WikiPage, Example, CodeSnippet, FAQEntry, DocEntry, BaseEntry
+from .entrytypes import WikiPage, Example, CodeSnippet, FAQEntry, DocEntry, BaseEntry, FRDPEntry
 from .github import github_issues
 from .taghints import TAG_HINTS
 
@@ -47,6 +48,7 @@ class Search:
         self._examples: List[Example] = []
         self._snippets: List[CodeSnippet] = []
         self._faq: List[FAQEntry] = []
+        self._design_patterns: List[FRDPEntry] = []
         self.last_cache_date = date.today()
         self.github_session = github_issues
         self.fetch_entries()
@@ -58,6 +60,7 @@ class Search:
             self.fetch_examples()
             self.fetch_wiki_code_snippets()
             self.fetch_wiki_faq()
+            self.fetch_wiki_design_patterns()
 
             # This is important: If the docs have changed the cache is useless
             self.search.cache_clear()
@@ -138,10 +141,21 @@ class Search:
     def fetch_wiki_faq(self) -> None:
         self._faq = []
         request = Request(WIKI_FAQ_URL, headers={"User-Agent": USER_AGENT})
-        code_snippet_soup = BeautifulSoup(urlopen(request), "html.parser")
-        for headline in code_snippet_soup.select("div#wiki-body h3"):
+        faq_soup = BeautifulSoup(urlopen(request), "html.parser")
+        for headline in faq_soup.select("div#wiki-body h3"):
             self._faq.append(
                 FAQEntry(name=headline.text.strip(), url=urljoin(WIKI_FAQ_URL, headline.a["href"]))
+            )
+
+    def fetch_wiki_design_patterns(self) -> None:
+        self._design_patterns = []
+        request = Request(WIKI_FRDP_URL, headers={"User-Agent": USER_AGENT})
+        frdp_soup = BeautifulSoup(urlopen(request), "html.parser")
+        for headline in frdp_soup.select("div#wiki-body h3,div#wiki-body h2"):
+            self._design_patterns.append(
+                FRDPEntry(
+                    name=headline.text.strip(), url=urljoin(WIKI_FRDP_URL, headline.a["href"])
+                )
             )
 
     def fetch_examples(self) -> None:
@@ -154,11 +168,13 @@ class Search:
         return entry.compare_to_query(search_query)
 
     @functools.lru_cache(maxsize=64)
+    @cached_parsing
     def search(self, search_query: Optional[str], amount: int = None) -> Optional[List[BaseEntry]]:
         """Searches all available entries for appropriate results. This includes:
 
         * wiki pages
         * FAQ entries
+        * Design Pattern entries entries
         * Code snippets
         * examples
         * documentation
@@ -221,6 +237,7 @@ class Search:
                     self._wiki,
                     self._examples,
                     self._faq,
+                    self._design_patterns,
                     self._snippets,
                     github_issues.all_ptbcontribs,
                     self._docs,
@@ -243,6 +260,7 @@ class Search:
             )
 
     @functools.lru_cache(64)
+    @cached_parsing
     def multi_search_combinations(
         self, search_queries: Tuple[str], results_per_query: int = 3
     ) -> List[Dict[str, BaseEntry]]:

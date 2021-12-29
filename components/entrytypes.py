@@ -168,6 +168,18 @@ class FAQEntry(WikiPage):
         super().__init__(category="FAQ", name=name, url=url)
 
 
+class FRDPEntry(WikiPage):
+    """A frequently requested design pattern entry
+
+    Args:
+        name: The name of the entry
+        url: URL of the entry
+    """
+
+    def __init__(self, name: str, url: str):
+        super().__init__(category="Design Pattern", name=name, url=url)
+
+
 class DocEntry(BaseEntry):
     """An entry to the PTB docs.
 
