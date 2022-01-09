@@ -78,6 +78,7 @@ class Search:
         request = Request(urljoin(DOCS_URL, "objects.inv"), headers={"User-Agent": USER_AGENT})
         docs_data = urlopen(request)
         data = InventoryFile.load(docs_data, DOCS_URL, urljoin)
+        self._docs = []
         for entry_type, items in data.items():
             for name, (_, _, url, display_name) in items.items():
                 tg_url, tg_test, tg_name = "", "", ""
@@ -104,9 +105,9 @@ class Search:
                 )
 
     def fetch_wiki(self) -> None:
-        self._wiki = []
         request = Request(WIKI_URL, headers={"User-Agent": USER_AGENT})
         wiki_soup = BeautifulSoup(urlopen(request), "html.parser")
+        self._wiki = []
 
         # Parse main pages from custom sidebar
         for tag in ["ol", "ul"]:
@@ -125,9 +126,9 @@ class Search:
         self._wiki.append(WikiPage(category="Code Resources", name="Examples", url=EXAMPLES_URL))
 
     def fetch_wiki_code_snippets(self) -> None:
-        self._snippets = []
         request = Request(WIKI_CODE_SNIPPETS_URL, headers={"User-Agent": USER_AGENT})
         code_snippet_soup = BeautifulSoup(urlopen(request), "html.parser")
+        self._snippets = []
         for headline in code_snippet_soup.select(
             "div#wiki-body h4,div#wiki-body h3,div#wiki-body h2"
         ):
@@ -139,18 +140,18 @@ class Search:
             )
 
     def fetch_wiki_faq(self) -> None:
-        self._faq = []
         request = Request(WIKI_FAQ_URL, headers={"User-Agent": USER_AGENT})
         faq_soup = BeautifulSoup(urlopen(request), "html.parser")
+        self._faq = []
         for headline in faq_soup.select("div#wiki-body h3"):
             self._faq.append(
                 FAQEntry(name=headline.text.strip(), url=urljoin(WIKI_FAQ_URL, headline.a["href"]))
             )
 
     def fetch_wiki_design_patterns(self) -> None:
-        self._design_patterns = []
         request = Request(WIKI_FRDP_URL, headers={"User-Agent": USER_AGENT})
         frdp_soup = BeautifulSoup(urlopen(request), "html.parser")
+        self._design_patterns = []
         for headline in frdp_soup.select("div#wiki-body h3,div#wiki-body h2"):
             self._design_patterns.append(
                 FRDPEntry(

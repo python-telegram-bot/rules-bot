@@ -73,7 +73,7 @@ class Example(BaseEntry):
             self._name = name[:-3]
         else:
             self._name = name
-        self._search_name = f"example {self._name}".lower()
+        self._search_name = f"example {self._name}"
         self.url = url
 
     @property
@@ -101,7 +101,7 @@ class Example(BaseEntry):
         if search_query.endswith(".py"):
             search_query = search_query[:-3]
 
-        return fuzz.partial_token_set_ratio(self._search_name, search_query.lower())
+        return fuzz.partial_token_set_ratio(self._search_name, search_query)
 
 
 class WikiPage(BaseEntry):
@@ -117,7 +117,7 @@ class WikiPage(BaseEntry):
         self.category = category
         self.name = name
         self.url = url
-        self._compare_name = f"{self.category} {self.name}".lower()
+        self._compare_name = f"{self.category} {self.name}"
 
     @property
     def display_name(self) -> str:
@@ -141,7 +141,7 @@ class WikiPage(BaseEntry):
         return f'<a href="{self.url}">{self.short_name}</a>'
 
     def compare_to_query(self, search_query: str) -> float:
-        return fuzz.token_set_ratio(self._compare_name, search_query.lower())
+        return fuzz.token_set_ratio(self._compare_name, search_query)
 
 
 class CodeSnippet(WikiPage):
@@ -277,9 +277,9 @@ class DocEntry(BaseEntry):
 
         # We compare all the single parts of the query …
         for target, value in zip(processed_query, self._parsed_name):
-            score += fuzz.ratio(target.lower(), value.lower())
+            score += fuzz.ratio(target, value)
         # ... and the full name because we're generous
-        score += fuzz.ratio(search_query.lower(), self.name.lower())
+        score += fuzz.ratio(search_query, self.name)
         # To stay <= 100 as not to overrule other results
         score = score / 2
 
@@ -433,7 +433,7 @@ class Issue(BaseEntry):
         search_query = search_query.lstrip("# ")
         if str(self.number) == search_query:
             return 100
-        return fuzz.token_set_ratio(self.title.lower(), search_query.lower())
+        return fuzz.token_set_ratio(self.title, search_query)
 
 
 class PTBContrib(BaseEntry):
@@ -466,7 +466,7 @@ class PTBContrib(BaseEntry):
         # Here we just assume that everything before thi first / is ptbcontrib
         # (modulo typos). That could be wrong, but then it's the users fault :)
         search_query = search_query.split("/", maxsplit=1)[-1]
-        return fuzz.ratio(self.name.lower(), search_query.lower())
+        return fuzz.ratio(self.name, search_query)
 
 
 class TagHint(BaseEntry):
@@ -518,7 +518,7 @@ class TagHint(BaseEntry):
     def compare_to_query(self, search_query: str) -> float:
         parts = search_query.lstrip("/").split(maxsplit=1)
         if parts:
-            return fuzz.ratio(self.tag.lower(), parts[0].lower())
+            return fuzz.ratio(self.tag, parts[0])
         return 0
 
     @property
