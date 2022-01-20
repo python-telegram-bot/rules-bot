@@ -32,7 +32,7 @@ from components.callbacks import (
     help_callback,
     off_on_topic,
     sandwich,
-    github,
+    reply_search,
     delete_new_chat_members_message,
     greet_new_chat_members,
     tag_hint,
@@ -130,10 +130,8 @@ def main() -> None:
 
     # We need several matches so Filters.regex is basically useless
     # therefore we catch everything and do regex ourselves
-    # This should probably be in another dispatcher group
-    # but I kept getting SystemErrors..
     dispatcher.add_handler(
-        MessageHandler(Filters.text & Filters.update.messages & ~Filters.command, github)
+        MessageHandler(Filters.text & Filters.update.messages & ~Filters.command, reply_search)
     )
 
     # Status updates

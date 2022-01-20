@@ -40,8 +40,10 @@ from components.const import (
     NEW_CHAT_MEMBERS_LIMIT_SPACING,
     VEGETABLES,
     ONTOPIC_CHAT_ID,
+    ENCLOSED_REGEX,
 )
-from components.entrytypes import BaseEntry
+from components.entrytypes import BaseEntry, Issue
+from components.search import search
 from components.taghints import TAG_HINTS
 from components.util import (
     rate_limit,
@@ -263,42 +265,56 @@ def keep_typing(last: float, chat: Chat, action: str) -> float:
     return now
 
 
-def github(update: Update, context: CallbackContext) -> None:
+def reply_search(update: Update, context: CallbackContext) -> None:
     message = cast(Message, update.effective_message)
     last = 0.0
-    thing_matches = []
-    things: List[BaseEntry] = []
+    thing_matches: List[Tuple[int, Tuple[str, str, str, str, str]]] = []
+    things: List[Tuple[int, BaseEntry]] = []
 
-    for match in GITHUB_PATTERN.finditer(get_text_not_in_entities(message.text_html)):
+    no_entity_text = get_text_not_in_entities(message.text_html).strip()
+
+    # Parse exact matches for GitHub threads & ptbcontrib things first
+    for match in GITHUB_PATTERN.finditer(no_entity_text):
         logging.debug(match.groupdict())
         owner, repo, number, sha, ptbcontrib = [
-            match.groupdict()[x] for x in ("owner", "repo", "number", "sha", "ptbcontrib")
+            cast(str, match.groupdict()[x])
+            for x in ("owner", "repo", "number", "sha", "ptbcontrib")
         ]
         if number or sha or ptbcontrib:
-            thing_matches.append((owner, repo, number, sha, ptbcontrib))
+            thing_matches.append((match.start(), (owner, repo, number, sha, ptbcontrib)))
 
     for thing_match in thing_matches:
         last = keep_typing(last, cast(Chat, update.effective_chat), ChatAction.TYPING)
-        owner, repo, number, sha, ptbcontrib = thing_match
+        owner, repo, number, sha, ptbcontrib = thing_match[1]
         if number:
             issue = github_issues.get_issue(int(number), owner, repo)
             if issue is not None:
-                things.append(issue)
+                things.append((thing_match[0], issue))
         elif sha:
             commit = github_issues.get_commit(sha, owner, repo)
             if commit is not None:
-                things.append(commit)
+                things.append((thing_match[0], commit))
         elif ptbcontrib:
             contrib = github_issues.ptbcontribs.get(ptbcontrib)
             if contrib:
-                things.append(contrib)
+                things.append((thing_match[0], contrib))
+
+    # Parse fuzzy search next
+    if no_entity_text.startswith("!search") or no_entity_text.endswith("!search"):
+        for match in ENCLOSED_REGEX.finditer(no_entity_text):
+            last = keep_typing(last, cast(Chat, update.effective_chat), ChatAction.TYPING)
+            things.append((match.start(), search.search(match.group(0), amount=1)[0]))
+
+        # Sort the things - only necessary if we appended something here
+        things.sort(key=lambda thing: thing[0])
+
+    texts = [
+        thing[1].html_markup() if isinstance(thing[1], Issue) else thing[1].html_insertion_markup()
+        for thing in things
+    ]
 
     if things:
-        reply_or_edit(
-            update,
-            context,
-            "\n".join([thing.html_markup() for thing in things]),
-        )
+        reply_or_edit(update, context, "\n".join(texts))
 
 
 def delete_new_chat_members_message(update: Update, _: CallbackContext) -> None:

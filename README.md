@@ -4,44 +4,6 @@ The Telegram bot @roolsbot serves the python-telegram-bot [group](https://telegr
 
 So what exactly can this bot do?
 
-## Short-Replies
-
-rules-bot provides a number of predefined messages that are frequently needed. A list of available tag hints is available via the `/hints` command and also in the command menu. Simply send `/<taghint>` and rules-bot will delete your message and send the corresponding text instead. Reply to a message with `/<taghint>` to make rules-bot send the message as reply to that message. Type `/<taghint> <a personal message>`, to insert the personal message at a meaningful spot within the message. For most tag hints this will just prepend the personal message. You can even send multiple short messages at once by typing `/<taghint 1> <message 1> /<taghint 2> <message 2> ...`
-
-## Redirect to On- & Off-Topic
-
-To redirect a user to the on-/off-topic group simply reply with `/on_topic` or `/off_topic` to their message. The hint may also be part of a longer message.
-
-### Link to GitHub Threads
-
-## Search GitHub
-
-When mentioning issues, pull requests, commit SHAs or `ptbcontrib` contributions in the same manner, rules-bot will automatically reply to your message with the corresponding links to the [GitHub repository](https://github.com/python-telegram-bot/python-telegram-bot) of python-telegram-bot. If your message is a reply to another message, the links will be sent as reply to that message.
-
-Mentioning those works in the following forms:
-
-* `ptbcontrib/name` with the (directory) name of a contribution of [ptbcontrib](https://github.com/python-telegram-bot/ptbcontrib/tree/main/ptbcontrib)
-* `#number` with the number of an issue/pull request
-* `#phrase` with a phrase to search for in issue/pull request titles
-* `@sha` with a commit SHA
-
-In the last three cases, `#` may be replaced by `GH-` or `PR-` or you can prepend
-
-* `repo` to search in the repo `https://github.com/python-telegram-bot/repo`
-* `owner/` to search in the repo `https://github.com/owner/repo`
-
-### Welcome Members
-
-rules-bot will automatically delete the service messages announcing new members. Instead, it will welcome new members by mentioning them in a short message that links to a message stating the rules of the group. New members are welcomed in batches. Currently, there will be at most one welcoming message per hour. The linked rules messages are updated with the current rules on start-up.
-
-## Fixed Commands
-
-* `/docs`: Sends the link to the docs.
-* `/wiki`: Sends the link to the wiki.
-* `/hints` & `/listhints`: Sends a list of available tag hints (see [here](#short-replies))
-* `/help`: Links to this readme.
-* `/say_potato`: Asks a user to verify that they are not a userbot. Only available to group admins.
-
 ## Inline Mode
 
 rules-bot has an extensive inline functionality. It has basically two components:
@@ -77,6 +39,49 @@ becomes
 For each inserted search query, rules-bot will search for the three best matches and will offer you all possible combinations of the corresponding results.
 
 Please note that Telegram will only parse the first 256 characters of your inline query. Everything else will be cut off.
+
+# Texting Mode
+
+## Short-Replies
+
+rules-bot provides a number of predefined messages that are frequently needed. A list of available tag hints is available via the `/hints` command and also in the command menu. Simply send `/<taghint>` and rules-bot will delete your message and send the corresponding text instead. Reply to a message with `/<taghint>` to make rules-bot send the message as reply to that message. Type `/<taghint> <a personal message>`, to insert the personal message at a meaningful spot within the message. For most tag hints this will just prepend the personal message. You can even send multiple short messages at once by typing `/<taghint 1> <message 1> /<taghint 2> <message 2> ...`
+
+## Redirect to On- & Off-Topic
+
+To redirect a user to the on-/off-topic group simply reply with `/on_topic` or `/off_topic` to their message. The hint may also be part of a longer message.
+
+## Link To GitHub Threads
+
+When mentioning issues, pull requests, commit SHAs or `ptbcontrib` contributions in the same manner, rules-bot will automatically reply to your message with the corresponding links to the [GitHub repository](https://github.com/python-telegram-bot/python-telegram-bot) of python-telegram-bot. If your message is a reply to another message, the links will be sent as reply to that message.
+
+Mentioning those works in the following forms:
+
+* `ptbcontrib/name` with the (directory) name of a contribution of [ptbcontrib](https://github.com/python-telegram-bot/ptbcontrib/tree/main/ptbcontrib)
+* `#number` with the number of an issue/pull request
+* `#phrase` with a phrase to search for in issue/pull request titles
+* `@sha` with a commit SHA
+
+In the last three cases, `#` may be replaced by `GH-` or `PR-` or you can prepend
+
+* `repo` to search in the repo `https://github.com/python-telegram-bot/repo`
+* `owner/` to search in the repo `https://github.com/owner/repo`
+
+## Link to search results
+
+The searching functionality described [above](#inline-mode) is also available outside of the inline mode. In a message, mark your search queries as `+<search query>+` put `!search` at the very start or end of your message. Then rules-bot will automatically reply with the best match for each of the queries. If your message is a reply to another message, the message will sent as reply to that message.
+The search results are combined with links to GitHub threads, if applicable.
+
+## Welcome Members
+
+rules-bot will automatically delete the service messages announcing new members. Instead, it will welcome new members by mentioning them in a short message that links to a message stating the rules of the group. New members are welcomed in batches. Currently, there will be at most one welcoming message per hour. The linked rules messages are updated with the current rules on start-up.
+
+## Fixed Commands
+
+* `/docs`: Sends the link to the docs.
+* `/wiki`: Sends the link to the wiki.
+* `/hints` & `/listhints`: Sends a list of available tag hints (see [here](#short-replies))
+* `/help`: Links to this readme.
+* `/say_potato`: Asks a user to verify that they are not a userbot. Only available to group admins.
 
 ## Other
 
