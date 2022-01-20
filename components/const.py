@@ -118,7 +118,8 @@ GITHUB_PATTERN = re.compile(
             )?  # End optional non-capture group
             (?:  # Match either
                 (
-                    (?P<number_type>\#|GH-|PR-)  # Hashtag or "GH-" or "PR-"
+                    # "#" or "GH-" or "PR-" or "/issues/" or "/pull"
+                    (?P<number_type>\#|GH-|PR-|/issues/|/pull/)
                     (?:  # Followed by either
                         (?P<number>\d+)  # Numbers
                         |  # Or
@@ -126,7 +127,8 @@ GITHUB_PATTERN = re.compile(
                     )
                 )
             |  # Or
-                (?:@?(?P<sha>[0-9a-f]{40}))  # at sign followed by 40 hexadecimal characters
+                (?:(/commit/|@)? # Optionall /commit/ or @
+                (?P<sha>[0-9a-f]{7,40})) # sha: 7-40 hexadecimal chars
             )
         )
         |  # Or ptbcontrib match
