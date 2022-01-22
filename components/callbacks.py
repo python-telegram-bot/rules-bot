@@ -42,7 +42,7 @@ from components.const import (
     ONTOPIC_CHAT_ID,
     ENCLOSED_REGEX,
 )
-from components.entrytypes import BaseEntry, Issue
+from components.entrytypes import BaseEntry
 from components.search import search
 from components.taghints import TAG_HINTS
 from components.util import (
@@ -308,13 +308,8 @@ def reply_search(update: Update, context: CallbackContext) -> None:
         # Sort the things - only necessary if we appended something here
         things.sort(key=lambda thing: thing[0])
 
-    texts = [
-        thing[1].html_markup() if isinstance(thing[1], Issue) else thing[1].html_insertion_markup()
-        for thing in things
-    ]
-
     if things:
-        reply_or_edit(update, context, "\n".join(texts))
+        reply_or_edit(update, context, "\n".join(thing[1].html_reply_markup() for thing in things))
 
 
 def delete_new_chat_members_message(update: Update, _: CallbackContext) -> None:

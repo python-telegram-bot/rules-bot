@@ -49,6 +49,12 @@ class BaseEntry(ABC):
     def html_insertion_markup(self, search_query: str = None) -> str:
         """HTML markup to be used for insertion search. May depend on the search query."""
 
+    def html_reply_markup(self, search_query: str = None) -> str:
+        """HTML markup to be used for reply search. May depend on the search query.
+        Defaults to :meth:`html_insertion_markup`, but may be overridden.
+        """
+        return self.html_insertion_markup(search_query=search_query)
+
     @abstractmethod
     def compare_to_query(self, search_query: str) -> float:
         """Gives a number ∈[0,100] describing how similar the search query is to this entry."""
@@ -94,7 +100,7 @@ class Example(BaseEntry):
             f"\n{self.html_insertion_markup(search_query)}"
         )
 
-    def html_insertion_markup(self, _: str = None) -> str:
+    def html_insertion_markup(self, search_query: str = None) -> str:
         return f'<a href="{self.url}">{self.short_name}</a>'
 
     def compare_to_query(self, search_query: str) -> float:
@@ -137,8 +143,11 @@ class WikiPage(BaseEntry):
             f"{self.html_insertion_markup(search_query)}"
         )
 
-    def html_insertion_markup(self, _: str = None) -> str:
+    def html_insertion_markup(self, search_query: str = None) -> str:
         return f'<a href="{self.url}">{self.short_name}</a>'
+
+    def html_reply_markup(self, search_query: str = None) -> str:
+        return f'<a href="{self.url}">Wiki Category <i>{self.category}</i>: {self.short_name}</a>'
 
     def compare_to_query(self, search_query: str) -> float:
         return fuzz.token_set_ratio(self._compare_name, search_query)
@@ -244,7 +253,7 @@ class DocEntry(BaseEntry):
     def description(self) -> str:
         return "Documentation of python-telegram-bot"
 
-    def html_markup(self, _: str = None) -> str:
+    def html_markup(self, search_query: str = None) -> str:
         base = (
             f"<code>{self.short_name}</code>\n"
             f"<i>python-telegram-bot</i> documentation for this {self.effective_type}:\n"
@@ -263,7 +272,7 @@ class DocEntry(BaseEntry):
     def html_markup_no_telegram(self) -> str:
         return f'<a href="{self.url}">{self.name}</a>'
 
-    def html_insertion_markup(self, _: str = None) -> str:
+    def html_insertion_markup(self, search_query: str = None) -> str:
         if not self.telegram_name and not self.telegram_url:
             return self.html_markup_no_telegram
         return (
@@ -346,11 +355,14 @@ class Commit(BaseEntry):
     def description(self) -> str:
         return "Search on GitHub"
 
-    def html_markup(self, _: str = None) -> str:
+    def html_markup(self, search_query: str = None) -> str:
         return f'<a href="{self.url}">{self.display_name}</a>'
 
-    def html_insertion_markup(self, _: str = None) -> str:
+    def html_insertion_markup(self, search_query: str = None) -> str:
         return f'<a href="{self.url}">{self.short_name}</a>'
+
+    def html_reply_markup(self, search_query: str = None) -> str:
+        return self.html_markup(search_query=search_query)
 
     def compare_to_query(self, search_query: str) -> float:
         search_query = search_query.lstrip("@ ")
@@ -423,11 +435,14 @@ class Issue(BaseEntry):
         string = f"{self.type} {self.short_name}: {self.title}"
         return truncate_str(string, 25)
 
-    def html_markup(self, _: str = None) -> str:
+    def html_markup(self, search_query: str = None) -> str:
         return f'<a href="{self.url}">{self.display_name}</a>'
 
-    def html_insertion_markup(self, _: str = None) -> str:
+    def html_insertion_markup(self, search_query: str = None) -> str:
         return f'<a href="{self.url}">{self.short_name}</a>'
+
+    def html_reply_markup(self, search_query: str = None) -> str:
+        return self.html_markup(search_query=search_query)
 
     def compare_to_query(self, search_query: str) -> float:
         search_query = search_query.lstrip("# ")
@@ -456,7 +471,7 @@ class PTBContrib(BaseEntry):
     def description(self) -> str:
         return "Community base extensions for python-telegram-bot"
 
-    def html_markup(self, _: str = None) -> str:
+    def html_markup(self, search_query: str = None) -> str:
         return f'<a href="{self.url}">{self.display_name}</a>'
 
     def html_insertion_markup(self, search_query: str = None) -> str:
