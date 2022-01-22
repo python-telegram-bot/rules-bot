@@ -299,6 +299,90 @@ class DocEntry(BaseEntry):
         return score
 
 
+class ParamDocEntry(DocEntry):
+    """An entry to the PTB docs. Special case of a parameter of a function or method.
+
+    Args:
+        url: URL to the online documentation of the entry.
+        entry_type: Which type of entry this is.
+        name: Name of the entry.
+        display_name: Optional. Display name for the entry.
+        telegram_name: Optional: Name of the corresponding Telegram documentation entry.
+        telegram_url: Optional. Link to the corresponding Telegram documentation.
+    """
+
+    def __init__(
+        self,
+        url: str,
+        entry_type: str,
+        name: str,
+        display_name: str = None,
+        telegram_name: str = None,
+        telegram_url: str = None,
+    ):
+        if ".params." not in name:
+            raise ValueError("The passed name doesn't match a parameter name.")
+
+        base_name, parameter_name = name.split(".params.")
+        self._base_name = base_name
+        self._parameter_name = parameter_name
+        super().__init__(
+            url=url,
+            entry_type=entry_type,
+            name=name,
+            display_name=f"Parameter {self._parameter_name} of {self._base_name}",
+            telegram_name=telegram_name,
+            telegram_url=telegram_url,
+        )
+        self._base_url = self.url.split(".params.")[0]
+        self._parsed_name_wo_params = self.parse_search_query(self.name.replace(".params.", ""))
+
+    def html_markup(self, search_query: str = None) -> str:
+        base = (
+            f"<code>{self._base_name}(..., {self._parameter_name}=...)</code>\n"
+            f"<i>python-telegram-bot</i> documentation for this {self.effective_type} "
+            f'of <a href="{self._base_url}">{self._base_name}</a>:\n'
+            f"{self.html_markup_no_telegram}"
+        )
+        if not self.telegram_url and not self.telegram_name:
+            tg_text = ""
+        else:
+            tg_text = (
+                "\n\nTelegram's official Bot API documentation has more info about "
+                f'<a href="{self.telegram_url}">{self.telegram_name}</a>.'
+            )
+        return base + tg_text
+
+    @property
+    def html_markup_no_telegram(self) -> str:
+        return f'<a href="{self.url}">{self._parameter_name}</a>'
+
+    def html_insertion_markup(self, search_query: str = None) -> str:
+        base_markup = (
+            f'Parameter <a href="{self.url}">{self._parameter_name}</a> of '
+            f'<a href="{self._base_url}">{self._base_name}</a>'
+        )
+        if not self.telegram_name and not self.telegram_url:
+            return base_markup
+        return f'{base_markup} <a href="{self.telegram_url}">' f"{TELEGRAM_SUPERSCRIPT}</a>"
+
+    def compare_to_query(self, search_query: str) -> float:
+        score = 0.0
+        processed_query = self.parse_search_query(search_query)
+
+        # We compare all the single parts of the query, with & without the ".params."
+        for target, value in zip(processed_query, self._parsed_name):
+            score += fuzz.ratio(target, value)
+        for target, value in zip(processed_query, self._parsed_name_wo_params):
+            score += fuzz.ratio(target, value)
+        # ... and the full name because we're generous with & without leading "parameter"
+        score += fuzz.ratio(search_query, self.name)
+        score += fuzz.ratio(search_query, f"parameter {self.name}")
+
+        # To stay <= 100 as not to overrule other results
+        return score / 4
+
+
 class Commit(BaseEntry):
     """A commit on Github
 

@@ -23,7 +23,16 @@ from .const import (
     GITHUB_PATTERN,
     WIKI_FRDP_URL,
 )
-from .entrytypes import WikiPage, Example, CodeSnippet, FAQEntry, DocEntry, BaseEntry, FRDPEntry
+from .entrytypes import (
+    WikiPage,
+    Example,
+    CodeSnippet,
+    FAQEntry,
+    DocEntry,
+    BaseEntry,
+    FRDPEntry,
+    ParamDocEntry,
+)
 from .github import github_issues
 from .taghints import TAG_HINTS
 
@@ -84,25 +93,44 @@ class Search:
                 tg_url, tg_test, tg_name = "", "", ""
                 name_bits = name.split(".")
 
-                if entry_type in ["py:class", "py:method"]:
-                    tg_test = name_bits[-1].replace("_", "").lower()
-                elif entry_type == "py:attribute":
-                    tg_test = name_bits[-2].replace("_", "").lower()
+                if entry_type in ["py:method", "py:attribute", "py:property"]:
+                    if "telegram.Bot" in name or "telegram.ext.ExtBot" in name:
+                        tg_test = name_bits[-1]
+                    else:
+                        tg_test = name_bits[-2]
+                if entry_type == "py:class":
+                    tg_test = name_bits[-1]
+                elif entry_type == "py:parameter":
+                    tg_test = name_bits[-4]
+
+                tg_test = tg_test.replace("_", "").lower()
 
                 if tg_test in self._official.keys():
                     tg_name = self._official[tg_test]
                     tg_url = urljoin(OFFICIAL_URL, "#" + tg_name.lower())
 
-                self._docs.append(
-                    DocEntry(
-                        name=name,
-                        url=url,
-                        display_name=display_name if display_name.strip() != "-" else None,
-                        entry_type=entry_type,
-                        telegram_url=tg_url,
-                        telegram_name=tg_name,
+                if entry_type == "py:parameter":
+                    self._docs.append(
+                        ParamDocEntry(
+                            name=name,
+                            url=url,
+                            display_name=display_name if display_name.strip() != "-" else None,
+                            entry_type=entry_type,
+                            telegram_url=tg_url,
+                            telegram_name=tg_name,
+                        )
                     )
-                )
+                else:
+                    self._docs.append(
+                        DocEntry(
+                            name=name,
+                            url=url,
+                            display_name=display_name if display_name.strip() != "-" else None,
+                            entry_type=entry_type,
+                            telegram_url=tg_url,
+                            telegram_name=tg_name,
+                        )
+                    )
 
     def fetch_wiki(self) -> None:
         request = Request(WIKI_URL, headers={"User-Agent": USER_AGENT})
