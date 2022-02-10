@@ -117,7 +117,7 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
     },
     "pastebin": {
         "message": (
-            "{query} Please post code or tracebacks using a pastebin rather then as plain text or."
+            "{query} Please post code or tracebacks using a pastebin rather than as plain text or."
             " https://pastebin.com/ is quite popular, but there are many alternatives out there."
             " Of course, for very short snippets, text is fine. Please at least format it as "
             "monospace in that case."
