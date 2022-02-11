@@ -1,6 +1,7 @@
 # pylint:disable=cyclic-import
 # because we import truncate_str in entrytypes.Issue.short_description
 import logging
+import sys
 import warnings
 from functools import wraps
 from typing import (
@@ -11,9 +12,10 @@ from typing import (
     Dict,
     cast,
     Tuple,
+    Union,
 )
 
-from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning
+from bs4 import MarkupResemblesLocatorWarning
 from telegram import Update, InlineKeyboardButton, Message
 from telegram.error import BadRequest, Unauthorized
 from telegram.ext import CallbackContext
@@ -52,9 +54,30 @@ def reply_or_edit(update: Update, context: CallbackContext, text: str) -> None:
             chat_data[message.message_id] = message.reply_text(text)
 
 
-def get_text_not_in_entities(html: str) -> str:
-    soup = BeautifulSoup(html, "html.parser")
-    return " ".join(soup.find_all(text=True, recursive=False))
+def get_text_not_in_entities(message: Message) -> str:
+    if message.text is None:
+        raise ValueError("Message has no text!")
+
+    if sys.maxunicode != 0xFFFF:
+        text: Union[str, bytes] = message.text.encode("utf-16-le")
+    else:
+        text = message.text
+
+    removed_chars = 0
+    for entity in message.entities:
+        start = entity.offset - removed_chars
+        end = entity.offset + entity.length - removed_chars
+        removed_chars += entity.length
+
+        if sys.maxunicode != 0xFFFF:
+            start = 2 * start
+            end = 2 * end
+
+        text = text[:start] + text[end:]  # type: ignore
+
+    if isinstance(text, str):
+        return text
+    return text.decode("utf-16-le")
 
 
 def build_menu(

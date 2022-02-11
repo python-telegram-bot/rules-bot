@@ -271,7 +271,7 @@ def reply_search(update: Update, context: CallbackContext) -> None:
     thing_matches: List[Tuple[int, Tuple[str, str, str, str, str]]] = []
     things: List[Tuple[int, BaseEntry]] = []
 
-    no_entity_text = get_text_not_in_entities(message.text_html).strip()
+    no_entity_text = get_text_not_in_entities(message).strip()
 
     # Parse exact matches for GitHub threads & ptbcontrib things first
     for match in GITHUB_PATTERN.finditer(no_entity_text):
