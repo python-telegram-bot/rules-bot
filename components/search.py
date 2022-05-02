@@ -237,10 +237,10 @@ class Search:
 
         match = GITHUB_PATTERN.fullmatch(search_query) if search_query else None
         if match:
-            owner, repo, number, sha, gh_search_query, ptbcontrib = [
+            owner, repo, number, sha, gh_search_query, ptbcontrib = (
                 match.groupdict()[x]
                 for x in ("owner", "repo", "number", "sha", "query", "ptbcontrib")
-            ]
+            )
 
             # If it's an issue
             if number:

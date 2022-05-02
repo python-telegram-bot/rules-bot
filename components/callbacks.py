@@ -276,10 +276,10 @@ def reply_search(update: Update, context: CallbackContext) -> None:
     # Parse exact matches for GitHub threads & ptbcontrib things first
     for match in GITHUB_PATTERN.finditer(no_entity_text):
         logging.debug(match.groupdict())
-        owner, repo, number, sha, ptbcontrib = [
+        owner, repo, number, sha, ptbcontrib = (
             cast(str, match.groupdict()[x])
             for x in ("owner", "repo", "number", "sha", "ptbcontrib")
-        ]
+        )
         if number or sha or ptbcontrib:
             thing_matches.append((match.start(), (owner, repo, number, sha, ptbcontrib)))
 
