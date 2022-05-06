@@ -17,7 +17,7 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
     "askright": {
         "message": (
             '{query} Please read <a href="https://github.com/python-telegram-bot/'
-            'python-telegram-bot/wiki/Ask-Right">this short article</a> and try again ;)'
+            'v13.x-wiki/wiki/Ask-Right">this short article</a> and try again ;)'
         ),
         "help": "The wiki page about asking technical questions",
         "default": (
@@ -27,8 +27,8 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
     },
     "mwe": {
         "message": (
-            '{query} Have a look at <a href="https://github.com/python-telegram-bot/python-'
-            'telegram-bot/wiki/MWE">this short article</a> for information on what a MWE is.'
+            '{query} Have a look at <a href="https://github.com/python-telegram-bot/v13.x-wiki'
+            '/wiki/MWE">this short article</a> for information on what a MWE is.'
         ),
         "help": "How to build an MWE for PTB.",
         "default": "Hey. Please provide a minimal working example (MWE).",

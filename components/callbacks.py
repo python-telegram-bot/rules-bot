@@ -1,9 +1,9 @@
 import datetime as dtm
 import html
 import logging
+import random
 import time
 from collections import deque
-import random
 from copy import deepcopy
 from typing import cast, Match, List, Dict, Any, Optional, Tuple
 
@@ -34,7 +34,6 @@ from components.const import (
     ONTOPIC_RULES,
     OFFTOPIC_RULES,
     OFFTOPIC_CHAT_ID,
-    GITHUB_PATTERN,
     ONTOPIC_RULES_MESSAGE_LINK,
     OFFTOPIC_RULES_MESSAGE_LINK,
     NEW_CHAT_MEMBERS_LIMIT_SPACING,
@@ -52,7 +51,6 @@ from components.util import (
     reply_or_edit,
     try_to_delete,
 )
-from components.github import github_issues
 
 
 def start(update: Update, context: CallbackContext) -> None:
@@ -85,10 +83,10 @@ def inlinequery_help(update: Update, context: CallbackContext) -> None:
         f"but you need an {char}InlineQueryHandler{char} for it.\n\n"
         f"*becomes:*\n"
         f"I 💙 [InlineQueries]("
-        "https://python-telegram-bot.readthedocs.io/en/latest/telegram.html#telegram"
+        "https://python-telegram-bot.readthedocs.io/en/stable/telegram.html#telegram"
         f".InlineQuery), but you need an [InlineQueryHandler]("
         f"https://python-telegram-bot.readthedocs.io/en"
-        f"/latest/telegram.ext.html#telegram.ext.InlineQueryHandler) for it.\n\n"
+        f"/stable/telegram.ext.html#telegram.ext.InlineQueryHandler) for it.\n\n"
         f"Some wiki pages have spaces in them. Please replace such spaces with underscores. "
         f"The bot will automatically change them back desired space."
     )
@@ -130,7 +128,7 @@ def docs(update: Update, _: CallbackContext) -> None:
     message = cast(Message, update.effective_message)
     text = (
         "You can find our documentation at "
-        "[Read the Docs](https://python-telegram-bot.readthedocs.io/)"
+        "[Read the Docs](https://python-telegram-bot.readthedocs.io/en/stable)"
     )
     reply_id = message.reply_to_message.message_id if message.reply_to_message else None
     message.reply_text(
@@ -148,7 +146,7 @@ def wiki(update: Update, _: CallbackContext) -> None:
     message = cast(Message, update.effective_message)
     text = (
         "You can find our wiki on "
-        "[GitHub](https://github.com/python-telegram-bot/python-telegram-bot/wiki)"
+        "[GitHub](https://github.com/python-telegram-bot/v13.x-wiki/wiki)"
     )
     message.reply_text(
         text,
@@ -268,39 +266,12 @@ def keep_typing(last: float, chat: Chat, action: str) -> float:
 def reply_search(update: Update, context: CallbackContext) -> None:
     message = cast(Message, update.effective_message)
     last = 0.0
-    thing_matches: List[Tuple[int, Tuple[str, str, str, str, str]]] = []
     things: List[Tuple[int, BaseEntry]] = []
 
     no_entity_text = get_text_not_in_entities(message).strip()
 
-    # Parse exact matches for GitHub threads & ptbcontrib things first
-    for match in GITHUB_PATTERN.finditer(no_entity_text):
-        logging.debug(match.groupdict())
-        owner, repo, number, sha, ptbcontrib = [
-            cast(str, match.groupdict()[x])
-            for x in ("owner", "repo", "number", "sha", "ptbcontrib")
-        ]
-        if number or sha or ptbcontrib:
-            thing_matches.append((match.start(), (owner, repo, number, sha, ptbcontrib)))
-
-    for thing_match in thing_matches:
-        last = keep_typing(last, cast(Chat, update.effective_chat), ChatAction.TYPING)
-        owner, repo, number, sha, ptbcontrib = thing_match[1]
-        if number:
-            issue = github_issues.get_issue(int(number), owner, repo)
-            if issue is not None:
-                things.append((thing_match[0], issue))
-        elif sha:
-            commit = github_issues.get_commit(sha, owner, repo)
-            if commit is not None:
-                things.append((thing_match[0], commit))
-        elif ptbcontrib:
-            contrib = github_issues.ptbcontribs.get(ptbcontrib)
-            if contrib:
-                things.append((thing_match[0], contrib))
-
     # Parse fuzzy search next
-    if no_entity_text.startswith("!search") or no_entity_text.endswith("!search"):
+    if no_entity_text.endswith("!search13") or no_entity_text.endswith("!searchv13"):
         for match in ENCLOSED_REGEX.finditer(no_entity_text):
             last = keep_typing(last, cast(Chat, update.effective_chat), ChatAction.TYPING)
             things.append((match.start(), search.search(match.group(0), amount=1)[0]))

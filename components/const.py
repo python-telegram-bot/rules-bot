@@ -28,10 +28,10 @@ ONTOPIC_RULES_MESSAGE_LINK = "https://t.me/pythontelegrambotgroup/419903"
 OFFTOPIC_RULES_MESSAGE_ID = 161133
 OFFTOPIC_RULES_MESSAGE_LINK = "https://t.me/pythontelegrambottalk/161133"
 PTBCONTRIB_LINK = "https://github.com/python-telegram-bot/ptbcontrib/"
-DOCS_URL = "https://python-telegram-bot.readthedocs.io/"
+DOCS_URL = "https://python-telegram-bot.readthedocs.io/en/stable/"
 OFFICIAL_URL = "https://core.telegram.org/bots/api"
 PROJECT_URL = urljoin(GITHUB_URL, DEFAULT_REPO + "/")
-WIKI_URL = urljoin(PROJECT_URL, "wiki/")
+WIKI_URL = "https://github.com/python-telegram-bot/v13.x-wiki/wiki/"
 WIKI_CODE_SNIPPETS_URL = urljoin(WIKI_URL, "Code-snippets")
 WIKI_FAQ_URL = urljoin(WIKI_URL, "Frequently-Asked-Questions")
 WIKI_FRDP_URL = urljoin(WIKI_URL, "Frequently-requested-design-patterns")
@@ -58,10 +58,10 @@ master/CODE_OF_CONDUCT.md">Code of Conduct</a>
 - If you have a userbot, deactivate it in here. Otherwise you'll get banned at least temporarily.
 
 Before asking, please take a look at our <a href="https://github.com/python-telegram-bot/\
-python-telegram-bot/wiki">wiki</a> and <a href="https://github.com/python-telegram-bot/\
+v13.x-wiki/wiki">wiki</a> and <a href="https://github.com/python-telegram-bot/\
 python-telegram-bot/tree/master/examples">example bots</a> or, depending on your question, the \
 <a href="https://core.telegram.org/bots/api">official API docs</a> and <a href="https://\
-python-telegram-bot.readthedocs.io">python-telegram-bot docs</a>).
+python-telegram-bot.readthedocs.io/en/stable/">python-telegram-bot docs</a>).
 For off-topic discussions, please use our <a href="https://telegram.me/pythontelegrambottalk">\
 off-topic group</a>.
 """
