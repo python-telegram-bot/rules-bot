@@ -20,7 +20,6 @@ from .const import (
     WIKI_CODE_SNIPPETS_URL,
     WIKI_FAQ_URL,
     EXAMPLES_URL,
-    GITHUB_PATTERN,
     WIKI_FRDP_URL,
 )
 from .entrytypes import (
@@ -240,27 +239,27 @@ class Search:
         """
         search_entries: Iterable[BaseEntry] = []
 
-        match = GITHUB_PATTERN.fullmatch(search_query) if search_query else None
-        if match:
-            owner, repo, number, sha, gh_search_query, ptbcontrib = [
-                match.groupdict()[x]
-                for x in ("owner", "repo", "number", "sha", "query", "ptbcontrib")
-            ]
-
-            # If it's an issue
-            if number:
-                issue = github_issues.get_issue(int(number), owner, repo)
-                return [issue] if issue else None
-            # If it's a commit
-            if sha:
-                commit = github_issues.get_commit(sha, owner, repo)
-                return [commit] if commit else None
-            # If it's a search
-            if gh_search_query:
-                search_query = gh_search_query
-                search_entries = github_issues.all_issues
-            elif ptbcontrib:
-                search_entries = github_issues.all_ptbcontribs
+        # match = GITHUB_PATTERN.fullmatch(search_query) if search_query else None
+        # if match:
+        #     owner, repo, number, sha, gh_search_query, ptbcontrib = [
+        #         match.groupdict()[x]
+        #         for x in ("owner", "repo", "number", "sha", "query", "ptbcontrib")
+        #     ]
+        #
+        #     # If it's an issue
+        #     if number:
+        #         issue = github_issues.get_issue(int(number), owner, repo)
+        #         return [issue] if issue else None
+        #     # If it's a commit
+        #     if sha:
+        #         commit = github_issues.get_commit(sha, owner, repo)
+        #         return [commit] if commit else None
+        #     # If it's a search
+        #     if gh_search_query:
+        #         search_query = gh_search_query
+        #         search_entries = github_issues.all_issues
+        #     elif ptbcontrib:
+        #         search_entries = github_issues.all_ptbcontribs
 
         if search_query and search_query.startswith("/"):
             search_entries = TAG_HINTS.values()

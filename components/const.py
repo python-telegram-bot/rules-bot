@@ -35,7 +35,7 @@ WIKI_URL = "https://github.com/python-telegram-bot/v13.x-wiki/wiki/"
 WIKI_CODE_SNIPPETS_URL = urljoin(WIKI_URL, "Code-snippets")
 WIKI_FAQ_URL = urljoin(WIKI_URL, "Frequently-Asked-Questions")
 WIKI_FRDP_URL = urljoin(WIKI_URL, "Frequently-requested-design-patterns")
-EXAMPLES_URL = urljoin(PROJECT_URL, "tree/master/examples/")
+EXAMPLES_URL = urljoin(PROJECT_URL, "tree/v13.x/examples/")
 ONTOPIC_RULES = """
 This group is for questions, answers and discussions around the \
 <a href="https://python-telegram-bot.org/">python-telegram-bot library</a> and, to some extent, \
