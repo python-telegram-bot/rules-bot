@@ -130,7 +130,7 @@ def docs(update: Update, _: CallbackContext) -> None:
     message = cast(Message, update.effective_message)
     text = (
         "You can find our documentation at "
-        "[Read the Docs](https://python-telegram-bot.readthedocs.io/en/stable/)"
+        "[Read the Docs](https://python-telegram-bot.readthedocs.io/)"
     )
     reply_id = message.reply_to_message.message_id if message.reply_to_message else None
     message.reply_text(

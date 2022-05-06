@@ -90,6 +90,11 @@ class Search:
         self._docs = []
         for entry_type, items in data.items():
             for name, (_, _, url, display_name) in items.items():
+                if "._" in name:
+                    # For some reason both `ext._application.Application` and `ext.Application`
+                    # are present ...
+                    continue
+
                 tg_url, tg_test, tg_name = "", "", ""
                 name_bits = name.split(".")
 
