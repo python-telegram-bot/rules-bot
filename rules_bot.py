@@ -71,7 +71,7 @@ def main() -> None:
     defaults = Defaults(parse_mode=ParseMode.HTML, disable_web_page_preview=True)
     updater = Updater(token=config["KEYS"]["bot_api"], defaults=defaults)
     dispatcher = updater.dispatcher
-    update_rules_messages(updater.bot)
+    # update_rules_messages(updater.bot)
 
     # Note: Order matters!
 
