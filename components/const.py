@@ -52,8 +52,7 @@ Telegram bots in general.
 - Use <code>/wiki</code> and <code>/docs</code> in a private chat if possible.
 - Only mention or reply to users directly if you're answering their question or following up on a \
 conversation with them.
-- Please abide by our <a href="https://github.com/python-telegram-bot/python-telegram-bot/blob/\
-master/CODE_OF_CONDUCT.md">Code of Conduct</a>
+- Please abide by our <a href="python-telegram-bot.readthedocs.io/coc.html">Code of Conduct</a>
 - Use <code>@admin</code> to report spam or abuse and <i>only</i> for that.
 - If you have a userbot, deactivate it in here. Otherwise you'll get banned at least temporarily.
 
