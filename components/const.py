@@ -24,11 +24,11 @@ TELEGRAM_SUPERSCRIPT = "ᵀᴱᴸᴱᴳᴿᴬᴹ"
 FAQ_CHANNEL_ID = "@ptbfaq"
 SELF_BOT_NAME = "roolsbot"
 ONTOPIC_RULES_MESSAGE_ID = 419903
-ONTOPIC_RULES_MESSAGE_LINK = "https://t.me/pythontelegrambotgroup/419903"
+ONTOPIC_RULES_MESSAGE_LINK = f"https://t.me/{ONTOPIC_USERNAME}/419903"
 OFFTOPIC_RULES_MESSAGE_ID = 161133
-OFFTOPIC_RULES_MESSAGE_LINK = "https://t.me/pythontelegrambottalk/161133"
+OFFTOPIC_RULES_MESSAGE_LINK = f"https://t.me/{OFFTOPIC_USERNAME}/161133"
 PTBCONTRIB_LINK = "https://github.com/python-telegram-bot/ptbcontrib/"
-DOCS_URL = "https://python-telegram-bot.readthedocs.io/"
+DOCS_URL = "https://docs.python-telegram-bot.org/"
 OFFICIAL_URL = "https://core.telegram.org/bots/api"
 PROJECT_URL = urljoin(GITHUB_URL, DEFAULT_REPO + "/")
 WIKI_URL = urljoin(PROJECT_URL, "wiki/")
@@ -36,7 +36,7 @@ WIKI_CODE_SNIPPETS_URL = urljoin(WIKI_URL, "Code-snippets")
 WIKI_FAQ_URL = urljoin(WIKI_URL, "Frequently-Asked-Questions")
 WIKI_FRDP_URL = urljoin(WIKI_URL, "Frequently-requested-design-patterns")
 EXAMPLES_URL = urljoin(PROJECT_URL, "tree/master/examples/")
-ONTOPIC_RULES = """
+ONTOPIC_RULES = f"""
 This group is for questions, answers and discussions around the \
 <a href="https://python-telegram-bot.org/">python-telegram-bot library</a> and, to some extent, \
 Telegram bots in general.
@@ -52,20 +52,19 @@ Telegram bots in general.
 - Use <code>/wiki</code> and <code>/docs</code> in a private chat if possible.
 - Only mention or reply to users directly if you're answering their question or following up on a \
 conversation with them.
-- Please abide by our <a href="python-telegram-bot.readthedocs.io/coc.html">Code of Conduct</a>
+- Please abide by our <a href="{DOCS_URL}coc.html">Code of Conduct</a>
 - Use <code>@admin</code> to report spam or abuse and <i>only</i> for that.
 - If you have a userbot, deactivate it in here. Otherwise you'll get banned at least temporarily.
 
-Before asking, please take a look at our <a href="https://github.com/python-telegram-bot/\
-python-telegram-bot/wiki">wiki</a> and <a href="https://github.com/python-telegram-bot/\
-python-telegram-bot/tree/master/examples">example bots</a> or, depending on your question, the \
-<a href="https://core.telegram.org/bots/api">official API docs</a> and <a href="https://\
-python-telegram-bot.readthedocs.io">python-telegram-bot docs</a>).
-For off-topic discussions, please use our <a href="https://telegram.me/pythontelegrambottalk">\
+Before asking, please take a look at our <a href="{WIKI_URL}">wiki</a> and \
+<a href="{EXAMPLES_URL}">example bots</a> or, depending on your question, the \
+<a href="{OFFICIAL_URL}">official API docs</a> and <a href="{DOCS_URL}">\
+python-telegram-bot docs</a>).
+For off-topic discussions, please use our <a href="https://t.me/{OFFTOPIC_USERNAME}">\
 off-topic group</a>.
 """
 
-OFFTOPIC_RULES = """
+OFFTOPIC_RULES = f"""
 <b>Topics:</b>
 - Discussions about Python in general
 - Meta discussions about <code>python-telegram-bot</code>
@@ -80,7 +79,7 @@ OFFTOPIC_RULES = """
 - Max. 1 meme per user per day
 - Only mention or reply to users directly if you're answering their question or following up on a \
 conversation with them.
-- Please abide by our <a href="python-telegram-bot.readthedocs.io/coc.html">Code of Conduct</a>
+- Please abide by our <a href="{DOCS_URL}coc.html">Code of Conduct</a>
 - Use <code>@admin</code> to report spam or abuse and <i>only</i> for that.
 - If you have a userbot, deactivate it in here. Otherwise you'll get banned at least temporarily.
 """
