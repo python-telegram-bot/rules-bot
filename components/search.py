@@ -10,7 +10,6 @@ from urllib.parse import urljoin
 from urllib.request import urlopen, Request
 
 from bs4 import BeautifulSoup
-from httpx import RequestError
 from sphinx.util.inventory import InventoryFile
 
 from .const import (
@@ -248,10 +247,10 @@ class Search:
 
         match = GITHUB_PATTERN.fullmatch(search_query) if search_query else None
         if match:
-            owner, repo, number, sha, gh_search_query, ptbcontrib = [
+            owner, repo, number, sha, gh_search_query, ptbcontrib = (
                 match.groupdict()[x]
                 for x in ("owner", "repo", "number", "sha", "query", "ptbcontrib")
-            ]
+            )
 
             # If it's an issue
             if number:
