@@ -13,6 +13,7 @@ from components.const import (
     TELEGRAM_SUPERSCRIPT,
     DEFAULT_REPO_OWNER,
     DEFAULT_REPO_NAME,
+    DOCS_URL,
 )
 
 
@@ -71,16 +72,17 @@ class Example(BaseEntry):
 
     Args:
         name: The name of the example
-        url: URL of the example
     """
 
-    def __init__(self, name: str, url: str):
-        if name.endswith(".py"):
-            self._name = name[:-3]
-        else:
-            self._name = name
+    def __init__(self, name: str):
+        self._name = name
         self._search_name = f"example {self._name}"
-        self.url = url
+
+        if name.endswith(".py"):
+            href = name[:-3]
+        else:
+            href = name
+        self.url = f"{DOCS_URL}examples.html#examples-{href}"
 
     @property
     def display_name(self) -> str:

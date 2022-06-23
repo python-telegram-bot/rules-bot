@@ -199,8 +199,8 @@ class Search:
 
     def fetch_examples(self) -> None:
         self._examples = []
-        for name, link in self.github_session.get_examples_directory(r"^.*\.py"):
-            self._examples.append(Example(name=name, url=link))
+        for name, _ in self.github_session.get_examples_directory(r"^.*\.py"):
+            self._examples.append(Example(name=name))
 
     @staticmethod
     def _sort_key(entry: BaseEntry, search_query: str) -> float:
