@@ -99,7 +99,7 @@ class Search:
                 tg_url, tg_test, tg_name = "", "", ""
                 name_bits = name.split(".")
 
-                if entry_type in ["py:method", "py:attribute", "py:property"]:
+                if entry_type in ["py:method", "py:attribute"]:
                     if "telegram.Bot" in name or "telegram.ext.ExtBot" in name:
                         tg_test = name_bits[-1]
                     else:
