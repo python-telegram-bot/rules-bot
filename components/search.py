@@ -77,7 +77,8 @@ class Search:
 
     def fetch_official_docs(self) -> None:
         request = Request(OFFICIAL_URL, headers={"User-Agent": USER_AGENT})
-        official_soup = BeautifulSoup(urlopen(request), "html.parser")
+        with urlopen(request) as file:
+            official_soup = BeautifulSoup(file, "html.parser")
         for anchor in official_soup.select("a.anchor"):
             if "-" not in anchor["href"]:
                 self._official[anchor["href"][1:]] = anchor.next_sibling
@@ -85,8 +86,8 @@ class Search:
     def fetch_docs(self) -> None:
         self.fetch_official_docs()
         request = Request(urljoin(DOCS_URL, "objects.inv"), headers={"User-Agent": USER_AGENT})
-        docs_data = urlopen(request)
-        data = InventoryFile.load(docs_data, DOCS_URL, urljoin)
+        with urlopen(request) as docs_data:
+            data = InventoryFile.load(docs_data, DOCS_URL, urljoin)
         self._docs = []
         for entry_type, items in data.items():
             for name, (_, _, url, display_name) in items.items():
@@ -110,7 +111,7 @@ class Search:
 
                 tg_test = tg_test.replace("_", "").lower()
 
-                if tg_test in self._official.keys():
+                if tg_test in self._official:
                     tg_name = self._official[tg_test]
                     tg_url = urljoin(OFFICIAL_URL, "#" + tg_name.lower())
 
@@ -139,7 +140,8 @@ class Search:
 
     def fetch_wiki(self) -> None:
         request = Request(WIKI_URL, headers={"User-Agent": USER_AGENT})
-        wiki_soup = BeautifulSoup(urlopen(request), "html.parser")
+        with urlopen(request) as file:
+            wiki_soup = BeautifulSoup(file, "html.parser")
         self._wiki = []
 
         # Parse main pages from custom sidebar
@@ -160,7 +162,8 @@ class Search:
 
     def fetch_wiki_code_snippets(self) -> None:
         request = Request(WIKI_CODE_SNIPPETS_URL, headers={"User-Agent": USER_AGENT})
-        code_snippet_soup = BeautifulSoup(urlopen(request), "html.parser")
+        with urlopen(request) as file:
+            code_snippet_soup = BeautifulSoup(file, "html.parser")
         self._snippets = []
         for headline in code_snippet_soup.select(
             "div#wiki-body h4,div#wiki-body h3,div#wiki-body h2"
@@ -174,7 +177,8 @@ class Search:
 
     def fetch_wiki_faq(self) -> None:
         request = Request(WIKI_FAQ_URL, headers={"User-Agent": USER_AGENT})
-        faq_soup = BeautifulSoup(urlopen(request), "html.parser")
+        with urlopen(request) as file:
+            faq_soup = BeautifulSoup(file, "html.parser")
         self._faq = []
         for headline in faq_soup.select("div#wiki-body h3"):
             self._faq.append(
@@ -183,7 +187,8 @@ class Search:
 
     def fetch_wiki_design_patterns(self) -> None:
         request = Request(WIKI_FRDP_URL, headers={"User-Agent": USER_AGENT})
-        frdp_soup = BeautifulSoup(urlopen(request), "html.parser")
+        with urlopen(request) as file:
+            frdp_soup = BeautifulSoup(file, "html.parser")
         self._design_patterns = []
         for headline in frdp_soup.select("div#wiki-body h3,div#wiki-body h2"):
             self._design_patterns.append(
@@ -242,10 +247,10 @@ class Search:
 
         match = GITHUB_PATTERN.fullmatch(search_query) if search_query else None
         if match:
-            owner, repo, number, sha, gh_search_query, ptbcontrib = [
+            owner, repo, number, sha, gh_search_query, ptbcontrib = (
                 match.groupdict()[x]
                 for x in ("owner", "repo", "number", "sha", "query", "ptbcontrib")
-            ]
+            )
 
             # If it's an issue
             if number:
