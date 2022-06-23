@@ -236,15 +236,12 @@ class DocEntry(BaseEntry):
 
     @property
     def display_name(self) -> str:
-        name = self._display_name or self.name
-        return name.replace("filters.", "")
+        return self._display_name or self.name
 
     @property
     def short_name(self) -> str:
         name = self._display_name or self.name
 
-        if name.startswith("telegram.ext.filters."):
-            return f"ext.{name[len('telegram.ext.filters.') :]}"
         if name.startswith("telegram."):
             return name[len("telegram.") :]
         return name
