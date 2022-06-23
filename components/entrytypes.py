@@ -90,7 +90,7 @@ class Example(BaseEntry):
 
     @property
     def short_name(self) -> str:
-        return f"{self._name}.py"
+        return self._name
 
     @property
     def description(self) -> str:
