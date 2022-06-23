@@ -85,9 +85,8 @@ def inlinequery_help(update: Update, context: CallbackContext) -> None:
         f"but you need an {char}InlineQueryHandler{char} for it.\n\n"
         f"*becomes:*\n"
         f"I 💙 [InlineQueries]("
-        "https://python-telegram-bot.readthedocs.io/en/latest/telegram.html#telegram"
-        f".InlineQuery), but you need an [InlineQueryHandler]("
-        f"https://python-telegram-bot.readthedocs.io/en"
+        f"{const.DOCS_URL}en/latest/telegram.html#telegram"
+        f".InlineQuery), but you need an [InlineQueryHandler]({const.DOCS_URL}en"
         f"/latest/telegram.ext.html#telegram.ext.InlineQueryHandler) for it.\n\n"
         f"Some wiki pages have spaces in them. Please replace such spaces with underscores. "
         f"The bot will automatically change them back desired space."
@@ -102,7 +101,7 @@ def inlinequery_entity_parsing(update: Update, _: CallbackContext) -> None:
         "is processed with <code>telegram.ParseMode.HTML</code> formatting. You will therefore "
         "have to either use valid HTML-formatted text or escape reserved characters. For a list "
         "of reserved characters, please see the official "
-        "<a href='https://core.telegram.org/bots/api#html-style'>Telegram docs</a>."
+        f"<a href='{const.OFFICIAL_URL}#html-style'>Telegram docs</a>."
     )
     cast(Message, update.effective_message).reply_text(text)
 
@@ -126,16 +125,12 @@ def rules(update: Update, _: CallbackContext) -> None:
 
 @rate_limit
 def docs(update: Update, _: CallbackContext) -> None:
-    """ Documentation link """
+    """Documentation link"""
     message = cast(Message, update.effective_message)
-    text = (
-        "You can find our documentation at "
-        "[Read the Docs](https://python-telegram-bot.readthedocs.io/)"
-    )
+    text = f"You can find our documentation at [Read the Docs]({const.DOCS_URL})"
     reply_id = message.reply_to_message.message_id if message.reply_to_message else None
-    message.reply_text(
+    message.reply_markdown(
         text,
-        parse_mode="Markdown",
         quote=False,
         reply_to_message_id=reply_id,
     )
@@ -144,15 +139,11 @@ def docs(update: Update, _: CallbackContext) -> None:
 
 @rate_limit
 def wiki(update: Update, _: CallbackContext) -> None:
-    """ Wiki link """
+    """Wiki link"""
     message = cast(Message, update.effective_message)
-    text = (
-        "You can find our wiki on "
-        "[GitHub](https://github.com/python-telegram-bot/python-telegram-bot/wiki)"
-    )
-    message.reply_text(
+    text = f"You can find our wiki on [GitHub]({const.WIKI_URL})"
+    message.reply_markdown(
         text,
-        parse_mode="Markdown",
         quote=False,
         reply_to_message_id=get_reply_id(update),
     )
@@ -161,14 +152,14 @@ def wiki(update: Update, _: CallbackContext) -> None:
 
 @rate_limit
 def help_callback(update: Update, context: CallbackContext) -> None:
-    """ Link to rules readme """
+    """Link to rules readme"""
     message = cast(Message, update.effective_message)
     text = (
         f"You can find an explanation of @{html.escape(context.bot.username)}'s functionality "
         'wiki on <a href="https://github.com/python-telegram-bot/rules-bot/blob/master/README.md">'
         "GitHub</a>."
     )
-    message.reply_text(
+    message.reply_html(
         text,
         quote=False,
         reply_to_message_id=get_reply_id(update),
@@ -276,10 +267,10 @@ def reply_search(update: Update, context: CallbackContext) -> None:
     # Parse exact matches for GitHub threads & ptbcontrib things first
     for match in GITHUB_PATTERN.finditer(no_entity_text):
         logging.debug(match.groupdict())
-        owner, repo, number, sha, ptbcontrib = [
+        owner, repo, number, sha, ptbcontrib = (
             cast(str, match.groupdict()[x])
             for x in ("owner", "repo", "number", "sha", "ptbcontrib")
-        ]
+        )
         if number or sha or ptbcontrib:
             thing_matches.append((match.start(), (owner, repo, number, sha, ptbcontrib)))
 
@@ -329,24 +320,16 @@ def extract_status_change(
         return None
 
     old_status, new_status = status_change
-    was_member = (
-        old_status
-        in [
-            ChatMember.MEMBER,
-            ChatMember.CREATOR,
-            ChatMember.ADMINISTRATOR,
-        ]
-        or (old_status == ChatMember.RESTRICTED and old_is_member is True)
-    )
-    is_member = (
-        new_status
-        in [
-            ChatMember.MEMBER,
-            ChatMember.CREATOR,
-            ChatMember.ADMINISTRATOR,
-        ]
-        or (new_status == ChatMember.RESTRICTED and new_is_member is True)
-    )
+    was_member = old_status in [
+        ChatMember.MEMBER,
+        ChatMember.CREATOR,
+        ChatMember.ADMINISTRATOR,
+    ] or (old_status == ChatMember.RESTRICTED and old_is_member is True)
+    is_member = new_status in [
+        ChatMember.MEMBER,
+        ChatMember.CREATOR,
+        ChatMember.ADMINISTRATOR,
+    ] or (new_status == ChatMember.RESTRICTED and new_is_member is True)
 
     return was_member, is_member
 
