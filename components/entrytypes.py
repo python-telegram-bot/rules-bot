@@ -2,18 +2,18 @@ import re
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from github3.repos.commit import RepoCommit as GHCommit
-from github3.repos import Repository as GHRepo
 from github3.issues import Issue as GHIssue
-from thefuzz import fuzz
+from github3.repos import Repository as GHRepo
+from github3.repos.commit import RepoCommit as GHCommit
 from telegram import InlineKeyboardMarkup
+from thefuzz import fuzz
 
 from components.const import (
     ARROW_CHARACTER,
-    TELEGRAM_SUPERSCRIPT,
-    DEFAULT_REPO_OWNER,
     DEFAULT_REPO_NAME,
+    DEFAULT_REPO_OWNER,
     DOCS_URL,
+    TELEGRAM_SUPERSCRIPT,
 )
 
 

@@ -1,37 +1,35 @@
 import functools
 import heapq
 import itertools
-
 from datetime import date
-
 from threading import Lock
-from typing import List, Tuple, Dict, Callable, Any, Optional, Iterable
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 from urllib.parse import urljoin
-from urllib.request import urlopen, Request
+from urllib.request import Request, urlopen
 
 from bs4 import BeautifulSoup
 from sphinx.util.inventory import InventoryFile
 
 from .const import (
-    USER_AGENT,
     DOCS_URL,
-    OFFICIAL_URL,
-    WIKI_URL,
-    WIKI_CODE_SNIPPETS_URL,
-    WIKI_FAQ_URL,
     EXAMPLES_URL,
     GITHUB_PATTERN,
+    OFFICIAL_URL,
+    USER_AGENT,
+    WIKI_CODE_SNIPPETS_URL,
+    WIKI_FAQ_URL,
     WIKI_FRDP_URL,
+    WIKI_URL,
 )
 from .entrytypes import (
-    WikiPage,
-    Example,
-    CodeSnippet,
-    FAQEntry,
-    DocEntry,
     BaseEntry,
+    CodeSnippet,
+    DocEntry,
+    Example,
+    FAQEntry,
     FRDPEntry,
     ParamDocEntry,
+    WikiPage,
 )
 from .github import github_issues
 from .taghints import TAG_HINTS

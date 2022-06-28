@@ -3,19 +3,16 @@ from typing import cast
 from uuid import uuid4
 
 from telegram import (
+    InlineKeyboardMarkup,
+    InlineQuery,
     InlineQueryResultArticle,
     InputTextMessageContent,
     Update,
-    InlineQuery,
-    InlineKeyboardMarkup,
 )
 from telegram.error import BadRequest
-from telegram.ext import CallbackContext
+from telegram.ext import ContextTypes
 
-from components.const import (
-    ENCLOSED_REGEX,
-    ENCLOSING_REPLACEMENT_CHARACTER,
-)
+from components.const import ENCLOSED_REGEX, ENCLOSING_REPLACEMENT_CHARACTER
 from components.entrytypes import Issue
 from components.search import search
 
@@ -36,7 +33,9 @@ def article(
     )
 
 
-def inline_query(update: Update, _: CallbackContext) -> None:  # pylint: disable=R0915
+async def inline_query(
+    update: Update, _: ContextTypes.DEFAULT_TYPE
+) -> None:  # pylint: disable=R0915
     ilq = cast(InlineQuery, update.inline_query)
     query = ilq.query
     switch_pm_text = "❓ Help"
@@ -94,7 +93,7 @@ def inline_query(update: Update, _: CallbackContext) -> None:  # pylint: disable
             ]
 
     try:
-        ilq.answer(
+        await ilq.answer(
             results=results_list,
             switch_pm_text=switch_pm_text,
             switch_pm_parameter="inline-help",
@@ -104,7 +103,7 @@ def inline_query(update: Update, _: CallbackContext) -> None:  # pylint: disable
     except BadRequest as exc:
         if "can't parse entities" not in exc.message:
             raise exc
-        ilq.answer(
+        await ilq.answer(
             results=[],
             switch_pm_text="❌ Invalid entities. Click me.",
             switch_pm_parameter="inline-entity-parsing",

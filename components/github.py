@@ -1,34 +1,21 @@
 import logging
 import re
 import threading
-import time
-from typing import (
-    Dict,
-    Union,
-    Optional,
-    no_type_check,
-    List,
-    Pattern,
-    Tuple,
-    Any,
-    cast,
-    Iterable,
-)
+from typing import Any, Dict, Iterable, List, Optional, Pattern, Tuple, Union, cast, no_type_check
 
-from github3.repos.contents import Contents
-from github3 import login, GitHub
+from github3 import GitHub, login
 from github3.exceptions import GitHubException
 from github3.repos import Repository as GHRepo
-from github3.structs import GitHubIterator
+from github3.repos.contents import Contents
 from telegram.ext import JobQueue
 
 from components.const import (
-    DEFAULT_REPO_OWNER,
     DEFAULT_REPO_NAME,
-    PTBCONTRIB_REPO_NAME,
+    DEFAULT_REPO_OWNER,
     EXAMPLES_URL,
+    PTBCONTRIB_REPO_NAME,
 )
-from components.entrytypes import Issue, PTBContrib, Commit
+from components.entrytypes import Commit, Issue, PTBContrib
 
 
 class RepoDict(Dict[str, GHRepo]):
@@ -133,48 +120,7 @@ class GitHubIssues:
         except GitHubException:
             return None
 
-    def _job(self, job_queue: JobQueue) -> None:
-        self.logger.info("Getting issues for default repo.")
-
-        try:
-            repo = self.repos[self.default_repo]
-            if self.issue_iterator is None:
-                self.issue_iterator = self.repos[self.default_repo].issues(state="all")
-            else:
-                # The GitHubIterator automatically takes care of passing the ETag
-                # which reduces the number of API requests that count towards the rate limit
-                cast(GitHubIterator, self.issue_iterator).refresh(True)
-
-            for i, gh_issue in enumerate(self.issue_iterator):
-                # Acquire lock so we don't add while a func (like self.search) is iterating over it
-                # We do this for ever single issue instead of before the for-loop, because that
-                # would block self.search during the loop which takes a while
-                with self.issues_lock:
-                    self.issues[gh_issue.number] = Issue(gh_issue, repo)
-                # Sleeping a moment after 100 issues to give the API some rest - we're not in a
-                # hurry. The 100 is the max. per page number and as of 2.0.0 what github3.py
-                # uses. sleeping doesn't block the bot, as jobs run in their own thread.
-                # This is outside the lock! (see above commit)
-                if (i + 1) % 100 == 0:
-                    self.logger.info("Done with %d issues. Sleeping a moment.", i + 1)
-                    time.sleep(10)
-
-            # Rerun in 20 minutes
-            job_queue.run_once(lambda _: self._job(job_queue), 60 * 20)
-        except GitHubException as exc:
-            if "rate limit" in str(exc):
-                self.logger.warning("GH API rate limit exceeded. Retrying in 70 minutes.")
-                job_queue.run_once(lambda _: self._job(job_queue), 60 * 70)
-            else:
-                self.logger.exception(
-                    "Something went wrong fetching issues. Retrying in 10s.", exc_info=exc
-                )
-                job_queue.run_once(lambda _: self._job(job_queue), 10)
-
-    def init_issues(self, job_queue: JobQueue) -> None:
-        job_queue.run_once(lambda _: self._job(job_queue), 10)
-
-    def _ptbcontrib_job(self, job_queue: JobQueue) -> None:
+    def _ptbcontrib_job(self, _: JobQueue) -> None:
         self.logger.info("Getting ptbcontrib data.")
 
         try:
@@ -193,19 +139,16 @@ class GitHubIssues:
                 )
 
             # Rerun in two hours minutes
-            job_queue.run_once(lambda _: self._ptbcontrib_job(job_queue), 2 * 60 * 60)
+            # job_queue.run_once(lambda _: self._ptbcontrib_job(job_queue), 2 * 60 * 60)
         except GitHubException as exc:
             if "rate limit" in str(exc):
                 self.logger.warning("GH API rate limit exceeded. Retrying in 70 minutes.")
-                job_queue.run_once(lambda _: self._ptbcontrib_job(job_queue), 60 * 70)
+                # job_queue.run_once(lambda _: self._ptbcontrib_job(job_queue), 60 * 70)
             else:
                 self.logger.exception(
                     "Something went wrong fetching issues. Retrying in 10s.", exc_info=exc
                 )
-                job_queue.run_once(lambda _: self._ptbcontrib_job(job_queue), 10)
-
-    def init_ptb_contribs(self, job_queue: JobQueue) -> None:
-        job_queue.run_once(lambda _: self._ptbcontrib_job(job_queue), 5)
+                # job_queue.run_once(lambda _: self._ptbcontrib_job(job_queue), 10)
 
     @staticmethod
     def _build_example_url(example_file_name: str) -> str:

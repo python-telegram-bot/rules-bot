@@ -3,60 +3,55 @@ import logging
 import os
 
 from telegram import (
-    ParseMode,
-    Bot,
-    Update,
+    BotCommandScopeAllGroupChats,
     BotCommandScopeAllPrivateChats,
     BotCommandScopeChat,
-    BotCommandScopeAllGroupChats,
     BotCommandScopeChatAdministrators,
+    Update,
 )
-from telegram.error import BadRequest, Unauthorized
+from telegram.constants import ParseMode
+from telegram.error import BadRequest, Forbidden
 from telegram.ext import (
-    CommandHandler,
-    Updater,
-    MessageHandler,
-    Filters,
-    Defaults,
-    ChatMemberHandler,
-    InlineQueryHandler,
+    Application,
+    ApplicationBuilder,
     CallbackQueryHandler,
+    CommandHandler,
+    Defaults,
+    InlineQueryHandler,
+    MessageHandler,
+    filters,
 )
 
 from components import inlinequeries
 from components.callbacks import (
-    start,
-    rules,
+    ban_sender_channels,
+    delete_new_chat_members_message,
     docs,
-    wiki,
     help_callback,
     off_on_topic,
-    sandwich,
     reply_search,
-    delete_new_chat_members_message,
-    greet_new_chat_members,
-    tag_hint,
-    say_potato_command,
+    rules,
+    sandwich,
     say_potato_button,
-    ban_sender_channels,
+    say_potato_command,
+    start,
+    tag_hint,
+    wiki,
+)
+from components.const import (
+    OFFTOPIC_CHAT_ID,
+    OFFTOPIC_RULES,
+    OFFTOPIC_RULES_MESSAGE_ID,
+    OFFTOPIC_USERNAME,
+    ONTOPIC_CHAT_ID,
+    ONTOPIC_RULES,
+    ONTOPIC_RULES_MESSAGE_ID,
+    ONTOPIC_USERNAME,
 )
 from components.errorhandler import error_handler
-from components.const import (
-    OFFTOPIC_RULES,
-    OFFTOPIC_USERNAME,
-    ONTOPIC_RULES,
-    ONTOPIC_USERNAME,
-    ONTOPIC_RULES_MESSAGE_ID,
-    OFFTOPIC_RULES_MESSAGE_ID,
-    ONTOPIC_CHAT_ID,
-    OFFTOPIC_CHAT_ID,
-)
-from components.taghints import TagHintFilter
-from components.util import (
-    rate_limit_tracker,
-    build_command_list,
-)
 from components.github import github_issues
+from components.taghints import TagHintFilter
+from components.util import build_command_list, rate_limit_tracker
 
 if os.environ.get("ROOLSBOT_DEBUG"):
     logging.basicConfig(
@@ -72,23 +67,46 @@ else:
 logger = logging.getLogger(__name__)
 
 
-def update_rules_messages(bot: Bot) -> None:
+async def post_init(application: Application) -> None:
+    bot = application.bot
+
+    # Update rules messages
     try:
-        bot.edit_message_text(
+        await bot.edit_message_text(
             chat_id=ONTOPIC_CHAT_ID,
             message_id=ONTOPIC_RULES_MESSAGE_ID,
             text=ONTOPIC_RULES,
         )
-    except (BadRequest, Unauthorized) as exc:
+    except (BadRequest, Forbidden) as exc:
         logger.warning("Updating on-topic rules failed: %s", exc)
     try:
-        bot.edit_message_text(
+        await bot.edit_message_text(
             chat_id=OFFTOPIC_CHAT_ID,
             message_id=OFFTOPIC_RULES_MESSAGE_ID,
             text=OFFTOPIC_RULES,
         )
-    except (BadRequest, Unauthorized) as exc:
+    except (BadRequest, Forbidden) as exc:
         logger.warning("Updating off-topic rules failed: %s", exc)
+
+    # set commands
+    await bot.set_my_commands(
+        build_command_list(private=True),
+        scope=BotCommandScopeAllPrivateChats(),
+    )
+    await bot.set_my_commands(
+        build_command_list(private=False),
+        scope=BotCommandScopeAllGroupChats(),
+    )
+
+    for group_name in [ONTOPIC_CHAT_ID, OFFTOPIC_CHAT_ID]:
+        await bot.set_my_commands(
+            build_command_list(private=False, group_name=group_name),
+            scope=BotCommandScopeChat(group_name),
+        )
+        await bot.set_my_commands(
+            build_command_list(private=False, group_name=group_name, admins=True),
+            scope=BotCommandScopeChatAdministrators(group_name),
+        )
 
 
 def main() -> None:
@@ -96,75 +114,76 @@ def main() -> None:
     config.read("bot.ini")
 
     defaults = Defaults(parse_mode=ParseMode.HTML, disable_web_page_preview=True)
-    updater = Updater(token=config["KEYS"]["bot_api"], defaults=defaults)
-    dispatcher = updater.dispatcher
-    update_rules_messages(updater.bot)
+    application = (
+        ApplicationBuilder()
+        .token(config["KEYS"]["bot_api"])
+        .defaults(defaults)
+        .post_init(post_init)
+        .build()
+    )
 
     # Note: Order matters!
 
-    dispatcher.add_handler(MessageHandler(~Filters.command, rate_limit_tracker), group=-1)
-    dispatcher.add_handler(
+    application.add_handler(MessageHandler(~filters.COMMAND, rate_limit_tracker), group=-1)
+    application.add_handler(
         MessageHandler(
-            Filters.sender_chat.channel & ~Filters.is_automatic_forward, ban_sender_channels
+            filters.SenderChat.CHANNEL & ~filters.IS_AUTOMATIC_FORWARD,
+            ban_sender_channels,
+            block=False,
         )
     )
 
     # Simple commands
     # The first one also handles deep linking /start commands
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(CommandHandler("rules", rules))
-    dispatcher.add_handler(CommandHandler("docs", docs))
-    dispatcher.add_handler(CommandHandler("wiki", wiki))
-    dispatcher.add_handler(CommandHandler("help", help_callback))
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("rules", rules))
+    application.add_handler(CommandHandler("docs", docs))
+    application.add_handler(CommandHandler("wiki", wiki))
+    application.add_handler(CommandHandler("help", help_callback))
 
     # Stuff that runs on every message with regex
-    dispatcher.add_handler(
+    application.add_handler(
         MessageHandler(
-            Filters.regex(r"(?i)[\s\S]*?((sudo )?make me a sandwich)[\s\S]*?"), sandwich
+            filters.Regex(r"(?i)[\s\S]*?((sudo )?make me a sandwich)[\s\S]*?"), sandwich
         )
     )
-    dispatcher.add_handler(MessageHandler(Filters.regex("/(on|off)_topic"), off_on_topic))
+    application.add_handler(MessageHandler(filters.Regex("/(on|off)_topic"), off_on_topic))
 
     # Tag hints - works with regex
-    dispatcher.add_handler(MessageHandler(TagHintFilter(), tag_hint))
+    application.add_handler(MessageHandler(TagHintFilter(), tag_hint))
 
-    # We need several matches so Filters.regex is basically useless
+    # We need several matches so filters.REGEX is basically useless
     # therefore we catch everything and do regex ourselves
-    dispatcher.add_handler(
-        MessageHandler(Filters.text & Filters.update.messages & ~Filters.command, reply_search)
+    application.add_handler(
+        MessageHandler(filters.TEXT & filters.UpdateType.MESSAGES & ~filters.COMMAND, reply_search)
     )
 
     # Status updates
-    dispatcher.add_handler(
-        ChatMemberHandler(greet_new_chat_members, chat_member_types=ChatMemberHandler.CHAT_MEMBER)
-    )
-    dispatcher.add_handler(
+    application.add_handler(
         MessageHandler(
-            Filters.chat(username=[ONTOPIC_USERNAME, OFFTOPIC_USERNAME])
-            & Filters.status_update.new_chat_members,
+            filters.Chat(username=[ONTOPIC_USERNAME, OFFTOPIC_USERNAME])
+            & filters.StatusUpdate.NEW_CHAT_MEMBERS,
             delete_new_chat_members_message,
+            block=False,
         ),
         group=1,
     )
 
     # Inline Queries
-    dispatcher.add_handler(InlineQueryHandler(inlinequeries.inline_query))
+    application.add_handler(InlineQueryHandler(inlinequeries.inline_query))
 
     # Captcha for userbots
-    dispatcher.add_handler(
+    application.add_handler(
         CommandHandler(
             "say_potato",
             say_potato_command,
-            filters=Filters.chat(username=[ONTOPIC_USERNAME, OFFTOPIC_USERNAME]),
+            filters=filters.Chat(username=[ONTOPIC_USERNAME, OFFTOPIC_USERNAME]),
         )
     )
-    dispatcher.add_handler(CallbackQueryHandler(say_potato_button, pattern="^POTATO"))
+    application.add_handler(CallbackQueryHandler(say_potato_button, pattern="^POTATO"))
 
     # Error Handler
-    dispatcher.add_error_handler(error_handler)
-
-    updater.start_polling(allowed_updates=Update.ALL_TYPES)
-    logger.info("Listening...")
+    application.add_error_handler(error_handler)
 
     try:
         github_issues.set_auth(
@@ -173,30 +192,10 @@ def main() -> None:
     except KeyError:
         logging.info("No github api token set. Rate-limit is 60 requests/hour without auth.")
 
-    github_issues.init_ptb_contribs(dispatcher.job_queue)  # type: ignore[arg-type]
-    github_issues.init_issues(dispatcher.job_queue)  # type: ignore[arg-type]
+    # github_issues.init_ptb_contribs(application.job_queue)  # type: ignore[arg-type]
+    # github_issues.init_issues(application.job_queue)  # type: ignore[arg-type]
 
-    # set commands
-    updater.bot.set_my_commands(
-        build_command_list(private=True),
-        scope=BotCommandScopeAllPrivateChats(),
-    )
-    updater.bot.set_my_commands(
-        build_command_list(private=False),
-        scope=BotCommandScopeAllGroupChats(),
-    )
-
-    for group_name in [ONTOPIC_CHAT_ID, OFFTOPIC_CHAT_ID]:
-        updater.bot.set_my_commands(
-            build_command_list(private=False, group_name=group_name),
-            scope=BotCommandScopeChat(group_name),
-        )
-        updater.bot.set_my_commands(
-            build_command_list(private=False, group_name=group_name, admins=True),
-            scope=BotCommandScopeChatAdministrators(group_name),
-        )
-
-    updater.idle()
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
 if __name__ == "__main__":

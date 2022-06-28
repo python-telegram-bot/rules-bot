@@ -1,8 +1,8 @@
 import re
-from typing import Dict, Any, Optional, List, Match
+from typing import Any, Dict, List, Match, Optional
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, MessageEntity
-from telegram.ext import MessageFilter
+from telegram.ext.filters import MessageFilter
 
 from components import const
 from components.const import PTBCONTRIB_LINK
@@ -226,7 +226,7 @@ class TagHintFilter(MessageFilter):
     """Custom filter class for filtering for tag hint messages"""
 
     def __init__(self) -> None:
-        self.data_filter = True
+        super().__init__(name="TageHintFilter", data_filter=True)
 
     def filter(self, message: Message) -> Optional[Dict[str, List[Match]]]:
         """Does the filtering. Applies the regex and makes sure that only those tag hints are
