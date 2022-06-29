@@ -45,7 +45,7 @@ async def reply_or_edit(update: Update, context: CallbackContext, text: str) -> 
             chat_data[message.message_id] = await message.reply_text(text)
 
 
-async def get_text_not_in_entities(message: Message) -> str:
+def get_text_not_in_entities(message: Message) -> str:
     if message.text is None:
         raise ValueError("Message has no text!")
 
@@ -99,9 +99,9 @@ async def rate_limit_tracker(_: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         data[key] += 1
 
 
-async def rate_limit(
-    func: Callable[[Update, CallbackContext], None]
-) -> Callable[[Update, CallbackContext], Coroutine[Any, Any, None]]:
+def rate_limit(
+    func: Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[Any, Any, None]]
+) -> Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[Any, Any, None]]:
     """
     Rate limit command so that RATE_LIMIT_SPACING non-command messages are
     required between invocations. Private chats are not rate limited.
@@ -111,7 +111,7 @@ async def rate_limit(
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if chat := update.effective_chat:
             if chat.type == chat.PRIVATE:
-                return func(update, context)
+                return await func(update, context)
 
         # Get rate limit data
         data = cast(Dict, context.chat_data).setdefault("rate_limit", {})
@@ -125,7 +125,7 @@ async def rate_limit(
             return None
 
         data[func] = 0
-        return func(update, context)
+        return await func(update, context)
 
     return wrapper
 

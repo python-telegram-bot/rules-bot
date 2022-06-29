@@ -17,6 +17,7 @@ _ERC = ENCLOSING_REPLACEMENT_CHARACTER
 ENCLOSED_REGEX = re.compile(rf"\{_ERC}([^{_ERC}]*)\{_ERC}")
 OFFTOPIC_USERNAME = "pythontelegrambottalk"
 ONTOPIC_USERNAME = "pythontelegrambotgroup"
+DEV_GROUP_USERNAME = "pythontelegrambotdev"
 OFFTOPIC_CHAT_ID = "@" + OFFTOPIC_USERNAME
 ONTOPIC_CHAT_ID = "@" + ONTOPIC_USERNAME
 ERROR_CHANNEL_CHAT_ID = -1001397960657
@@ -36,6 +37,12 @@ WIKI_CODE_SNIPPETS_URL = urljoin(WIKI_URL, "Code-snippets")
 WIKI_FAQ_URL = urljoin(WIKI_URL, "Frequently-Asked-Questions")
 WIKI_FRDP_URL = urljoin(WIKI_URL, "Frequently-requested-design-patterns")
 EXAMPLES_URL = urljoin(PROJECT_URL, "tree/master/examples/")
+ALLOWED_USERNAMES = (OFFTOPIC_USERNAME, ONTOPIC_USERNAME, DEV_GROUP_USERNAME)
+ALLOWED_CHAT_IDS = (
+    ERROR_CHANNEL_CHAT_ID,
+    -1001494805131,  # dev chat
+    -1001101839433,  # Church
+)
 ONTOPIC_RULES = f"""
 This group is for questions, answers and discussions around the \
 <a href="https://python-telegram-bot.org/">python-telegram-bot library</a> and, to some extent, \

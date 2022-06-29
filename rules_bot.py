@@ -28,7 +28,9 @@ from components.callbacks import (
     delete_new_chat_members_message,
     docs,
     help_callback,
+    leave_chat,
     off_on_topic,
+    raise_app_handler_stop,
     reply_search,
     rules,
     sandwich,
@@ -39,6 +41,9 @@ from components.callbacks import (
     wiki,
 )
 from components.const import (
+    ALLOWED_CHAT_IDS,
+    ALLOWED_USERNAMES,
+    ERROR_CHANNEL_CHAT_ID,
     OFFTOPIC_CHAT_ID,
     OFFTOPIC_RULES,
     OFFTOPIC_RULES_MESSAGE_ID,
@@ -123,6 +128,21 @@ def main() -> None:
     )
 
     # Note: Order matters!
+
+    # Don't handle messages that were sent in the error channel
+    application.add_handler(
+        MessageHandler(filters.Chat(chat_id=ERROR_CHANNEL_CHAT_ID), raise_app_handler_stop),
+        group=-2,
+    )
+    # Leave groups that are not maintained by PTB
+    application.add_handler(
+        MessageHandler(
+            filters.ChatType.GROUPS
+            & ~(filters.Chat(username=ALLOWED_USERNAMES) | filters.Chat(chat_id=ALLOWED_CHAT_IDS)),
+            leave_chat,
+        ),
+        group=-2,
+    )
 
     application.add_handler(MessageHandler(~filters.COMMAND, rate_limit_tracker), group=-1)
     application.add_handler(

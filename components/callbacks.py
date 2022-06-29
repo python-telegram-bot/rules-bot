@@ -17,7 +17,7 @@ from telegram import (
     User,
 )
 from telegram.constants import ChatAction, MessageLimit, ParseMode
-from telegram.ext import ContextTypes, Job, JobQueue
+from telegram.ext import Application, ApplicationHandlerStop, ContextTypes, Job, JobQueue
 from telegram.helpers import escape_markdown
 
 from components import const
@@ -240,10 +240,10 @@ async def sandwich(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             await message.reply_text("What? Make it yourself.", quote=True)
 
 
-def keep_typing(last: float, chat: Chat, action: str) -> float:
+def keep_typing(last: float, chat: Chat, action: str, application: Application) -> float:
     now = time.time()
     if (now - last) > 1:
-        chat.send_action(action)
+        application.create_task(chat.send_action(action))
     return now
 
 
@@ -266,7 +266,12 @@ async def reply_search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             thing_matches.append((match.start(), (owner, repo, number, sha, ptbcontrib)))
 
     for thing_match in thing_matches:
-        last = keep_typing(last, cast(Chat, update.effective_chat), ChatAction.TYPING)
+        last = keep_typing(
+            last,
+            cast(Chat, update.effective_chat),
+            ChatAction.TYPING,
+            application=context.application,
+        )
         owner, repo, number, sha, ptbcontrib = thing_match[1]
         if number:
             issue = github_issues.get_issue(int(number), owner, repo)
@@ -284,18 +289,34 @@ async def reply_search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     # Parse fuzzy search next
     if no_entity_text.startswith("!search") or no_entity_text.endswith("!search"):
         for match in ENCLOSED_REGEX.finditer(no_entity_text):
-            last = keep_typing(last, cast(Chat, update.effective_chat), ChatAction.TYPING)
+            last = keep_typing(
+                last,
+                cast(Chat, update.effective_chat),
+                ChatAction.TYPING,
+                application=context.application,
+            )
             things.append((match.start(), search.search(match.group(0), amount=1)[0]))
 
         # Sort the things - only necessary if we appended something here
         things.sort(key=lambda thing: thing[0])
 
     if things:
-        reply_or_edit(update, context, "\n".join(thing[1].html_reply_markup() for thing in things))
+        await reply_or_edit(
+            update, context, "\n".join(thing[1].html_reply_markup() for thing in things)
+        )
 
 
 async def delete_new_chat_members_message(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     await cast(Message, update.effective_message).delete()
+
+
+async def leave_chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    context.application.create_task(cast(Chat, update.effective_chat).leave(), update=update)
+    raise ApplicationHandlerStop
+
+
+async def raise_app_handler_stop(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    raise ApplicationHandlerStop
 
 
 async def list_available_hints(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
@@ -326,7 +347,7 @@ async def list_available_hints(update: Update, _: ContextTypes.DEFAULT_TYPE) -> 
 async def tag_hint(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     message = cast(Message, update.effective_message)
     reply_to = message.reply_to_message
-    first_match = MessageLimit.TEXT_LENGTH
+    first_match = cast(int, MessageLimit.TEXT_LENGTH)
 
     messages = []
     keyboard = None
@@ -351,13 +372,13 @@ async def tag_hint(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
     if reply_to and first_match == 0:
-        try_to_delete(message)
+        await try_to_delete(message)
 
 
 async def ban_sender_channels(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     message = cast(Message, update.effective_message)
     await cast(Chat, update.effective_chat).ban_sender_chat(cast(Chat, message.sender_chat).id)
-    try_to_delete(message)
+    await try_to_delete(message)
 
 
 async def say_potato_job(context: ContextTypes.DEFAULT_TYPE) -> None:
