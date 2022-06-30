@@ -284,7 +284,7 @@ async def reply_search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             if commit is not None:
                 things.append((thing_match[0], commit))
         elif ptbcontrib:
-            contrib = github_issues.ptbcontribs.get(ptbcontrib)
+            contrib = github_issues.ptb_contribs.get(ptbcontrib)
             if contrib:
                 things.append((thing_match[0], contrib))
 

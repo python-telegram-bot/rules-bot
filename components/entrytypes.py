@@ -3,8 +3,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import ClassVar, List, Optional
 
-from github3.repos import Repository as GHRepo
-from github3.repos.commit import RepoCommit as GHCommit
 from telegram import InlineKeyboardMarkup
 from thefuzz import fuzz
 
@@ -382,45 +380,29 @@ class ParamDocEntry(DocEntry):
         return score / 4
 
 
+@dataclass
 class Commit(BaseEntry):
     """A commit on Github
 
     Args:
-        commit: The github3 commit object
-        repository: The github3 repository object
+        owner: str
+        repo: str
+        sha: str
+        url: str
+        title: str
+        author: str
     """
 
-    def __init__(self, commit: GHCommit, repository: GHRepo) -> None:
-        self._commit = commit
-        self._repository = repository
-
-    @property
-    def owner(self) -> str:
-        return self._repository.owner.login
-
-    @property
-    def repo(self) -> str:
-        return self._repository.name
-
-    @property
-    def sha(self) -> str:
-        return self._commit.sha
+    owner: str
+    repo: str
+    sha: str
+    url: str
+    title: str
+    author: str
 
     @property
     def short_sha(self) -> str:
         return self.sha[:7]
-
-    @property
-    def url(self) -> str:
-        return self._commit.html_url
-
-    @property
-    def title(self) -> str:
-        return self._commit.commit["message"]
-
-    @property
-    def author(self) -> str:
-        return self._commit.author["login"]
 
     @property
     def short_name(self) -> str:
@@ -456,7 +438,7 @@ class Commit(BaseEntry):
 
 @dataclass
 class _IssueOrPullRequestOrDiscussion:
-    _TYPE: ClassVar = ""  # pylint:disable=invalid_name
+    _TYPE: ClassVar = ""  # pylint:disable=invalid-name
     owner: str
     repo: str
     number: int

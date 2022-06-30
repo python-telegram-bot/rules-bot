@@ -57,7 +57,6 @@ from components.const import (
     ONTOPIC_USERNAME,
 )
 from components.errorhandler import error_handler
-from components.github import github_issues
 from components.taghints import TagHintFilter
 from components.util import build_command_list, rate_limit_tracker
 
@@ -211,13 +210,6 @@ def main() -> None:
 
     # Error Handler
     application.add_error_handler(error_handler)
-
-    try:
-        github_issues.set_auth(
-            config["KEYS"]["github_client_id"], config["KEYS"]["github_client_secret"]
-        )
-    except KeyError:
-        logging.info("No github api token set. Rate-limit is 60 requests/hour without auth.")
 
     # github_issues.init_ptb_contribs(application.job_queue)  # type: ignore[arg-type]
     # github_issues.init_issues(application.job_queue)  # type: ignore[arg-type]

@@ -1,6 +1,6 @@
 query getDiscussions($cursor: String) {
     repository(owner: "python-telegram-bot", name: "python-telegram-bot") {
-        discussions(first: 100, after: $cursor) {
+        discussions(last: 100, before: $cursor) {
             nodes {
                 number
                 title
@@ -11,8 +11,8 @@ query getDiscussions($cursor: String) {
                 }
             }
             pageInfo {
-                hasNextPage
-                endCursor
+                hasPreviousPage
+                startCursor
             }
         }
     }

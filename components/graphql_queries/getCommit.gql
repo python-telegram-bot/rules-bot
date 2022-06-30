@@ -10,6 +10,7 @@ query getCommit($sha: String!, $organization: String = "python-telegram-bot", $r
                 }
                 url
                 message
+                oid
             }
         }
     }
