@@ -1,3 +1,4 @@
+import datetime
 import html
 import logging
 import random
@@ -9,6 +10,7 @@ from typing import Dict, List, Match, Optional, Tuple, cast
 from telegram import (
     CallbackQuery,
     Chat,
+    ChatJoinRequest,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     Message,
@@ -479,3 +481,60 @@ async def say_potato_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
         ),
         name=f"POTATO {user.id}",
     )
+
+
+async def join_request_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    join_request = cast(ChatJoinRequest, update.chat_join_request)
+    on_topic = join_request.chat.username == ONTOPIC_USERNAME
+    group_mention = ONTOPIC_CHAT_ID if on_topic else OFFTOPIC_CHAT_ID
+    text = (
+        f"Hi, {join_request.from_user.mention_html()}! I'm {context.bot.bot.mention_html()}, the "
+        f"guardian of the group {group_mention}, that you requested to join.\n\nBefore you can "
+        "join the group, please carefully read the below rules of the group. Confirm that you "
+        "have read them by double-tapping the button at the bottom of the message - that's it 🙃"
+        f"\n\n{ONTOPIC_RULES if on_topic else OFFTOPIC_RULES}"
+    )
+    reply_markup = InlineKeyboardMarkup.from_button(
+        InlineKeyboardButton(
+            text="I have read the rules 📖",
+            callback_data=f"JOIN 1 {join_request.from_user.id} {join_request.chat.id}",
+        )
+    )
+    message = await join_request.from_user.send_message(text=text, reply_markup=reply_markup)
+    cast(JobQueue, context.job_queue).run_once(
+        callback=join_request_timeout_job,
+        when=datetime.timedelta(hours=12),
+        data=(join_request.from_user.id, join_request.chat.id, message, group_mention),
+    )
+
+
+async def join_request_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    callback_query = cast(CallbackQuery, update.callback_query)
+    _, press, user, chat = cast(str, callback_query.data).split()
+    if press == "2":
+        await context.bot.approve_chat_join_request(chat_id=int(chat), user_id=int(user))
+        context.application.create_task(
+            callback_query.from_user.send_message("Nice! Have fun in the group 🙂"), update=update
+        )
+        reply_markup = None
+    else:
+        reply_markup = InlineKeyboardMarkup.from_button(
+            InlineKeyboardButton(
+                text="⚠️ Tap again to confirm",
+                callback_data=f"JOIN 2 {user} {chat}",
+            )
+        )
+
+    context.application.create_task(
+        callback_query.edit_message_reply_markup(reply_markup=reply_markup), update=update
+    )
+
+
+async def join_request_timeout_job(context: ContextTypes.DEFAULT_TYPE) -> None:
+    job = cast(Job, context.job)
+    user, chat, message, group = cast(Tuple[int, int, Message, str], job.data)
+    text = (
+        f"Your request to join the group {group} has timed out. Please send a new request to join."
+    )
+    await context.bot.decline_chat_join_request(chat_id=int(chat), user_id=int(user))
+    context.application.create_task(message.edit_text(text=text))

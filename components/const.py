@@ -66,7 +66,8 @@ conversation with them.
 Before asking, please take a look at our <a href="{WIKI_URL}">wiki</a> and \
 <a href="{EXAMPLES_URL}">example bots</a> or, depending on your question, the \
 <a href="{OFFICIAL_URL}">official API docs</a> and <a href="{DOCS_URL}">\
-python-telegram-bot docs</a>).
+python-telegram-bot docs</a>). Please also make sure to read the <a href="{WIKI_URL}Ask-Right">\
+wiki page on how to ask good questions</a>.
 For off-topic discussions, please use our <a href="https://t.me/{OFFTOPIC_USERNAME}">\
 off-topic group</a>.
 """

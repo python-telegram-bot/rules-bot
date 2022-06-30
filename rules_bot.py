@@ -15,6 +15,7 @@ from telegram.ext import (
     Application,
     ApplicationBuilder,
     CallbackQueryHandler,
+    ChatJoinRequestHandler,
     CommandHandler,
     Defaults,
     InlineQueryHandler,
@@ -28,6 +29,8 @@ from components.callbacks import (
     delete_new_chat_members_message,
     docs,
     help_callback,
+    join_request_buttons,
+    join_request_callback,
     leave_chat,
     off_on_topic,
     raise_app_handler_stop,
@@ -201,6 +204,10 @@ def main() -> None:
         )
     )
     application.add_handler(CallbackQueryHandler(say_potato_button, pattern="^POTATO"))
+
+    # Join requests
+    application.add_handler(ChatJoinRequestHandler(callback=join_request_callback, block=False))
+    application.add_handler(CallbackQueryHandler(join_request_buttons, pattern="^JOIN"))
 
     # Error Handler
     application.add_error_handler(error_handler)
