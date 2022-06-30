@@ -1,0 +1,11 @@
+query getExamples {
+    repository(owner: "python-telegram-bot", name: "python-telegram-bot") {
+        object(expression: "master:examples") {
+            ... on Tree {
+                entries {
+                    name
+                }
+            }
+        }
+    }
+}

@@ -1,8 +1,8 @@
 import re
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from dataclasses import dataclass
+from typing import ClassVar, List, Optional
 
-from github3.issues import Issue as GHIssue
 from github3.repos import Repository as GHRepo
 from github3.repos.commit import RepoCommit as GHCommit
 from telegram import InlineKeyboardMarkup
@@ -454,45 +454,15 @@ class Commit(BaseEntry):
         return 0
 
 
-class Issue(BaseEntry):
-    """An issue/PR on Github
-
-    Args:
-        issue: The github3 issue object
-        repository: The github3 repository object
-    """
-
-    def __init__(self, issue: GHIssue, repository: GHRepo) -> None:
-        self._issue = issue
-        self._repository = repository
-
-    @property
-    def type(self) -> str:
-        return "Issue" if not self._issue.pull_request_urls else "PR"
-
-    @property
-    def owner(self) -> str:
-        return self._repository.owner.login
-
-    @property
-    def repo(self) -> str:
-        return self._repository.name
-
-    @property
-    def number(self) -> int:
-        return self._issue.number
-
-    @property
-    def url(self) -> str:
-        return self._issue.html_url
-
-    @property
-    def title(self) -> str:
-        return self._issue.title
-
-    @property
-    def author(self) -> str:
-        return self._issue.user.login
+@dataclass
+class _IssueOrPullRequestOrDiscussion:
+    _TYPE: ClassVar = ""  # pylint:disable=invalid_name
+    owner: str
+    repo: str
+    number: int
+    title: str
+    url: str
+    author: str
 
     @property
     def short_name(self) -> str:
@@ -504,7 +474,7 @@ class Issue(BaseEntry):
 
     @property
     def display_name(self) -> str:
-        return f"{self.type} {self.short_name}: {self.title} by {self.author}"
+        return f"{self._TYPE} {self.short_name}: {self.title} by {self.author}"
 
     @property
     def description(self) -> str:
@@ -515,12 +485,13 @@ class Issue(BaseEntry):
         # Needs to be here because of cyclical imports
         from .util import truncate_str  # pylint:disable=import-outside-toplevel
 
-        string = f"{self.type} {self.short_name}: {self.title}"
+        string = f"{self._TYPE} {self.short_name}: {self.title}"
         return truncate_str(string, 25)
 
-    def html_markup(self, search_query: str = None) -> str:
+    def html_markup(self, search_query: str = None) -> str:  # pylint:disable=unused-argument
         return f'<a href="{self.url}">{self.display_name}</a>'
 
+    # pylint:disable=unused-argument
     def html_insertion_markup(self, search_query: str = None) -> str:
         return f'<a href="{self.url}">{self.short_name}</a>'
 
@@ -532,6 +503,51 @@ class Issue(BaseEntry):
         if str(self.number) == search_query:
             return 100
         return fuzz.token_set_ratio(self.title, search_query)
+
+
+@dataclass
+class Issue(_IssueOrPullRequestOrDiscussion):
+    """An issue on GitHub
+
+    Args:
+        number: the number
+        repo: the repo name
+        owner: the owner name
+        url: the url of the issue
+        title: title of the issue
+    """
+
+    _TYPE: ClassVar = "Issue"
+
+
+@dataclass
+class PullRequest(_IssueOrPullRequestOrDiscussion):
+    """An pullRequest on GitHub
+
+    Args:
+        number: the number
+        repo: the repo name
+        owner: the owner name
+        url: the url of the pull request
+        title: title of the pull request
+    """
+
+    _TYPE: ClassVar = "PullRequest"
+
+
+@dataclass
+class Discussion(_IssueOrPullRequestOrDiscussion):
+    """A Discussion on GitHub
+
+    Args:
+        number: the number
+        repo: the repo name
+        owner: the owner name
+        url: the url of the pull request
+        title: title of the pull request
+    """
+
+    _TYPE: ClassVar = "Discussion"
 
 
 class PTBContrib(BaseEntry):

@@ -1,0 +1,19 @@
+query getDiscussions($cursor: String) {
+    repository(owner: "python-telegram-bot", name: "python-telegram-bot") {
+        discussions(first: 100, after: $cursor) {
+            nodes {
+                number
+                title
+                url
+                author {
+                    login
+                    url
+                }
+            }
+            pageInfo {
+                hasNextPage
+                endCursor
+            }
+        }
+    }
+}

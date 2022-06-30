@@ -1,0 +1,35 @@
+query getThread($number: Int!, $organization: String = "python-telegram-bot", $repository: String = "python-telegram-bot") {
+    repository(owner: $organization, name: $repository) {
+        issueOrPullRequest(number: $number) {
+            ... on Issue {
+                number
+                url
+                title
+                author {
+                    login
+                    url
+                }
+                __typename
+            }
+            ... on PullRequest {
+                number
+                url
+                title
+                author {
+                    login
+                    url
+                }
+                __typename
+            }
+        }
+        discussion(number: $number) {
+            number
+            url
+            title
+            author {
+                login
+                url
+            }
+        }
+    }
+}

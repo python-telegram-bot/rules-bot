@@ -1,0 +1,19 @@
+query getPullRequests($cursor: String) {
+    repository(owner: "python-telegram-bot", name: "python-telegram-bot") {
+        pullRequests(first: 100, after: $cursor) {
+            nodes {
+                number
+                titleHTML
+                url
+                author {
+                    login
+                    url
+                }
+            }
+            pageInfo {
+                hasNextPage
+                endCursor
+            }
+        }
+    }
+}

@@ -3,7 +3,7 @@ import heapq
 import itertools
 from datetime import date
 from threading import Lock
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
@@ -241,7 +241,7 @@ class Search:
         Returns:
             The results sorted by comparison score.
         """
-        search_entries: Iterable[BaseEntry] = []
+        search_entries: Sequence[BaseEntry] = []
 
         match = GITHUB_PATTERN.fullmatch(search_query) if search_query else None
         if match:

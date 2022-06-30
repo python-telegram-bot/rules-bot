@@ -1,0 +1,16 @@
+query getCommit($sha: String!, $organization: String = "python-telegram-bot", $repository: String = "python-telegram-bot") {
+    repository(owner: $organization, name: $repository) {
+        object(expression: $sha) {
+            ... on Commit {
+                author {
+                    user {
+                        login
+                        url
+                    }
+                }
+                url
+                message
+            }
+        }
+    }
+}
