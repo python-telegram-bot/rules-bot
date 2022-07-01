@@ -437,7 +437,7 @@ class Commit(BaseEntry):
 
 
 @dataclass
-class _IssueOrPullRequestOrDiscussion:
+class _IssueOrPullRequestOrDiscussion(BaseEntry):
     _TYPE: ClassVar = ""  # pylint:disable=invalid-name
     owner: str
     repo: str

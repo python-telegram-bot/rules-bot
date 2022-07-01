@@ -11,7 +11,7 @@ from components.entrytypes import Commit, Discussion, Example, Issue, PTBContrib
 
 
 class GraphQLClient:
-    def __int__(self, auth: str, user_agent: str = USER_AGENT) -> None:
+    def __init__(self, auth: str, user_agent: str = USER_AGENT) -> None:
         self._transport = AIOHTTPTransport(
             url="https://api.github.com/graphql",
             headers={

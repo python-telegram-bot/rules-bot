@@ -1,10 +1,8 @@
 import asyncio
-import datetime
 import logging
-from typing import Dict, Iterable, List, Optional, Tuple, Union, cast
+from typing import Dict, Iterable, List, Optional, Union
 
 from graphql import GraphQLError
-from telegram.ext import ContextTypes, Job, JobQueue
 
 from components.const import DEFAULT_REPO_NAME, DEFAULT_REPO_OWNER, USER_AGENT
 from components.entrytypes import Commit, Discussion, Example, Issue, PTBContrib, PullRequest
@@ -17,6 +15,7 @@ class GitHub:
 
         self.logger = logging.getLogger(self.__class__.__qualname__)
 
+        self.__lock = asyncio.Lock()
         self.issues: Dict[int, Issue] = {}
         self.pull_requests: Dict[int, PullRequest] = {}
         self.discussions: Dict[int, Discussion] = {}
@@ -24,10 +23,10 @@ class GitHub:
         self.ptb_contribs: Dict[str, PTBContrib] = {}
         self.examples: Dict[str, Example] = {}
 
-    async def initialize(self):
+    async def initialize(self) -> None:
         await self._gql_client.initialize()
 
-    async def shutdown(self):
+    async def shutdown(self) -> None:
         await self._gql_client.shutdown()
 
     @property
@@ -38,35 +37,52 @@ class GitHub:
     def all_issues(self) -> List[Issue]:
         return list(self.issues.values())
 
+    @property
+    def all_pull_requests(self) -> List[PullRequest]:
+        return list(self.pull_requests.values())
+
+    @property
+    def all_discussions(self) -> List[Discussion]:
+        return list(self.discussions.values())
+
+    @property
+    def all_examples(self) -> List[Example]:
+        return list(self.examples.values())
+
     async def update_examples(self) -> None:
         examples = await self._gql_client.get_examples()
-        self.examples.clear()
-        for example in examples:
-            self.examples[example.short_name] = example
+        async with self.__lock:
+            self.examples.clear()
+            for example in examples:
+                self.examples[example.short_name] = example
 
     async def update_ptb_contribs(self) -> None:
         ptb_contribs = await self._gql_client.get_ptb_contribs()
-        self.ptb_contribs.clear()
-        for ptb_contrib in ptb_contribs:
-            self.ptb_contribs[ptb_contrib.short_name.split("/")[1]] = ptb_contrib
+        async with self.__lock:
+            self.ptb_contribs.clear()
+            for ptb_contrib in ptb_contribs:
+                self.ptb_contribs[ptb_contrib.short_name.split("/")[1]] = ptb_contrib
 
     async def update_issues(self, cursor: str = None) -> Optional[str]:
         issues, cursor = await self._gql_client.get_issues(cursor=cursor)
-        for issue in issues:
-            self.issues[issue.number] = issue
-        return cursor
+        async with self.__lock:
+            for issue in issues:
+                self.issues[issue.number] = issue
+            return cursor
 
     async def update_pull_requests(self, cursor: str = None) -> Optional[str]:
         pull_requests, cursor = await self._gql_client.get_pull_requests(cursor=cursor)
-        for pull_request in pull_requests:
-            self.pull_requests[pull_request.number] = pull_request
-        return cursor
+        async with self.__lock:
+            for pull_request in pull_requests:
+                self.pull_requests[pull_request.number] = pull_request
+            return cursor
 
     async def update_discussions(self, cursor: str = None) -> Optional[str]:
         discussions, cursor = await self._gql_client.get_discussions(cursor=cursor)
-        for discussion in discussions:
-            self.discussions[discussion.number] = discussion
-        return cursor
+        async with self.__lock:
+            for discussion in discussions:
+                self.discussions[discussion.number] = discussion
+            return cursor
 
     async def get_thread(
         self, number: int, owner: str = DEFAULT_REPO_OWNER, repo: str = DEFAULT_REPO_NAME
@@ -79,12 +95,13 @@ class GitHub:
             )
 
             if owner == DEFAULT_REPO_OWNER and repo == DEFAULT_REPO_NAME:
-                if isinstance(thread, Issue):
-                    self.issues[thread.number] = thread
-                if isinstance(thread, PullRequest):
-                    self.pull_requests[thread.number] = thread
-                if isinstance(thread, Discussion):
-                    self.discussions[thread.number] = thread
+                async with self.__lock:
+                    if isinstance(thread, Issue):
+                        self.issues[thread.number] = thread
+                    if isinstance(thread, PullRequest):
+                        self.pull_requests[thread.number] = thread
+                    if isinstance(thread, Discussion):
+                        self.discussions[thread.number] = thread
 
             return thread
         except GraphQLError as exc:
@@ -105,30 +122,3 @@ class GitHub:
                 "Error while getting commit %s for %s/%s", sha[:7], owner, repo, exc_info=exc
             )
             return None
-
-    async def update_job(self, context: ContextTypes.DEFAULT_TYPE) -> None:
-        job = cast(Job, context.job)
-        cursors = cast(Tuple[Optional[str], Optional[str], Optional[str]], job.data)
-        restart = not any(cursors)
-
-        if restart:
-            await asyncio.gather(
-                context.application.create_task(self.update_examples()),
-                context.application.create_task(self.update_ptb_contribs()),
-            )
-
-        issue_cursor = (
-            await self.update_issues(cursor=cursors[0]) if restart or cursors[0] else None
-        )
-        pr_cursor = (
-            await self.update_pull_requests(cursor=cursors[1]) if restart or cursors[1] else None
-        )
-        discussion_cursor = (
-            await self.update_discussions(cursor=cursors[2]) if restart or cursors[2] else None
-        )
-
-        new_cursors = (issue_cursor, pr_cursor, discussion_cursor)
-        when = datetime.timedelta(seconds=30) if any(new_cursors) else datetime.timedelta(hours=12)
-        cast(JobQueue, context.job_queue).run_once(
-            callback=self.update_job, when=when, data=new_cursors
-        )
