@@ -1,6 +1,8 @@
+import asyncio
 import configparser
 import logging
 import os
+from typing import cast
 
 from telegram import (
     BotCommandScopeAllGroupChats,
@@ -57,6 +59,7 @@ from components.const import (
     ONTOPIC_USERNAME,
 )
 from components.errorhandler import error_handler
+from components.search import Search
 from components.taghints import TagHintFilter
 from components.util import build_command_list, rate_limit_tracker
 
@@ -76,6 +79,7 @@ logger = logging.getLogger(__name__)
 
 async def post_init(application: Application) -> None:
     bot = application.bot
+    await cast(Search, application.bot_data["search"]).initialize(application)
 
     # Update rules messages
     try:
@@ -116,6 +120,10 @@ async def post_init(application: Application) -> None:
         )
 
 
+async def post_shutdown(application: Application) -> None:
+    await cast(Search, application.bot_data["search"]).shutdown()
+
+
 def main() -> None:
     config = configparser.ConfigParser()
     config.read("bot.ini")
@@ -128,6 +136,8 @@ def main() -> None:
         .post_init(post_init)
         .build()
     )
+
+    application.bot_data["search"] = Search(github_auth=config["KEYS"]["github_auth"])
 
     # Note: Order matters!
 
@@ -214,7 +224,9 @@ def main() -> None:
     # github_issues.init_ptb_contribs(application.job_queue)  # type: ignore[arg-type]
     # github_issues.init_issues(application.job_queue)  # type: ignore[arg-type]
 
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    application.run_polling(allowed_updates=Update.ALL_TYPES, close_loop=False)
+    # Can be used in AppBuilder.post_shutdown once #3126 is released
+    asyncio.get_event_loop().run_until_complete(post_shutdown(application))
 
 
 if __name__ == "__main__":

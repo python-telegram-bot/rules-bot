@@ -36,8 +36,7 @@ from components.const import (
     VEGETABLES,
 )
 from components.entrytypes import BaseEntry
-from components.github import github_issues
-from components.search import search
+from components.search import Search
 from components.taghints import TAG_HINTS
 from components.util import (
     get_reply_id,
@@ -267,6 +266,8 @@ async def reply_search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         if number or sha or ptbcontrib:
             thing_matches.append((match.start(), (owner, repo, number, sha, ptbcontrib)))
 
+    search = cast(Search, context.bot_data["search"])
+    github = search.github
     for thing_match in thing_matches:
         last = keep_typing(
             last,
@@ -276,15 +277,15 @@ async def reply_search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         )
         owner, repo, number, sha, ptbcontrib = thing_match[1]
         if number:
-            issue = github_issues.get_issue(int(number), owner, repo)
+            issue = await github.get_thread(int(number), owner, repo)
             if issue is not None:
                 things.append((thing_match[0], issue))
         elif sha:
-            commit = github_issues.get_commit(sha, owner, repo)
+            commit = await github.get_commit(sha, owner, repo)
             if commit is not None:
                 things.append((thing_match[0], commit))
         elif ptbcontrib:
-            contrib = github_issues.ptb_contribs.get(ptbcontrib)
+            contrib = github.ptb_contribs.get(ptbcontrib)
             if contrib:
                 things.append((thing_match[0], contrib))
 
@@ -297,7 +298,7 @@ async def reply_search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 ChatAction.TYPING,
                 application=context.application,
             )
-            things.append((match.start(), search.search(match.group(0), amount=1)[0]))
+            things.append((match.start(), (await search.search(match.group(0), amount=1))[0]))
 
         # Sort the things - only necessary if we appended something here
         things.sort(key=lambda thing: thing[0])

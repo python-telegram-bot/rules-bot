@@ -14,7 +14,7 @@ from telegram.ext import ContextTypes
 
 from components.const import ENCLOSED_REGEX, ENCLOSING_REPLACEMENT_CHARACTER
 from components.entrytypes import Issue
-from components.search import search
+from components.search import Search
 
 
 def article(
@@ -34,16 +34,17 @@ def article(
 
 
 async def inline_query(
-    update: Update, _: ContextTypes.DEFAULT_TYPE
+    update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:  # pylint: disable=R0915
     ilq = cast(InlineQuery, update.inline_query)
     query = ilq.query
     switch_pm_text = "❓ Help"
+    search = cast(Search, context.bot_data["search"])
 
     if ENCLOSED_REGEX.search(query):
         results_list = []
         symbols = tuple(ENCLOSED_REGEX.findall(query))
-        search_results = search.multi_search_combinations(symbols)
+        search_results = await search.multi_search_combinations(symbols)
 
         for combination in search_results:
             description = ", ".join(entry.short_description for entry in combination.values())
@@ -77,7 +78,7 @@ async def inline_query(
                 )
             )
     else:
-        simple_search_results = search.search(query)
+        simple_search_results = await search.search(query)
         if not simple_search_results:
             results_list = []
             switch_pm_text = "❌ No Search Results Found"
