@@ -13,7 +13,7 @@ class GitHub:
     def __init__(self, auth: str, user_agent: str = USER_AGENT) -> None:
         self._gql_client = GraphQLClient(auth=auth, user_agent=user_agent)
 
-        self.logger = logging.getLogger(self.__class__.__qualname__)
+        self._logger = logging.getLogger(self.__class__.__qualname__)
 
         self.__lock = asyncio.Lock()
         self.issues: Dict[int, Issue] = {}
@@ -50,6 +50,7 @@ class GitHub:
         return list(self.examples.values())
 
     async def update_examples(self) -> None:
+        self._logger.info("Getting examples")
         examples = await self._gql_client.get_examples()
         async with self.__lock:
             self.examples.clear()
@@ -57,6 +58,7 @@ class GitHub:
                 self.examples[example.short_name] = example
 
     async def update_ptb_contribs(self) -> None:
+        self._logger.info("Getting ptbcontribs")
         ptb_contribs = await self._gql_client.get_ptb_contribs()
         async with self.__lock:
             self.ptb_contribs.clear()
@@ -64,6 +66,7 @@ class GitHub:
                 self.ptb_contribs[ptb_contrib.short_name.split("/")[1]] = ptb_contrib
 
     async def update_issues(self, cursor: str = None) -> Optional[str]:
+        self._logger.info("Getting 100 issues before cursor %s", cursor)
         issues, cursor = await self._gql_client.get_issues(cursor=cursor)
         async with self.__lock:
             for issue in issues:
@@ -71,6 +74,7 @@ class GitHub:
             return cursor
 
     async def update_pull_requests(self, cursor: str = None) -> Optional[str]:
+        self._logger.info("Getting 100 pull requests before cursor %s", cursor)
         pull_requests, cursor = await self._gql_client.get_pull_requests(cursor=cursor)
         async with self.__lock:
             for pull_request in pull_requests:
@@ -78,6 +82,7 @@ class GitHub:
             return cursor
 
     async def update_discussions(self, cursor: str = None) -> Optional[str]:
+        self._logger.info("Getting 100 discussions before cursor %s", cursor)
         discussions, cursor = await self._gql_client.get_discussions(cursor=cursor)
         async with self.__lock:
             for discussion in discussions:
@@ -88,7 +93,7 @@ class GitHub:
         self, number: int, owner: str = DEFAULT_REPO_OWNER, repo: str = DEFAULT_REPO_NAME
     ) -> Union[Issue, PullRequest, Discussion, None]:
         if owner != DEFAULT_REPO_OWNER or repo != DEFAULT_REPO_NAME:
-            self.logger.info("Getting issue %d for %s/%s", number, owner, repo)
+            self._logger.info("Getting issue %d for %s/%s", number, owner, repo)
         try:
             thread = await self._gql_client.get_thread(
                 number=number, organization=owner, repository=repo
@@ -105,7 +110,7 @@ class GitHub:
 
             return thread
         except GraphQLError as exc:
-            self.logger.exception(
+            self._logger.exception(
                 "Error while getting issue %d for %s/%s", number, owner, repo, exc_info=exc
             )
             return None
@@ -114,11 +119,11 @@ class GitHub:
         self, sha: str, owner: str = DEFAULT_REPO_OWNER, repo: str = DEFAULT_REPO_NAME
     ) -> Optional[Commit]:
         if owner != DEFAULT_REPO_OWNER or repo != DEFAULT_REPO_NAME:
-            self.logger.info("Getting commit %s for %s/%s", sha[:7], owner, repo)
+            self._logger.info("Getting commit %s for %s/%s", sha[:7], owner, repo)
         try:
             return await self._gql_client.get_commit(sha=sha, organization=owner, repository=repo)
         except GraphQLError as exc:
-            self.logger.exception(
+            self._logger.exception(
                 "Error while getting commit %s for %s/%s", sha[:7], owner, repo, exc_info=exc
             )
             return None
