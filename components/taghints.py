@@ -101,7 +101,9 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
     },
     "wronglib": {
         "message": (
-            "{query} If you insist on using that other one, please go where you belong: "
+            "{query} : If you are are using a different package/language, we are sure you can "
+            "find some kind of community help on their homepage. Here are a few links for other"
+            "popular libraries: "
             '<a href="https://telegram.me/joinchat/Bn4ixj84FIZVkwhk2jag6A">pyTelegramBotApi</a>, '
             '<a href="https://github.com/nickoala/telepot">Telepot</a>, '
             '<a href="https://t.me/Pyrogram">pyrogram</a>, '
@@ -111,8 +113,8 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
         ),
         "help": "Other Python wrappers for Telegram",
         "default": (
-            "Hey, I think you're wrong 🧐\nIt looks like you're not using the python-telegram-bot "
-            "library."
+            "Hey, I think you're wrong 🧐\nThis is the support group of the "
+            "<code>python-telegram-bot</code> library."
         ),
     },
     "pastebin": {
