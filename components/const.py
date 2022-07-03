@@ -43,8 +43,7 @@ ALLOWED_CHAT_IDS = (
     -1001494805131,  # dev chat
     -1001101839433,  # Church
 )
-ONTOPIC_RULES = f"""
-This group is for questions, answers and discussions around the \
+ONTOPIC_RULES = f"""This group is for questions, answers and discussions around the \
 <a href="https://python-telegram-bot.org/">python-telegram-bot library</a> and, to some extent, \
 Telegram bots in general.
 
@@ -72,8 +71,7 @@ For off-topic discussions, please use our <a href="https://t.me/{OFFTOPIC_USERNA
 off-topic group</a>.
 """
 
-OFFTOPIC_RULES = f"""
-<b>Topics:</b>
+OFFTOPIC_RULES = f"""<b>Topics:</b>
 - Discussions about Python in general
 - Meta discussions about <code>python-telegram-bot</code>
 - Friendly, respectful talking about non-tech topics

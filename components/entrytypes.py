@@ -444,7 +444,7 @@ class _IssueOrPullRequestOrDiscussion(BaseEntry):
     number: int
     title: str
     url: str
-    author: str
+    author: Optional[str]
 
     @property
     def short_name(self) -> str:
@@ -456,7 +456,9 @@ class _IssueOrPullRequestOrDiscussion(BaseEntry):
 
     @property
     def display_name(self) -> str:
-        return f"{self._TYPE} {self.short_name}: {self.title} by {self.author}"
+        if self.author:
+            return f"{self._TYPE} {self.short_name}: {self.title} by {self.author}"
+        return f"{self._TYPE} {self.short_name}: {self.title}"
 
     @property
     def description(self) -> str:

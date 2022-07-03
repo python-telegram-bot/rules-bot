@@ -28,7 +28,7 @@ async def reply_or_edit(update: Update, context: CallbackContext, text: str) -> 
     chat_data = cast(Dict, context.chat_data)
     if update.edited_message and update.edited_message.message_id in chat_data:
         try:
-            chat_data[update.edited_message.message_id].edit_text(text)
+            await chat_data[update.edited_message.message_id].edit_text(text)
         except BadRequest as exc:
             if "not modified" not in str(exc):
                 raise exc

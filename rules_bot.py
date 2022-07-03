@@ -72,7 +72,7 @@ else:
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
     )
     logging.getLogger("apscheduler").setLevel(logging.WARNING)
-    logging.getLogger("github3").setLevel(logging.WARNING)
+    logging.getLogger("gql").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +159,9 @@ def main() -> None:
     application.add_handler(MessageHandler(~filters.COMMAND, rate_limit_tracker), group=-1)
     application.add_handler(
         MessageHandler(
-            filters.SenderChat.CHANNEL & ~filters.IS_AUTOMATIC_FORWARD,
+            filters.SenderChat.CHANNEL
+            & ~filters.IS_AUTOMATIC_FORWARD
+            & ~filters.Chat(chat_id=ERROR_CHANNEL_CHAT_ID),
             ban_sender_channels,
             block=False,
         )

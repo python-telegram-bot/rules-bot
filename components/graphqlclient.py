@@ -31,7 +31,7 @@ class GraphQLClient:
         self, query_name: str, variable_values: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         return await self._session.execute(
-            gql(Path(f"components/graphql_queries/{query_name}").read_text(encoding="utf-8")),
+            gql(Path(f"components/graphql_queries/{query_name}.gql").read_text(encoding="utf-8")),
             variable_values=variable_values,
         )
 
@@ -134,10 +134,10 @@ class GraphQLClient:
                 number=issue["number"],
                 title=issue["title"],
                 url=issue["url"],
-                author=issue["author"]["login"],
+                author=issue["author"]["login"] if issue["author"] else None,
             )
             for issue in result["repository"]["issues"]["nodes"]
-        ], result["repository"]["issues"]["page_info"]["startCursor"]
+        ], result["repository"]["issues"]["pageInfo"]["startCursor"]
 
     async def get_pull_requests(
         self, cursor: str = None
@@ -151,10 +151,10 @@ class GraphQLClient:
                 number=pull_request["number"],
                 title=pull_request["title"],
                 url=pull_request["url"],
-                author=pull_request["author"]["login"],
+                author=pull_request["author"]["login"] if pull_request["author"] else None,
             )
             for pull_request in result["repository"]["pullRequests"]["nodes"]
-        ], result["repository"]["pullRequests"]["page_info"]["startCursor"]
+        ], result["repository"]["pullRequests"]["pageInfo"]["startCursor"]
 
     async def get_discussions(self, cursor: str = None) -> Tuple[List[Discussion], Optional[str]]:
         """Last 100 discussions before cursor"""
@@ -166,7 +166,7 @@ class GraphQLClient:
                 number=discussion["number"],
                 title=discussion["title"],
                 url=discussion["url"],
-                author=discussion["author"]["login"],
+                author=discussion["author"]["login"] if discussion["author"] else None,
             )
             for discussion in result["repository"]["discussions"]["nodes"]
-        ], result["repository"]["discussions"]["page_info"]["startCursor"]
+        ], result["repository"]["discussions"]["pageInfo"]["startCursor"]

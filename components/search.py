@@ -52,7 +52,7 @@ class Search:
         self, application: Application[Any, Any, Any, Any, Any, JobQueue]
     ) -> None:
         await self.github.initialize()
-        application.job_queue.run_once(callback=self.update_job, when=1)
+        application.job_queue.run_once(callback=self.update_job, when=1, data=(None, None, None))
 
     async def shutdown(self) -> None:
         await self.github.shutdown()
@@ -115,7 +115,9 @@ class Search:
     async def update_docs(self) -> None:
         await self._update_official_docs()
         response = await self._httpx_client.get(
-            url=urljoin(DOCS_URL, "objects.inv"), headers={"User-Agent": USER_AGENT}
+            url=urljoin(DOCS_URL, "objects.inv"),
+            headers={"User-Agent": USER_AGENT},
+            follow_redirects=True,
         )
         data = InventoryFile.load(BytesIO(response.content), DOCS_URL, urljoin)
         self._docs = []
@@ -129,11 +131,12 @@ class Search:
                 tg_url, tg_test, tg_name = "", "", ""
                 name_bits = name.split(".")
 
-                if entry_type in ["py:method", "py:attribute"]:
-                    if "telegram.Bot" in name or "telegram.ext.ExtBot" in name:
-                        tg_test = name_bits[-1]
-                    else:
-                        tg_test = name_bits[-2]
+                if entry_type == "py:method" and (
+                    "telegram.Bot" in name or "telegram.ext.ExtBot" in name
+                ):
+                    tg_test = name_bits[-1]
+                if entry_type == "py:attribute":
+                    tg_test = name_bits[-2]
                 if entry_type == "py:class":
                     tg_test = name_bits[-1]
                 elif entry_type == "py:parameter":
@@ -330,7 +333,7 @@ class Search:
                 key=lambda entry: self._sort_key(entry, search_query),  # type: ignore[arg-type]
             )
 
-    @alru_cache(64)  # type: ignore[misc]
+    @alru_cache(maxsize=64)  # type: ignore[misc]
     async def multi_search_combinations(
         self, search_queries: Tuple[str], results_per_query: int = 3
     ) -> List[Dict[str, BaseEntry]]:

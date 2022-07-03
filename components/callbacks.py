@@ -256,41 +256,43 @@ async def reply_search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     no_entity_text = get_text_not_in_entities(message).strip()
 
-    # Parse exact matches for GitHub threads & ptbcontrib things first
-    for match in GITHUB_PATTERN.finditer(no_entity_text):
-        logging.debug(match.groupdict())
-        owner, repo, number, sha, ptbcontrib = (
-            cast(str, match.groupdict()[x])
-            for x in ("owner", "repo", "number", "sha", "ptbcontrib")
-        )
-        if number or sha or ptbcontrib:
-            thing_matches.append((match.start(), (owner, repo, number, sha, ptbcontrib)))
-
     search = cast(Search, context.bot_data["search"])
     github = search.github
-    for thing_match in thing_matches:
-        last = keep_typing(
-            last,
-            cast(Chat, update.effective_chat),
-            ChatAction.TYPING,
-            application=context.application,
-        )
-        owner, repo, number, sha, ptbcontrib = thing_match[1]
-        if number:
-            issue = await github.get_thread(int(number), owner, repo)
-            if issue is not None:
-                things.append((thing_match[0], issue))
-        elif sha:
-            commit = await github.get_commit(sha, owner, repo)
-            if commit is not None:
-                things.append((thing_match[0], commit))
-        elif ptbcontrib:
-            contrib = github.ptb_contribs.get(ptbcontrib)
-            if contrib:
-                things.append((thing_match[0], contrib))
 
-    # Parse fuzzy search next
-    if no_entity_text.startswith("!search") or no_entity_text.endswith("!search"):
+    # Parse exact matches for GitHub threads & ptbcontrib things first
+    if not (no_entity_text.startswith("!search") or no_entity_text.endswith("!search")):
+        for match in GITHUB_PATTERN.finditer(no_entity_text):
+            logging.debug(match.groupdict())
+            owner, repo, number, sha, ptbcontrib = (
+                cast(str, match.groupdict()[x])
+                for x in ("owner", "repo", "number", "sha", "ptbcontrib")
+            )
+            if number or sha or ptbcontrib:
+                thing_matches.append((match.start(), (owner, repo, number, sha, ptbcontrib)))
+
+        for thing_match in thing_matches:
+            last = keep_typing(
+                last,
+                cast(Chat, update.effective_chat),
+                ChatAction.TYPING,
+                application=context.application,
+            )
+            owner, repo, number, sha, ptbcontrib = thing_match[1]
+            if number:
+                issue = await github.get_thread(int(number), owner, repo)
+                if issue is not None:
+                    things.append((thing_match[0], issue))
+            elif sha:
+                commit = await github.get_commit(sha, owner, repo)
+                if commit is not None:
+                    things.append((thing_match[0], commit))
+            elif ptbcontrib:
+                contrib = github.ptb_contribs.get(ptbcontrib)
+                if contrib:
+                    things.append((thing_match[0], contrib))
+
+    else:
+        # Parse fuzzy search next
         for match in ENCLOSED_REGEX.finditer(no_entity_text):
             last = keep_typing(
                 last,
