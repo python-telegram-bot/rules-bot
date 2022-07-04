@@ -1,5 +1,4 @@
 import datetime
-import html
 import logging
 import random
 import time
@@ -113,50 +112,6 @@ async def rules(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             "Hmm. You're not in a python-telegram-bot group, "
             "and I don't know the rules around here."
         )
-
-
-@rate_limit
-async def docs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Documentation link"""
-    message = cast(Message, update.effective_message)
-    text = f"You can find our documentation at [Read the Docs]({const.DOCS_URL})"
-    reply_id = message.reply_to_message.message_id if message.reply_to_message else None
-    await message.reply_markdown(
-        text,
-        quote=False,
-        reply_to_message_id=reply_id,
-    )
-    context.application.create_task(try_to_delete(message), update=update)
-
-
-@rate_limit
-async def wiki(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Wiki link"""
-    message = cast(Message, update.effective_message)
-    text = f"You can find our wiki on [GitHub]({const.WIKI_URL})"
-    await message.reply_markdown(
-        text,
-        quote=False,
-        reply_to_message_id=get_reply_id(update),
-    )
-    context.application.create_task(try_to_delete(message), update=update)
-
-
-@rate_limit
-async def help_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Link to rules readme"""
-    message = cast(Message, update.effective_message)
-    text = (
-        f"You can find an explanation of @{html.escape(context.bot.username)}'s functionality "
-        'wiki on <a href="https://github.com/python-telegram-bot/rules-bot/blob/master/README.md">'
-        "GitHub</a>."
-    )
-    await message.reply_html(
-        text,
-        quote=False,
-        reply_to_message_id=get_reply_id(update),
-    )
-    context.application.create_task(try_to_delete(message), update=update)
 
 
 async def off_on_topic(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

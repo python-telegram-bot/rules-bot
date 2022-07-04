@@ -192,6 +192,31 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
         "default": "Hey.",
         "help": "Remind the users of the Code of Conduct.",
     },
+    "docs": {
+        "message": (
+            f"{{query}} You can find our documentation at <a href='{const.DOCS_URL}'>Read the "
+            f"Docs</a>. "
+        ),
+        "default": "Hey.",
+        "help": "Point users to the documentation",
+        "group_command": True,
+    },
+    "wiki": {
+        "message": f"{{query}} You can find our wiki on <a href='{const.WIKI_URL}'>Github</a>.",
+        "default": "Hey.",
+        "help": "Point users to the wiki",
+        "group_command": True,
+    },
+    "help": {
+        "message": (
+            "{query} You can find an explanation of @roolsbot's functionality on '"
+            '<a href="https://github.com/python-telegram-bot/rules-bot/blob/master/README.md">'
+            "GitHub</a>."
+        ),
+        "default": "Hey.",
+        "help": "Point users to the bots readme",
+        "group_command": True,
+    },
 }
 
 
@@ -205,6 +230,7 @@ TAG_HINTS: Dict[str, TagHint] = {
         description=value["help"],
         default_query=value.get("default"),
         inline_keyboard=InlineKeyboardMarkup(value["buttons"]) if "buttons" in value else None,
+        group_command=value.get("group_command", False),
     )
     for key, value in _TAG_HINTS.items()
 }

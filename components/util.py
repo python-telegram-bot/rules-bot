@@ -139,11 +139,11 @@ def build_command_list(
 ) -> List[Tuple[str, str]]:
 
     base_commands = [
-        ("docs", "Send the link to the docs."),
-        ("wiki", "Send the link to the wiki."),
-        ("help", "Send the link to this bots README."),
+        (hint.tag, hint.description) for hint in TAG_HINTS.values() if hint.group_command
     ]
-    hint_commands = [(hint.tag, hint.description) for hint in TAG_HINTS.values()]
+    hint_commands = [
+        (hint.tag, hint.description) for hint in TAG_HINTS.values() if not hint.group_command
+    ]
 
     if private:
         return base_commands + hint_commands

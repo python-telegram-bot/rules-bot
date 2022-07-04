@@ -29,8 +29,6 @@ from components import inlinequeries
 from components.callbacks import (
     ban_sender_channels,
     delete_new_chat_members_message,
-    docs,
-    help_callback,
     join_request_buttons,
     join_request_callback,
     leave_chat,
@@ -43,7 +41,6 @@ from components.callbacks import (
     say_potato_command,
     start,
     tag_hint,
-    wiki,
 )
 from components.const import (
     ALLOWED_CHAT_IDS,
@@ -171,9 +168,6 @@ def main() -> None:
     # The first one also handles deep linking /start commands
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("rules", rules))
-    application.add_handler(CommandHandler("docs", docs))
-    application.add_handler(CommandHandler("wiki", wiki))
-    application.add_handler(CommandHandler("help", help_callback))
 
     # Stuff that runs on every message with regex
     application.add_handler(

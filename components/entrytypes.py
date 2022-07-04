@@ -577,6 +577,7 @@ class TagHint(BaseEntry):
         description: Description of the tag hint.
         default_query: Optional. Inserted into the ``message`` if no other query is provided.
         inline_keyboard: Optional. In InlineKeyboardMarkup to attach to the hint.
+        group_command: Optional. Whether this tag hint should be listed as command in the groups.
     """
 
     def __init__(
@@ -586,12 +587,14 @@ class TagHint(BaseEntry):
         description: str,
         default_query: str = None,
         inline_keyboard: InlineKeyboardMarkup = None,
+        group_command: bool = False,
     ):
         self.tag = tag
         self._message = message
         self._default_query = default_query
         self._description = description
         self._inline_keyboard = inline_keyboard
+        self.group_command = group_command
 
     @property
     def display_name(self) -> str:
