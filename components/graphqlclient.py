@@ -73,15 +73,13 @@ class GraphQLClient:
                 },
             )
         except TransportQueryError as exc:
+            # … but the exc.data will contain the thread that is available
             if not exc.data:
                 raise exc
             result = exc.data
 
         data = result["repository"]
-        if data["issueOrPullRequest"]:
-            thread_data = data["issueOrPullRequest"]
-        else:
-            thread_data = data["discussion"]
+        thread_data = data["issueOrPullRequest"] or data["discussion"]
 
         entry_type_data = dict(
             owner=organization,
@@ -119,7 +117,7 @@ class GraphQLClient:
             owner=organization,
             repo=repository,
             sha=data["oid"],
-            url=data["ulr"],
+            url=data["url"],
             title=data["message"],
             author=data["author"]["user"]["login"],
         )

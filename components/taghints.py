@@ -101,12 +101,12 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
     },
     "wronglib": {
         "message": (
-            "{query} : If you are are using a different package/language, we are sure you can "
+            "{query} : If you are using a different package/language, we are sure you can "
             "find some kind of community help on their homepage. Here are a few links for other"
             "popular libraries: "
-            '<a href="https://telegram.me/joinchat/Bn4ixj84FIZVkwhk2jag6A">pyTelegramBotApi</a>, '
+            '<a href="https://t.me/joinchat/Bn4ixj84FIZVkwhk2jag6A">pyTelegramBotApi</a>, '
             '<a href="https://github.com/nickoala/telepot">Telepot</a>, '
-            '<a href="https://t.me/Pyrogram">pyrogram</a>, '
+            '<a href="https://t.me/pyrogramchat">pyrogram</a>, '
             '<a href="https://t.me/TelethonChat">Telethon</a>, '
             '<a href="https://t.me/aiogram">aiogram</a>, '
             '<a href="https://t.me/botogram_users">botogram</a>.'
@@ -176,8 +176,8 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
         "message": (
             "{query} This group is for technical questions that come up while you code your own "
             "Telegram bot. If you are looking for ready-to-use bots, please have a look at "
-            "channels like @BotsArchive or @BotList. There are also a number of websites that "
-            "list existing bots."
+            "channels like @BotsArchive or @BotList/@BotlistBot. There are also a number of "
+            "websites that list existing bots."
         ),
         "default": "Hey.",
         "help": "Redirect users to lists of existing bots.",

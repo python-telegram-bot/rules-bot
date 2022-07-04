@@ -12,7 +12,6 @@ from telegram import (
     Update,
 )
 from telegram.constants import ParseMode
-from telegram.error import BadRequest, Forbidden
 from telegram.ext import (
     Application,
     ApplicationBuilder,
@@ -47,12 +46,8 @@ from components.const import (
     ALLOWED_USERNAMES,
     ERROR_CHANNEL_CHAT_ID,
     OFFTOPIC_CHAT_ID,
-    OFFTOPIC_RULES,
-    OFFTOPIC_RULES_MESSAGE_ID,
     OFFTOPIC_USERNAME,
     ONTOPIC_CHAT_ID,
-    ONTOPIC_RULES,
-    ONTOPIC_RULES_MESSAGE_ID,
     ONTOPIC_USERNAME,
 )
 from components.errorhandler import error_handler
@@ -77,24 +72,6 @@ logger = logging.getLogger(__name__)
 async def post_init(application: Application) -> None:
     bot = application.bot
     await cast(Search, application.bot_data["search"]).initialize(application)
-
-    # Update rules messages
-    try:
-        await bot.edit_message_text(
-            chat_id=ONTOPIC_CHAT_ID,
-            message_id=ONTOPIC_RULES_MESSAGE_ID,
-            text=ONTOPIC_RULES,
-        )
-    except (BadRequest, Forbidden) as exc:
-        logger.warning("Updating on-topic rules failed: %s", exc)
-    try:
-        await bot.edit_message_text(
-            chat_id=OFFTOPIC_CHAT_ID,
-            message_id=OFFTOPIC_RULES_MESSAGE_ID,
-            text=OFFTOPIC_RULES,
-        )
-    except (BadRequest, Forbidden) as exc:
-        logger.warning("Updating off-topic rules failed: %s", exc)
 
     # set commands
     await bot.set_my_commands(
@@ -216,9 +193,6 @@ def main() -> None:
 
     # Error Handler
     application.add_error_handler(error_handler)
-
-    # github_issues.init_ptb_contribs(application.job_queue)  # type: ignore[arg-type]
-    # github_issues.init_issues(application.job_queue)  # type: ignore[arg-type]
 
     application.run_polling(allowed_updates=Update.ALL_TYPES, close_loop=False)
     # Can be used in AppBuilder.post_shutdown once #3126 is released

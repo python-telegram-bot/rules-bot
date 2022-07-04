@@ -1,10 +1,11 @@
+import asyncio
 import datetime
 import logging
 import random
 import time
 from collections import deque
 from copy import deepcopy
-from typing import Dict, List, Match, Optional, Tuple, cast
+from typing import Dict, List, Match, Tuple, cast
 
 from telegram import (
     CallbackQuery,
@@ -17,12 +18,14 @@ from telegram import (
     Update,
     User,
 )
-from telegram.constants import ChatAction, MessageLimit, ParseMode
+from telegram.constants import ChatAction, MessageLimit
 from telegram.ext import Application, ApplicationHandlerStop, ContextTypes, Job, JobQueue
 from telegram.helpers import escape_markdown
 
 from components import const
 from components.const import (
+    DEFAULT_REPO_NAME,
+    DEFAULT_REPO_OWNER,
     ENCLOSED_REGEX,
     ENCLOSING_REPLACEMENT_CHARACTER,
     GITHUB_PATTERN,
@@ -65,7 +68,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def inlinequery_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    chat_id = cast(Message, update.message).chat_id
+    message = cast(Message, update.message)
     char = ENCLOSING_REPLACEMENT_CHARACTER
     self_chat_id = f"@{context.bot.username}"
     text = (
@@ -82,7 +85,7 @@ async def inlinequery_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         f"Some wiki pages have spaces in them. Please replace such spaces with underscores. "
         f"The bot will automatically change them back desired space."
     )
-    await context.bot.send_message(chat_id, text, parse_mode=ParseMode.MARKDOWN)
+    await message.reply_markdown(text)
 
 
 async def inlinequery_entity_parsing(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
@@ -115,6 +118,7 @@ async def rules(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def off_on_topic(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Redirect users to the off-topic or on-topic group"""
     # Minimal effort LRU cache
     # We store the newest 64 messages that lead to redirection to minimize the chance that
     # editing a message falsely triggers the redirect again
@@ -204,17 +208,21 @@ def keep_typing(last: float, chat: Chat, action: str, application: Application) 
 
 
 async def reply_search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """When sending a message of the form `!search foo +search query+ bar` or
+    `foo +search query+ bar !search`, the bot will reply with links to the closet search results.
+    If the message is a reply, the bot will reply to the referenced message directly.
+    """
     message = cast(Message, update.effective_message)
     last = 0.0
-    thing_matches: List[Tuple[int, Tuple[str, str, str, str, str]]] = []
-    things: List[Tuple[int, BaseEntry]] = []
+    github_matches: List[Tuple[int, Tuple[str, str, str, str, str]]] = []
+    found_entries: List[Tuple[int, BaseEntry]] = []
 
     no_entity_text = get_text_not_in_entities(message).strip()
 
     search = cast(Search, context.bot_data["search"])
     github = search.github
 
-    # Parse exact matches for GitHub threads & ptbcontrib things first
+    # Parse exact matches for GitHub threads & ptbcontrib found_entries first
     if not (no_entity_text.startswith("!search") or no_entity_text.endswith("!search")):
         for match in GITHUB_PATTERN.finditer(no_entity_text):
             logging.debug(match.groupdict())
@@ -223,28 +231,30 @@ async def reply_search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 for x in ("owner", "repo", "number", "sha", "ptbcontrib")
             )
             if number or sha or ptbcontrib:
-                thing_matches.append((match.start(), (owner, repo, number, sha, ptbcontrib)))
+                github_matches.append((match.start(), (owner, repo, number, sha, ptbcontrib)))
 
-        for thing_match in thing_matches:
+        for gh_match in github_matches:
             last = keep_typing(
                 last,
                 cast(Chat, update.effective_chat),
                 ChatAction.TYPING,
                 application=context.application,
             )
-            owner, repo, number, sha, ptbcontrib = thing_match[1]
+            owner, repo, number, sha, ptbcontrib = gh_match[1]
+            owner = owner or DEFAULT_REPO_OWNER
+            repo = repo or DEFAULT_REPO_NAME
             if number:
                 issue = await github.get_thread(int(number), owner, repo)
                 if issue is not None:
-                    things.append((thing_match[0], issue))
+                    found_entries.append((gh_match[0], issue))
             elif sha:
                 commit = await github.get_commit(sha, owner, repo)
                 if commit is not None:
-                    things.append((thing_match[0], commit))
+                    found_entries.append((gh_match[0], commit))
             elif ptbcontrib:
                 contrib = github.ptb_contribs.get(ptbcontrib)
                 if contrib:
-                    things.append((thing_match[0], contrib))
+                    found_entries.append((gh_match[0], contrib))
 
     else:
         # Parse fuzzy search next
@@ -255,14 +265,16 @@ async def reply_search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 ChatAction.TYPING,
                 application=context.application,
             )
-            things.append((match.start(), (await search.search(match.group(0), amount=1))[0]))
+            found_entries.append(
+                (match.start(), (await search.search(match.group(0), amount=1))[0])
+            )
 
-        # Sort the things - only necessary if we appended something here
-        things.sort(key=lambda thing: thing[0])
+        # Sort the found_entries - only necessary if we appended something here
+        found_entries.sort(key=lambda thing: thing[0])
 
-    if things:
+    if found_entries:
         await reply_or_edit(
-            update, context, "\n".join(thing[1].html_reply_markup() for thing in things)
+            update, context, "\n".join(thing[1].html_reply_markup() for thing in found_entries)
         )
 
 
@@ -279,32 +291,8 @@ async def raise_app_handler_stop(update: Update, _: ContextTypes.DEFAULT_TYPE) -
     raise ApplicationHandlerStop
 
 
-async def list_available_hints(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-    private = False
-    if cast(Chat, update.effective_chat).type != Chat.PRIVATE:
-        text = "Please use this command in private chat with me."
-        reply_markup: Optional[InlineKeyboardMarkup] = InlineKeyboardMarkup.from_button(
-            InlineKeyboardButton("Take me there!", url=f"https://t.me/{const.SELF_BOT_NAME}")
-        )
-        private = True
-    else:
-        text = "You can use the following tags to guide new members:\n\n"
-        text += "\n".join(
-            f"🗣 {hint.display_name} ➖ {hint.description}" for hint in TAG_HINTS.values()
-        )
-        text += "\n\nMake sure to reply to another message, so I know who to refer to."
-        reply_markup = None
-
-    message = cast(Message, update.effective_message)
-    await message.reply_text(
-        text,
-        reply_markup=reply_markup,
-    )
-    if private:
-        await message.delete()
-
-
 async def tag_hint(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Replies to tag hints like /docs, /xy, /askright."""
     message = cast(Message, update.effective_message)
     reply_to = message.reply_to_message
     first_match = cast(int, MessageLimit.TEXT_LENGTH)
@@ -314,7 +302,10 @@ async def tag_hint(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     for match in cast(List[Match], context.matches):
         first_match = min(first_match, match.start(0))
 
+        # get the hints name, e.g. "askright"
         hint = TAG_HINTS[match.groupdict()["tag_hint"].lstrip("/")]
+
+        # Store the message
         messages.append(hint.html_markup(None or match.group(0)))
 
         # Merge keyboards into one
@@ -328,7 +319,7 @@ async def tag_hint(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await message.reply_text(
         effective_text,
         reply_markup=keyboard,
-        reply_to_message_id=reply_to.message_id if reply_to else None,
+        reply_to_message_id=get_reply_id(update),
     )
 
     if reply_to and first_match == 0:
@@ -342,9 +333,11 @@ async def ban_sender_channels(update: Update, _: ContextTypes.DEFAULT_TYPE) -> N
 
 
 async def say_potato_job(context: ContextTypes.DEFAULT_TYPE) -> None:
-    user_id, message, who_banned = cast(Tuple[int, Message, User], cast(Job, context.job).context)
-    await context.bot.ban_chat_member(chat_id=ONTOPIC_CHAT_ID, user_id=user_id)
-    await context.bot.ban_chat_member(chat_id=OFFTOPIC_CHAT_ID, user_id=user_id)
+    user_id, message, who_banned = cast(Tuple[int, Message, User], cast(Job, context.job).data)
+    await asyncio.gather(
+        context.bot.ban_chat_member(chat_id=ONTOPIC_CHAT_ID, user_id=user_id),
+        context.bot.ban_chat_member(chat_id=OFFTOPIC_CHAT_ID, user_id=user_id),
+    )
 
     text = (
         "You have been banned for userbot-like behavior. If you are not a userbot and wish to be "
@@ -401,12 +394,9 @@ async def say_potato_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     user = cast(User, message.reply_to_message.from_user)
 
-    if context.args:
-        try:
-            time_limit = int(context.args[0])
-        except ValueError:
-            time_limit = 60
-    else:
+    try:
+        time_limit = int(context.args[0])  # type: ignore[index]
+    except (ValueError, IndexError):
         time_limit = 60
 
     correct, incorrect_1, incorrect_2 = random.sample(VEGETABLES, 3)
@@ -455,31 +445,32 @@ async def join_request_callback(update: Update, context: ContextTypes.DEFAULT_TY
     reply_markup = InlineKeyboardMarkup.from_button(
         InlineKeyboardButton(
             text="I have read the rules 📖",
-            callback_data=f"JOIN 1 {join_request.from_user.id} {join_request.chat.id}",
+            callback_data=f"JOIN 1 {join_request.chat.id}",
         )
     )
     message = await join_request.from_user.send_message(text=text, reply_markup=reply_markup)
     cast(JobQueue, context.job_queue).run_once(
         callback=join_request_timeout_job,
         when=datetime.timedelta(hours=12),
-        data=(join_request.from_user.id, join_request.chat.id, message, group_mention),
+        data=(join_request.from_user, join_request.chat.id, message, group_mention),
     )
 
 
 async def join_request_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     callback_query = cast(CallbackQuery, update.callback_query)
-    _, press, user, chat = cast(str, callback_query.data).split()
+    user = cast(User, update.effective_user)
+    _, press, chat = cast(str, callback_query.data).split()
     if press == "2":
-        await context.bot.approve_chat_join_request(chat_id=int(chat), user_id=int(user))
+        await user.approve_join_request(chat_id=int(chat))
         context.application.create_task(
-            callback_query.from_user.send_message("Nice! Have fun in the group 🙂"), update=update
+            user.send_message("Nice! Have fun in the group 🙂"), update=update
         )
         reply_markup = None
     else:
         reply_markup = InlineKeyboardMarkup.from_button(
             InlineKeyboardButton(
                 text="⚠️ Tap again to confirm",
-                callback_data=f"JOIN 2 {user} {chat}",
+                callback_data=f"JOIN 2 {chat}",
             )
         )
 
@@ -490,9 +481,9 @@ async def join_request_buttons(update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def join_request_timeout_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     job = cast(Job, context.job)
-    user, chat, message, group = cast(Tuple[int, int, Message, str], job.data)
+    user, chat, message, group = cast(Tuple[User, int, Message, str], job.data)
     text = (
         f"Your request to join the group {group} has timed out. Please send a new request to join."
     )
-    await context.bot.decline_chat_join_request(chat_id=int(chat), user_id=int(user))
+    await user.decline_join_request(chat_id=int(chat))
     context.application.create_task(message.edit_text(text=text))

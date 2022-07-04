@@ -13,6 +13,9 @@ from sphinx.util.inventory import InventoryFile
 from telegram.ext import Application, ContextTypes, Job, JobQueue
 
 from .const import (
+    DEFAULT_HEADERS,
+    DEFAULT_REPO_NAME,
+    DEFAULT_REPO_OWNER,
     DOCS_URL,
     EXAMPLES_URL,
     GITHUB_PATTERN,
@@ -104,9 +107,7 @@ class Search:
         self.multi_search_combinations.cache_clear()  # pylint:disable=no-member
 
     async def _update_official_docs(self) -> None:
-        response = await self._httpx_client.get(
-            url=OFFICIAL_URL, headers={"User-Agent": USER_AGENT}
-        )
+        response = await self._httpx_client.get(url=OFFICIAL_URL, headers=DEFAULT_HEADERS)
         official_soup = BeautifulSoup(response.content, "html.parser")
         for anchor in official_soup.select("a.anchor"):
             if "-" not in anchor["href"]:
@@ -116,7 +117,7 @@ class Search:
         await self._update_official_docs()
         response = await self._httpx_client.get(
             url=urljoin(DOCS_URL, "objects.inv"),
-            headers={"User-Agent": USER_AGENT},
+            headers=DEFAULT_HEADERS,
             follow_redirects=True,
         )
         data = InventoryFile.load(BytesIO(response.content), DOCS_URL, urljoin)
@@ -172,7 +173,7 @@ class Search:
                     )
 
     async def update_wiki(self) -> None:
-        response = await self._httpx_client.get(url=WIKI_URL, headers={"User-Agent": USER_AGENT})
+        response = await self._httpx_client.get(url=WIKI_URL, headers=DEFAULT_HEADERS)
         wiki_soup = BeautifulSoup(response.content, "html.parser")
         self._wiki = []
 
@@ -194,7 +195,7 @@ class Search:
 
     async def update_wiki_code_snippets(self) -> None:
         response = await self._httpx_client.get(
-            url=WIKI_CODE_SNIPPETS_URL, headers={"User-Agent": USER_AGENT}
+            url=WIKI_CODE_SNIPPETS_URL, headers=DEFAULT_HEADERS
         )
         code_snippet_soup = BeautifulSoup(response.content, "html.parser")
         self._snippets = []
@@ -209,9 +210,7 @@ class Search:
             )
 
     async def update_wiki_faq(self) -> None:
-        response = await self._httpx_client.get(
-            url=WIKI_FAQ_URL, headers={"User-Agent": USER_AGENT}
-        )
+        response = await self._httpx_client.get(url=WIKI_FAQ_URL, headers=DEFAULT_HEADERS)
         faq_soup = BeautifulSoup(response.content, "html.parser")
         self._faq = []
         for headline in faq_soup.select("div#wiki-body h3"):
@@ -220,9 +219,7 @@ class Search:
             )
 
     async def update_wiki_design_patterns(self) -> None:
-        response = await self._httpx_client.get(
-            url=WIKI_FRDP_URL, headers={"User-Agent": USER_AGENT}
-        )
+        response = await self._httpx_client.get(url=WIKI_FRDP_URL, headers=DEFAULT_HEADERS)
         frdp_soup = BeautifulSoup(response.content, "html.parser")
         self._design_patterns = []
         for headline in frdp_soup.select("div#wiki-body h3,div#wiki-body h2"):
@@ -282,6 +279,8 @@ class Search:
                 match.groupdict()[x]
                 for x in ("owner", "repo", "number", "sha", "query", "ptbcontrib")
             )
+            owner = owner or DEFAULT_REPO_OWNER
+            repo = repo or DEFAULT_REPO_NAME
 
             # If it's an issue
             if number:
