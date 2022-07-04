@@ -438,7 +438,7 @@ async def join_request_callback(update: Update, context: ContextTypes.DEFAULT_TY
     text = (
         f"Hi, {join_request.from_user.mention_html()}! I'm {context.bot.bot.mention_html()}, the "
         f"guardian of the group {group_mention}, that you requested to join.\n\nBefore you can "
-        "join the group, please carefully read the below rules of the group. Confirm that you "
+        "join the group, please carefully read the following rules of the group. Confirm that you "
         "have read them by double-tapping the button at the bottom of the message - that's it 🙃"
         f"\n\n{ONTOPIC_RULES if on_topic else OFFTOPIC_RULES}"
     )
