@@ -4,23 +4,14 @@ import logging
 import sys
 import warnings
 from functools import wraps
-from typing import (
-    Optional,
-    List,
-    Callable,
-    TypeVar,
-    Dict,
-    cast,
-    Tuple,
-    Union,
-)
+from typing import Any, Callable, Coroutine, Dict, List, Optional, Tuple, Union, cast
 
 from bs4 import MarkupResemblesLocatorWarning
-from telegram import Update, InlineKeyboardButton, Message
-from telegram.error import BadRequest, Unauthorized
-from telegram.ext import CallbackContext
+from telegram import InlineKeyboardButton, Message, Update
+from telegram.error import BadRequest, Forbidden
+from telegram.ext import CallbackContext, ContextTypes
 
-from .const import RATE_LIMIT_SPACING, ONTOPIC_CHAT_ID, OFFTOPIC_CHAT_ID
+from .const import OFFTOPIC_CHAT_ID, ONTOPIC_CHAT_ID, RATE_LIMIT_SPACING
 from .taghints import TAG_HINTS
 
 # Messages may contain links that we don't care about - so let's ignore the warnings
@@ -33,11 +24,11 @@ def get_reply_id(update: Update) -> Optional[int]:
     return None
 
 
-def reply_or_edit(update: Update, context: CallbackContext, text: str) -> None:
+async def reply_or_edit(update: Update, context: CallbackContext, text: str) -> None:
     chat_data = cast(Dict, context.chat_data)
     if update.edited_message and update.edited_message.message_id in chat_data:
         try:
-            chat_data[update.edited_message.message_id].edit_text(text)
+            await chat_data[update.edited_message.message_id].edit_text(text)
         except BadRequest as exc:
             if "not modified" not in str(exc):
                 raise exc
@@ -45,13 +36,13 @@ def reply_or_edit(update: Update, context: CallbackContext, text: str) -> None:
         message = cast(Message, update.effective_message)
         issued_reply = get_reply_id(update)
         if issued_reply:
-            chat_data[message.message_id] = context.bot.send_message(
+            chat_data[message.message_id] = await context.bot.send_message(
                 message.chat_id,
                 text,
                 reply_to_message_id=issued_reply,
             )
         else:
-            chat_data[message.message_id] = message.reply_text(text)
+            chat_data[message.message_id] = await message.reply_text(text)
 
 
 def get_text_not_in_entities(message: Message) -> str:
@@ -94,36 +85,33 @@ def build_menu(
     return menu
 
 
-def try_to_delete(message: Message) -> bool:
+async def try_to_delete(message: Message) -> bool:
     try:
-        return message.delete()
-    except (BadRequest, Unauthorized):
+        return await message.delete()
+    except (BadRequest, Forbidden):
         return False
 
 
-def rate_limit_tracker(_: Update, context: CallbackContext) -> None:
+async def rate_limit_tracker(_: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     data = cast(Dict, context.chat_data).setdefault("rate_limit", {})
 
     for key in data.keys():
         data[key] += 1
 
 
-Func = TypeVar("Func", bound=Callable[[Update, CallbackContext], None])
-
-
 def rate_limit(
-    func: Callable[[Update, CallbackContext], None]
-) -> Callable[[Update, CallbackContext], None]:
+    func: Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[Any, Any, None]]
+) -> Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[Any, Any, None]]:
     """
     Rate limit command so that RATE_LIMIT_SPACING non-command messages are
     required between invocations. Private chats are not rate limited.
     """
 
     @wraps(func)
-    def wrapper(update: Update, context: CallbackContext) -> None:
+    async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if chat := update.effective_chat:
             if chat.type == chat.PRIVATE:
-                return func(update, context)
+                return await func(update, context)
 
         # Get rate limit data
         data = cast(Dict, context.chat_data).setdefault("rate_limit", {})
@@ -131,11 +119,13 @@ def rate_limit(
         # If we have not seen two non-command messages since last of type `func`
         if data.get(func, RATE_LIMIT_SPACING) < RATE_LIMIT_SPACING:
             logging.debug("Ignoring due to rate limit!")
-            try_to_delete(cast(Message, update.effective_message))
+            context.application.create_task(
+                try_to_delete(cast(Message, update.effective_message)), update=update
+            )
             return None
 
         data[func] = 0
-        return func(update, context)
+        return await func(update, context)
 
     return wrapper
 
@@ -149,11 +139,11 @@ def build_command_list(
 ) -> List[Tuple[str, str]]:
 
     base_commands = [
-        ("docs", "Send the link to the docs."),
-        ("wiki", "Send the link to the wiki."),
-        ("help", "Send the link to this bots README."),
+        (hint.tag, hint.description) for hint in TAG_HINTS.values() if hint.group_command
     ]
-    hint_commands = [(hint.tag, hint.description) for hint in TAG_HINTS.values()]
+    hint_commands = [
+        (hint.tag, hint.description) for hint in TAG_HINTS.values() if not hint.group_command
+    ]
 
     if private:
         return base_commands + hint_commands

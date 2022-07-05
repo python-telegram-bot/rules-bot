@@ -1,7 +1,1 @@
 pre-commit
-# Make sure that the versions specified here match the pre-commit settings!
-black==22.3.0
-flake8==4.0.1
-pylint==2.14.3
-mypy==0.961
-pyupgrade==2.34.0

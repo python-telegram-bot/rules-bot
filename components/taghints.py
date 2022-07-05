@@ -1,8 +1,8 @@
 import re
-from typing import Dict, Any, Optional, List, Match
+from typing import Any, Dict, List, Match, Optional
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, MessageEntity
-from telegram.ext import MessageFilter
+from telegram.ext.filters import MessageFilter
 
 from components import const
 from components.const import PTBCONTRIB_LINK
@@ -101,18 +101,20 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
     },
     "wronglib": {
         "message": (
-            "{query} If you insist on using that other one, please go where you belong: "
-            '<a href="https://telegram.me/joinchat/Bn4ixj84FIZVkwhk2jag6A">pyTelegramBotApi</a>, '
+            "{query} : If you are using a different package/language, we are sure you can "
+            "find some kind of community help on their homepage. Here are a few links for other"
+            "popular libraries: "
+            '<a href="https://t.me/joinchat/Bn4ixj84FIZVkwhk2jag6A">pyTelegramBotApi</a>, '
             '<a href="https://github.com/nickoala/telepot">Telepot</a>, '
-            '<a href="https://t.me/Pyrogram">pyrogram</a>, '
+            '<a href="https://t.me/pyrogramchat">pyrogram</a>, '
             '<a href="https://t.me/TelethonChat">Telethon</a>, '
             '<a href="https://t.me/aiogram">aiogram</a>, '
             '<a href="https://t.me/botogram_users">botogram</a>.'
         ),
         "help": "Other Python wrappers for Telegram",
         "default": (
-            "Hey, I think you're wrong 🧐\nIt looks like you're not using the python-telegram-bot "
-            "library."
+            "Hey, I think you're wrong 🧐\nThis is the support group of the "
+            "<code>python-telegram-bot</code> library."
         ),
     },
     "pastebin": {
@@ -174,8 +176,8 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
         "message": (
             "{query} This group is for technical questions that come up while you code your own "
             "Telegram bot. If you are looking for ready-to-use bots, please have a look at "
-            "channels like @BotsArchive or @BotList. There are also a number of websites that "
-            "list existing bots."
+            "channels like @BotsArchive or @BotList/@BotlistBot. There are also a number of "
+            "websites that list existing bots."
         ),
         "default": "Hey.",
         "help": "Redirect users to lists of existing bots.",
@@ -190,6 +192,31 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
         "default": "Hey.",
         "help": "Remind the users of the Code of Conduct.",
     },
+    "docs": {
+        "message": (
+            f"{{query}} You can find our documentation at <a href='{const.DOCS_URL}'>Read the "
+            f"Docs</a>. "
+        ),
+        "default": "Hey.",
+        "help": "Point users to the documentation",
+        "group_command": True,
+    },
+    "wiki": {
+        "message": f"{{query}} You can find our wiki on <a href='{const.WIKI_URL}'>Github</a>.",
+        "default": "Hey.",
+        "help": "Point users to the wiki",
+        "group_command": True,
+    },
+    "help": {
+        "message": (
+            "{query} You can find an explanation of @roolsbot's functionality on '"
+            '<a href="https://github.com/python-telegram-bot/rules-bot/blob/master/README.md">'
+            "GitHub</a>."
+        ),
+        "default": "Hey.",
+        "help": "Point users to the bots readme",
+        "group_command": True,
+    },
 }
 
 
@@ -203,6 +230,7 @@ TAG_HINTS: Dict[str, TagHint] = {
         description=value["help"],
         default_query=value.get("default"),
         inline_keyboard=InlineKeyboardMarkup(value["buttons"]) if "buttons" in value else None,
+        group_command=value.get("group_command", False),
     )
     for key, value in _TAG_HINTS.items()
 }
@@ -226,7 +254,7 @@ class TagHintFilter(MessageFilter):
     """Custom filter class for filtering for tag hint messages"""
 
     def __init__(self) -> None:
-        self.data_filter = True
+        super().__init__(name="TageHintFilter", data_filter=True)
 
     def filter(self, message: Message) -> Optional[Dict[str, List[Match]]]:
         """Does the filtering. Applies the regex and makes sure that only those tag hints are

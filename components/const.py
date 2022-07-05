@@ -12,21 +12,19 @@ RATE_LIMIT_SPACING = 2
 # Welcome new chat members at most ever X minutes
 NEW_CHAT_MEMBERS_LIMIT_SPACING = 60
 USER_AGENT = "Github: python-telegram-bot/rules-bot"
+DEFAULT_HEADERS = {"User-Agent": USER_AGENT}
 ENCLOSING_REPLACEMENT_CHARACTER = "+"
 _ERC = ENCLOSING_REPLACEMENT_CHARACTER
 ENCLOSED_REGEX = re.compile(rf"\{_ERC}([^{_ERC}]*)\{_ERC}")
 OFFTOPIC_USERNAME = "pythontelegrambottalk"
 ONTOPIC_USERNAME = "pythontelegrambotgroup"
+DEV_GROUP_USERNAME = "pythontelegrambotdev"
 OFFTOPIC_CHAT_ID = "@" + OFFTOPIC_USERNAME
 ONTOPIC_CHAT_ID = "@" + ONTOPIC_USERNAME
 ERROR_CHANNEL_CHAT_ID = -1001397960657
 TELEGRAM_SUPERSCRIPT = "ᵀᴱᴸᴱᴳᴿᴬᴹ"
 FAQ_CHANNEL_ID = "@ptbfaq"
 SELF_BOT_NAME = "roolsbot"
-ONTOPIC_RULES_MESSAGE_ID = 419903
-ONTOPIC_RULES_MESSAGE_LINK = f"https://t.me/{ONTOPIC_USERNAME}/419903"
-OFFTOPIC_RULES_MESSAGE_ID = 161133
-OFFTOPIC_RULES_MESSAGE_LINK = f"https://t.me/{OFFTOPIC_USERNAME}/161133"
 PTBCONTRIB_LINK = "https://github.com/python-telegram-bot/ptbcontrib/"
 DOCS_URL = "https://docs.python-telegram-bot.org/"
 OFFICIAL_URL = "https://core.telegram.org/bots/api"
@@ -36,8 +34,13 @@ WIKI_CODE_SNIPPETS_URL = urljoin(WIKI_URL, "Code-snippets")
 WIKI_FAQ_URL = urljoin(WIKI_URL, "Frequently-Asked-Questions")
 WIKI_FRDP_URL = urljoin(WIKI_URL, "Frequently-requested-design-patterns")
 EXAMPLES_URL = urljoin(PROJECT_URL, "tree/master/examples/")
-ONTOPIC_RULES = f"""
-This group is for questions, answers and discussions around the \
+ALLOWED_USERNAMES = (OFFTOPIC_USERNAME, ONTOPIC_USERNAME, DEV_GROUP_USERNAME)
+ALLOWED_CHAT_IDS = (
+    ERROR_CHANNEL_CHAT_ID,
+    -1001494805131,  # dev chat
+    -1001101839433,  # Church
+)
+ONTOPIC_RULES = f"""This group is for questions, answers and discussions around the \
 <a href="https://python-telegram-bot.org/">python-telegram-bot library</a> and, to some extent, \
 Telegram bots in general.
 
@@ -59,13 +62,13 @@ conversation with them.
 Before asking, please take a look at our <a href="{WIKI_URL}">wiki</a> and \
 <a href="{EXAMPLES_URL}">example bots</a> or, depending on your question, the \
 <a href="{OFFICIAL_URL}">official API docs</a> and <a href="{DOCS_URL}">\
-python-telegram-bot docs</a>).
+python-telegram-bot docs</a>). Please also make sure to read the <a href="{WIKI_URL}Ask-Right">\
+wiki page on how to ask good questions</a>.
 For off-topic discussions, please use our <a href="https://t.me/{OFFTOPIC_USERNAME}">\
 off-topic group</a>.
 """
 
-OFFTOPIC_RULES = f"""
-<b>Topics:</b>
+OFFTOPIC_RULES = f"""<b>Topics:</b>
 - Discussions about Python in general
 - Meta discussions about <code>python-telegram-bot</code>
 - Friendly, respectful talking about non-tech topics
