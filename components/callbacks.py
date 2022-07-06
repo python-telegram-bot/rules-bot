@@ -440,7 +440,9 @@ async def join_request_callback(update: Update, context: ContextTypes.DEFAULT_TY
         f"guardian of the group {group_mention}, that you requested to join.\n\nBefore you can "
         "join the group, please carefully read the following rules of the group. Confirm that you "
         "have read them by double-tapping the button at the bottom of the message - that's it 🙃"
-        f"\n\n{ONTOPIC_RULES if on_topic else OFFTOPIC_RULES}"
+        f"\n\n{ONTOPIC_RULES if on_topic else OFFTOPIC_RULES}\n\n"
+        "ℹ️ If I fail to react to your confirmation within 2 hours, please contact one of the"
+        "administrators of the group. Admins are marked as such in the list of group members."
     )
     reply_markup = InlineKeyboardMarkup.from_button(
         InlineKeyboardButton(
@@ -451,7 +453,7 @@ async def join_request_callback(update: Update, context: ContextTypes.DEFAULT_TY
     message = await join_request.from_user.send_message(text=text, reply_markup=reply_markup)
     cast(JobQueue, context.job_queue).run_once(
         callback=join_request_timeout_job,
-        when=datetime.timedelta(hours=12),
+        when=datetime.timedelta(hours=2),
         data=(join_request.from_user, join_request.chat.id, message, group_mention),
         name=f"JOIN_TIMEOUT {join_request.from_user.id}",
     )
