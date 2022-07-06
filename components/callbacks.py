@@ -453,6 +453,7 @@ async def join_request_callback(update: Update, context: ContextTypes.DEFAULT_TY
         callback=join_request_timeout_job,
         when=datetime.timedelta(hours=12),
         data=(join_request.from_user, join_request.chat.id, message, group_mention),
+        name=f"JOIN_TIMEOUT {join_request.from_user.id}",
     )
 
 
@@ -466,6 +467,9 @@ async def join_request_buttons(update: Update, context: ContextTypes.DEFAULT_TYP
             user.send_message("Nice! Have fun in the group 🙂"), update=update
         )
         reply_markup = None
+        jobs = cast(JobQueue, context.job_queue).get_jobs_by_name(f"JOIN_TIMEOUT {user.id}")
+        if jobs:
+            jobs[0].schedule_removal()
     else:
         reply_markup = InlineKeyboardMarkup.from_button(
             InlineKeyboardButton(

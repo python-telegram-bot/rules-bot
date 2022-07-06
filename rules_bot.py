@@ -51,6 +51,7 @@ from components.const import (
     ONTOPIC_USERNAME,
 )
 from components.errorhandler import error_handler
+from components.rulesjobqueue import RulesJobQueue
 from components.search import Search
 from components.taghints import TagHintFilter
 from components.util import build_command_list, rate_limit_tracker
@@ -108,6 +109,7 @@ def main() -> None:
         .token(config["KEYS"]["bot_api"])
         .defaults(defaults)
         .post_init(post_init)
+        .job_queue(RulesJobQueue())
         .build()
     )
 
