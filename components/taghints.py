@@ -5,7 +5,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Messag
 from telegram.ext.filters import MessageFilter
 
 from components import const
-from components.const import PTBCONTRIB_LINK
+from components.const import PTBCONTRIB_LINK, DOCS_URL
 from components.entrytypes import TagHint
 
 # Tag hints should be used for "meta" hints, i.e. pointing out how to use the PTB groups
@@ -184,10 +184,9 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
     },
     "coc": {
         "message": (
-            '{query} Please read our <a href="https://github.com/python-telegram-bot/'
-            'python-telegram-bot/blob/master/CODE_OF_CONDUCT.md">Code of Conduct</a> and stick to '
-            "it. Note that violation of the CoC can lead to temporary or permanent banishment from"
-            " this group."
+            f'{{query}} Please read our <a href="{DOCS_URL}coc.html">Code of Conduct</a> and '
+            "stick to it. Note that violation of the CoC can lead to temporary or permanent "
+            "banishment from this group."
         ),
         "default": "Hey.",
         "help": "Remind the users of the Code of Conduct.",
