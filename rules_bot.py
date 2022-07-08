@@ -28,8 +28,6 @@ from components import inlinequeries
 from components.callbacks import (
     ban_sender_channels,
     delete_new_chat_members_message,
-    join_request_buttons,
-    join_request_callback,
     leave_chat,
     off_on_topic,
     raise_app_handler_stop,
@@ -51,6 +49,7 @@ from components.const import (
     ONTOPIC_USERNAME,
 )
 from components.errorhandler import error_handler
+from components.joinrequests import join_request_buttons, join_request_callback
 from components.rulesjobqueue import RulesJobQueue
 from components.search import Search
 from components.taghints import TagHintFilter
