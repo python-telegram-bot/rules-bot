@@ -48,7 +48,10 @@ class GraphQLClient:
         """The all ptb_contribs on the main branch"""
         result = await self._do_request("getPTBContribs")
         return [
-            PTBContrib(name=contrib["name"], url=f"{PTBCONTRIB_LINK}tree/main/{contrib['name']}")
+            PTBContrib(
+                name=contrib["name"],
+                url=f"{PTBCONTRIB_LINK}tree/main/ptbcontrib/{contrib['name']}",
+            )
             for contrib in result["repository"]["object"]["entries"]
             if contrib["type"] == "tree"
         ]

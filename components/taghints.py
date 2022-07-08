@@ -5,7 +5,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Messag
 from telegram.ext.filters import MessageFilter
 
 from components import const
-from components.const import PTBCONTRIB_LINK, DOCS_URL
+from components.const import DOCS_URL, PTBCONTRIB_LINK
 from components.entrytypes import TagHint
 
 # Tag hints should be used for "meta" hints, i.e. pointing out how to use the PTB groups
