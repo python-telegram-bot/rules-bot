@@ -1,5 +1,5 @@
 import datetime
-from typing import Tuple, cast
+from typing import Tuple, Union, cast
 
 from telegram import (
     CallbackQuery,
@@ -24,15 +24,31 @@ from components.const import (
 
 
 async def approve_user(
-    user_id: int, chat_id: int, group_name: str, context: ContextTypes.DEFAULT_TYPE
+    user: Union[int, User], chat_id: int, group_name: str, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
-    await context.bot.approve_chat_join_request(user_id=user_id, chat_id=chat_id)
+    try:
+        if isinstance(user, User):
+            await user.approve_join_request(chat_id=chat_id)
+        else:
+            await context.bot.approve_chat_join_request(user_id=user, chat_id=chat_id)
+    except BadRequest as exc:
+        user_mention = f"{user.username} - {user.id}" if isinstance(user, User) else str(user)
+        error_message = f"{exc} - {user_mention} - {group_name}"
+        raise BadRequest(error_message) from exc
 
 
 async def decline_user(
-    user_id: int, chat_id: int, group_name: str, context: ContextTypes.DEFAULT_TYPE
+    user: Union[int, User], chat_id: int, group_name: str, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
-    await context.bot.decline_chat_join_request(user_id=user_id, chat_id=chat_id)
+    try:
+        if isinstance(user, User):
+            await user.decline_join_request(chat_id=chat_id)
+        else:
+            await context.bot.decline_chat_join_request(user_id=user, chat_id=chat_id)
+    except BadRequest as exc:
+        user_mention = f"{user.username} - {user.id}" if isinstance(user, User) else str(user)
+        error_message = f"{exc} - {user_mention} - {group_name}"
+        raise BadRequest(error_message) from exc
 
 
 async def join_request_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -71,7 +87,7 @@ async def join_request_callback(update: Update, context: ContextTypes.DEFAULT_TY
     cast(JobQueue, context.job_queue).run_once(
         callback=join_request_timeout_job,
         when=datetime.timedelta(hours=2),
-        data=(message, group_mention),
+        data=(user, message, group_mention),
         name=f"JOIN_TIMEOUT {user.id}",
         user_id=user.id,
         chat_id=join_request.chat.id,
@@ -87,9 +103,15 @@ async def join_request_buttons(update: Update, context: ContextTypes.DEFAULT_TYP
         if jobs:
             jobs[0].schedule_removal()
 
-        await approve_user(
-            user_id=user.id, chat_id=int(chat_id), group_name="Unknown", context=context
-        )
+        try:
+            await approve_user(
+                user=user, chat_id=int(chat_id), group_name="Unknown", context=context
+            )
+        except BadRequest as exc:
+            # If the user was already approved for some reason, we can just ignore the error
+            if "User_already_participant" not in exc.message:
+                raise exc
+
         context.application.create_task(
             user.send_message("Nice! Have fun in the group 🙂"), update=update
         )
@@ -114,11 +136,10 @@ async def join_request_buttons(update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def join_request_timeout_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     job = cast(Job, context.job)
-    user_id = cast(int, job.user_id)
     chat_id = cast(int, job.chat_id)
-    message, group = cast(Tuple[Message, str], job.data)
+    user, message, group = cast(Tuple[User, Message, str], job.data)
     text = (
         f"Your request to join the group {group} has timed out. Please send a new request to join."
     )
-    await decline_user(user_id=user_id, chat_id=chat_id, group_name=group, context=context)
+    await decline_user(user=user, chat_id=chat_id, group_name=group, context=context)
     await message.edit_text(text=text)
