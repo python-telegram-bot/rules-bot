@@ -127,7 +127,7 @@ GITHUB_PATTERN = re.compile(
                     )
                 )
             |  # Or
-                (?:(/commit/|@)? # Optionall /commit/ or @
+                (?:(/commit/|@) # /commit/ or @
                 (?P<sha>[0-9a-f]{7,40})) # sha: 7-40 hexadecimal chars
             )
         )
