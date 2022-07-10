@@ -125,6 +125,7 @@ def main() -> None:
     application.add_handler(
         MessageHandler(
             filters.ChatType.GROUPS
+            & ~filters.StatusUpdate.LEFT_CHAT_MEMBER
             & ~(filters.Chat(username=ALLOWED_USERNAMES) | filters.Chat(chat_id=ALLOWED_CHAT_IDS)),
             leave_chat,
         ),
