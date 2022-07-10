@@ -115,8 +115,9 @@ async def join_request_buttons(update: Update, context: ContextTypes.DEFAULT_TYP
         user_data.setdefault("pressed button 2", []).append(get_dtm_str())
         jobs = cast(JobQueue, context.job_queue).get_jobs_by_name(f"JOIN_TIMEOUT {user.id}")
         if jobs:
-            jobs[0].schedule_removal()
-            user_data.setdefault("removed join timeout job", []).append(get_dtm_str())
+            for job in jobs:
+                job.schedule_removal()
+                user_data.setdefault("removed join timeout job", []).append(get_dtm_str())
 
         try:
             await approve_user(
