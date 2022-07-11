@@ -101,8 +101,8 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
     },
     "wronglib": {
         "message": (
-            "{query} : If you are using a different package/language, we are sure you can "
-            "find some kind of community help on their homepage. Here are a few links for other"
+            "{query} If you are using a different package/language, we are sure you can "
+            "find some kind of community help on their homepage. Here are a few links for other "
             "popular libraries: "
             '<a href="https://t.me/joinchat/Bn4ixj84FIZVkwhk2jag6A">pyTelegramBotApi</a>, '
             '<a href="https://github.com/nickoala/telepot">Telepot</a>, '
