@@ -66,10 +66,15 @@ async def decline_user(
 
 
 async def join_request_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user_data = cast(Dict[Any, Any], context.user_data)
     join_request = cast(ChatJoinRequest, update.chat_join_request)
     user = join_request.from_user
     chat_id = join_request.chat.id
+    jobs = cast(JobQueue, context.job_queue).get_jobs_by_name(f"JOIN_TIMEOUT {chat_id} {user.id}")
+    if jobs:
+        # No need to ping the user again if we already did
+        return
+
+    user_data = cast(Dict[Any, Any], context.user_data)
     on_topic = join_request.chat.username == ONTOPIC_USERNAME
     group_mention = ONTOPIC_CHAT_ID if on_topic else OFFTOPIC_CHAT_ID
 
