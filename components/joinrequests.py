@@ -30,43 +30,53 @@ def get_dtm_str() -> str:
 async def approve_user(
     user: Union[int, User], chat_id: int, group_name: str, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
-    user_data = cast(Dict[str, Any], context.user_data)
+    user_data = cast(Dict[Any, Any], context.user_data)
     try:
         if isinstance(user, User):
             await user.approve_join_request(chat_id=chat_id)
         else:
             await context.bot.approve_chat_join_request(user_id=user, chat_id=chat_id)
-        user_data.setdefault("approved", []).append(get_dtm_str())
+        user_data.setdefault(int(chat_id), {}).setdefault("approved", []).append(get_dtm_str())
     except BadRequest as exc:
         user_mention = f"{user.username} - {user.id}" if isinstance(user, User) else str(user)
         error_message = f"{exc} - {user_mention} - {group_name}"
-        user_data.setdefault("approve failed", []).append(f"{get_dtm_str()}: {exc}")
+        user_data.setdefault(int(chat_id), {}).setdefault("approve failed", []).append(
+            f"{get_dtm_str()}: {exc}"
+        )
         raise BadRequest(error_message) from exc
 
 
 async def decline_user(
     user: Union[int, User], chat_id: int, group_name: str, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
-    user_data = cast(Dict[str, Any], context.user_data)
+    user_data = cast(Dict[Any, Any], context.user_data)
     try:
         if isinstance(user, User):
             await user.decline_join_request(chat_id=chat_id)
         else:
             await context.bot.decline_chat_join_request(user_id=user, chat_id=chat_id)
-        user_data.setdefault("declined", []).append(get_dtm_str())
+        user_data.setdefault(int(chat_id), {}).setdefault("declined", []).append(get_dtm_str())
     except BadRequest as exc:
         user_mention = f"{user.username} - {user.id}" if isinstance(user, User) else str(user)
         error_message = f"{exc} - {user_mention} - {group_name}"
-        user_data.setdefault("declined failed", []).append(f"{get_dtm_str()}: {exc}")
+        user_data.setdefault(int(chat_id), {}).setdefault("declined failed", []).append(
+            f"{get_dtm_str()}: {exc}"
+        )
         raise BadRequest(error_message) from exc
 
 
 async def join_request_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user_data = cast(Dict[str, Any], context.user_data)
+    user_data = cast(Dict[Any, Any], context.user_data)
     join_request = cast(ChatJoinRequest, update.chat_join_request)
     user = join_request.from_user
+    chat_id = join_request.chat.id
     on_topic = join_request.chat.username == ONTOPIC_USERNAME
     group_mention = ONTOPIC_CHAT_ID if on_topic else OFFTOPIC_CHAT_ID
+
+    user_data.setdefault(int(chat_id), {}).setdefault("received join request", []).append(
+        get_dtm_str()
+    )
+
     text = (
         f"Hi, {user.mention_html()}! I'm {context.bot.bot.mention_html()}, the "
         f"guardian of the group {group_mention}, that you requested to join.\n\nBefore you can "
@@ -79,7 +89,7 @@ async def join_request_callback(update: Update, context: ContextTypes.DEFAULT_TY
     reply_markup = InlineKeyboardMarkup.from_button(
         InlineKeyboardButton(
             text="I have read the rules 📖",
-            callback_data=f"JOIN 1 {join_request.chat.id}",
+            callback_data=f"JOIN 1 {chat_id}",
         )
     )
     try:
@@ -100,24 +110,30 @@ async def join_request_callback(update: Update, context: ContextTypes.DEFAULT_TY
         callback=join_request_timeout_job,
         when=datetime.timedelta(hours=2),
         data=(user, message, group_mention),
-        name=f"JOIN_TIMEOUT {user.id}",
+        name=f"JOIN_TIMEOUT {chat_id} {user.id}",
         user_id=user.id,
-        chat_id=join_request.chat.id,
+        chat_id=chat_id,
     )
 
 
 async def join_request_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user_data = cast(Dict[str, Any], context.user_data)
+    user_data = cast(Dict[Any, Any], context.user_data)
     callback_query = cast(CallbackQuery, update.callback_query)
     user = cast(User, update.effective_user)
     _, press, chat_id = cast(str, callback_query.data).split()
     if press == "2":
-        user_data.setdefault("pressed button 2", []).append(get_dtm_str())
-        jobs = cast(JobQueue, context.job_queue).get_jobs_by_name(f"JOIN_TIMEOUT {user.id}")
+        user_data.setdefault(int(chat_id), {}).setdefault("pressed button 2", []).append(
+            get_dtm_str()
+        )
+        jobs = cast(JobQueue, context.job_queue).get_jobs_by_name(
+            f"JOIN_TIMEOUT {chat_id} {user.id}"
+        )
         if jobs:
             for job in jobs:
                 job.schedule_removal()
-                user_data.setdefault("removed join timeout job", []).append(get_dtm_str())
+                user_data.setdefault(int(chat_id), {}).setdefault(
+                    "removed join timeout", []
+                ).append(get_dtm_str())
 
         try:
             await approve_user(
@@ -133,7 +149,9 @@ async def join_request_buttons(update: Update, context: ContextTypes.DEFAULT_TYP
         )
         reply_markup = None
     else:
-        user_data.setdefault("pressed button 1", []).append(get_dtm_str())
+        user_data.setdefault(int(chat_id), {}).setdefault("pressed button 1", []).append(
+            get_dtm_str()
+        )
         reply_markup = InlineKeyboardMarkup.from_button(
             InlineKeyboardButton(
                 text="⚠️ Tap again to confirm",
