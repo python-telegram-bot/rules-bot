@@ -44,6 +44,9 @@ async def approve_user(
             f"{get_dtm_str()}: {exc}"
         )
         raise BadRequest(error_message) from exc
+    except Forbidden as exc:
+        if "user is deactivated" not in exc.message:
+            raise exc
 
 
 async def decline_user(
@@ -63,6 +66,9 @@ async def decline_user(
             f"{get_dtm_str()}: {exc}"
         )
         raise BadRequest(error_message) from exc
+    except Forbidden as exc:
+        if "user is deactivated" not in exc.message:
+            raise exc
 
 
 async def join_request_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -165,9 +171,7 @@ async def join_request_buttons(update: Update, context: ContextTypes.DEFAULT_TYP
         )
 
     try:
-        context.application.create_task(
-            callback_query.edit_message_reply_markup(reply_markup=reply_markup), update=update
-        )
+        await callback_query.edit_message_reply_markup(reply_markup=reply_markup)
     except BadRequest as exc:
         # Ignore people clicking the button too quickly
         if "Message is not modified" not in exc.message:
