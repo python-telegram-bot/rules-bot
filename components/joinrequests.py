@@ -186,4 +186,8 @@ async def join_request_timeout_job(context: ContextTypes.DEFAULT_TYPE) -> None:
         f"Your request to join the group {group} has timed out. Please send a new request to join."
     )
     await decline_user(user=user, chat_id=chat_id, group_name=group, context=context)
-    await message.edit_text(text=text)
+    try:
+        await message.edit_text(text=text)
+    except Forbidden as exc:
+        if "user is deactivated" not in exc.message:
+            raise exc
