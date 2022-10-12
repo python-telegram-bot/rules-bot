@@ -86,3 +86,12 @@ rules-bot will automatically delete the service messages announcing new members.
 ## Other
 
 rules-bot can make sandwiches. You can ask it to do so by typing `make me a sandwich`. We'll see, if it actually does 😉
+
+## Setting up the bot for development and testing
+
+Copy the [example INI file `bot_example.ini`](bot_example.ini) to `bot.ini` and fill in your credentials:
+- `bot_api`: your Bot API you [got from Botfather](https://core.telegram.org/bots/features#botfather);
+- `github_auth`: your GitHub personal access token (see [instructions](https://docs.github.com/en/graphql/guides/forming-calls-with-graphql#authenticating-with-graphql)).
+GraphQL will need this token to be prepended with `Bearer `, but it will be done automatically if you don't.
+
+**Be sure not to check `bot.ini` into your repo**. 

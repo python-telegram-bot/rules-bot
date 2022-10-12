@@ -12,10 +12,13 @@ from components.entrytypes import Commit, Discussion, Example, Issue, PTBContrib
 
 class GraphQLClient:
     def __init__(self, auth: str, user_agent: str = USER_AGENT) -> None:
+        # OAuth token must be prepended with "Bearer". User might forget to do this.
+        authorization = auth if auth.casefold().startswith('bearer ') else f'Bearer {auth}'
+
         self._transport = AIOHTTPTransport(
             url="https://api.github.com/graphql",
             headers={
-                "Authorization": auth,
+                "Authorization": authorization,
                 "user-agent": user_agent,
             },
         )
