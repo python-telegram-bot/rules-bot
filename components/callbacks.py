@@ -271,9 +271,10 @@ async def reply_search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         found_entries.sort(key=lambda thing: thing[0])
 
     if found_entries:
-        await reply_or_edit(
-            update, context, "\n".join(thing[1].html_reply_markup() for thing in found_entries)
-        )
+        # Make sure that user gets unique hyperlinks.
+        # (Using dict instead of set to preserve the order)
+        html_markup_items = {entry[1].html_reply_markup(): None for entry in found_entries}.keys()
+        await reply_or_edit(update, context, "\n".join(html_markup_items))
 
 
 async def delete_new_chat_members_message(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
