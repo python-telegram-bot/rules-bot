@@ -16,14 +16,14 @@ Typing `@roolsbot <search query>` will present you with a list of search results
 * entries on the [FAQ](https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions) and [code snippets](https://github.com/python-telegram-bot/python-telegram-bot/wiki/Code-snippets) pages
 * Entries in the [documentation](https://python-telegram-bot.readthedocs.io/en/stable/)
 * Examples from the [examples directory](https://github.com/python-telegram-bot/python-telegram-bot/tree/master/examples#examples)
-* Tag hints as described [above](#short-replies)
+* Tag hints as described [in this section](#short-replies)
 
 rules-bot tries really hard to provide you with the closest match to your query. This is not always easy, so you might need to scroll a bit.
 
 Also, special prefixes restrict the search results:
 
 * Prepending the query with `/` will search *only* for [tag hints](#short-replies)
-* Prepending the query with `#`/`PR-`/`GH-` will search *only* for entries on GitHub as described [above](#link-to-github-threads). This also allows you to search issues & pull request titles on the [GitHub repository](https://github.com/python-telegram-bot/python-telegram-bot).
+* Prepending the query with `#`/`PR-`/`GH-` will search *only* for entries on GitHub as described [in this section](#link-to-github-threads). This also allows you to search issues & pull request titles on the [GitHub repository](https://github.com/python-telegram-bot/python-telegram-bot).
 
 ### Insertion Search
 
@@ -44,7 +44,7 @@ Please note that Telegram will only parse the first 256 characters of your inlin
 
 ## Short-Replies
 
-rules-bot provides a number of predefined messages that are frequently needed. A list of available tag hints is available via the `/hints` command and also in the command menu. Simply send `/<taghint>` and rules-bot will delete your message and send the corresponding text instead. Reply to a message with `/<taghint>` to make rules-bot send the message as reply to that message. Type `/<taghint> <a personal message>`, to insert the personal message at a meaningful spot within the message. For most tag hints this will just prepend the personal message. You can even send multiple short messages at once by typing `/<taghint 1> <message 1> /<taghint 2> <message 2> ...`
+rules-bot provides a number of predefined messages that are frequently needed. A list of available tag hints is available in the command menu. Simply send `/<taghint>` and rules-bot will delete your message and send the corresponding text instead. Reply to a message with `/<taghint>` to make rules-bot send the message as reply to that message. Type `/<taghint> <a personal message>`, to insert the personal message at a meaningful spot within the message. For most tag hints this will just prepend the personal message. You can even send multiple short messages at once by typing `/<taghint 1> <message 1> /<taghint 2> <message 2> ...`
 
 ## Redirect to On- & Off-Topic
 
@@ -79,13 +79,12 @@ rules-bot will automatically delete the service messages announcing new members.
 
 * `/docs`: Sends the link to the docs.
 * `/wiki`: Sends the link to the wiki.
-* `/hints` & `/listhints`: Sends a list of available tag hints (see [here](#short-replies))
 * `/help`: Links to this readme.
 * `/say_potato`: Asks a user to verify that they are not a userbot. Only available to group admins.
 
 ## Other
 
-rules-bot can make sandwiches. You can ask it to do so by typing `make me a sandwich`. We'll see, if it actually does 😉
+rules-bot can make sandwiches. You can ask it to do so by typing `make me a sandwich`. We'll see if it actually does 😉
 
 # Setting up the bot for development and testing
 
