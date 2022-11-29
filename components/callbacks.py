@@ -22,6 +22,7 @@ from telegram.helpers import escape_markdown
 
 from components import const
 from components.const import (
+    BUY_TEXT,
     DEFAULT_REPO_NAME,
     DEFAULT_REPO_OWNER,
     ENCLOSED_REGEX,
@@ -428,3 +429,9 @@ async def say_potato_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
         ),
         name=f"POTATO {user.id}",
     )
+
+
+async def buy(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    """Tells people to not do job offers in our group"""
+    message = cast(Message, update.effective_message)
+    await message.reply_text(BUY_TEXT)
