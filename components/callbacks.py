@@ -40,6 +40,7 @@ from components.entrytypes import BaseEntry
 from components.search import Search
 from components.taghints import TAG_HINTS
 from components.util import (
+    admin_check,
     get_reply_id,
     get_text_not_in_entities,
     rate_limit,
@@ -378,10 +379,7 @@ async def say_potato_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     who_banned = cast(User, message.from_user)
     chat = cast(Chat, update.effective_chat)
 
-    # This check will fail if we add or remove admins at runtime but that is so rare that
-    # we can just restart the bot in that case ...
-    admins = cast(Dict, context.chat_data).setdefault("admins", await chat.get_administrators())
-    if who_banned not in [admin.user for admin in admins]:
+    if not await admin_check(context.chat_data, chat, who_banned):
         await message.reply_text(
             "This command is only available for admins. You are not an admin."
         )
@@ -431,7 +429,20 @@ async def say_potato_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     )
 
 
-async def buy(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Tells people to not do job offers in our group"""
     message = cast(Message, update.effective_message)
-    await message.reply_text(BUY_TEXT)
+    who_banned = cast(User, message.from_user)
+    chat = cast(Chat, update.effective_chat)
+
+    await message.delete()
+
+    if not message.reply_to_message:
+        return
+
+    user = cast(User, message.reply_to_message.from_user)
+
+    await message.reply_text(BUY_TEXT.format(user.mention_html()))
+
+    if await admin_check(context.chat_data, chat, who_banned):
+        await message.reply_to_message.delete()

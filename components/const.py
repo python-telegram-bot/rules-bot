@@ -75,7 +75,7 @@ OFFTOPIC_RULES = f"""<b>Topics:</b>
 
 <b>Rules:</b>
 - The group language is English
-- Advertisement or posting as channels is disallowed
+- Advertisement (including coding job offers) or posting as channels is disallowed
 - Use a pastebin to share code. If you <i>really</i> can't explain your problem without showing a\
  picture, upload it somewhere and share a link.
 - No shitposting, flamewars or excessive trolling
@@ -222,8 +222,8 @@ VEGETABLES = [
     "zucchini",
 ]
 BUY_TEXT = (
-    "Hello there. You are writing your job offer in our technical focused groups, which is "
+    "Hello there, {0}. You are writing your job offer in our technical focused groups, which is "
     "against our rules. To find a bot developer, please look at agencies dedicated towards "
-    "freelancers. An example of those would be https://fiverr.com, with which we are not "
-    "associated of course."
+    "freelancers. An example of those would be https://fiverr.com, which we are not "
+    "associated with."
 )
