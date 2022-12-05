@@ -385,7 +385,7 @@ async def say_potato_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
         )
         return
 
-    await message.delete()
+    await try_to_delete(message)
 
     if not message.reply_to_message:
         return
@@ -435,7 +435,7 @@ async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     who_banned = cast(User, message.from_user)
     chat = cast(Chat, update.effective_chat)
 
-    await message.delete()
+    await try_to_delete(message)
 
     if not message.reply_to_message:
         return
