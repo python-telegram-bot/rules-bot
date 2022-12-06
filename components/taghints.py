@@ -219,7 +219,7 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
 }
 
 
-# Sort the hints by hey
+# Sort the hints by key
 _TAG_HINTS = dict(sorted(_TAG_HINTS.items()))
 # convert into proper objects
 TAG_HINTS: Dict[str, TagHint] = {

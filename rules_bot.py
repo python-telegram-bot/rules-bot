@@ -27,6 +27,7 @@ from telegram.ext import (
 from components import inlinequeries
 from components.callbacks import (
     ban_sender_channels,
+    buy,
     delete_new_chat_members_message,
     leave_chat,
     off_on_topic,
@@ -147,6 +148,7 @@ def main() -> None:
     # The first one also handles deep linking /start commands
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("rules", rules))
+    application.add_handler(CommandHandler("buy", buy))
 
     # Stuff that runs on every message with regex
     application.add_handler(

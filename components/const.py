@@ -47,7 +47,7 @@ Telegram bots in general.
 <b>Rules:</b>
 - The group language is English
 - Stay on topic
-- Advertisement or posting as channels is disallowed
+- Advertisement (including coding job offers) or posting as channels is disallowed
 - No meta questions (eg. <i>"Can I ask something?"</i>)
 - Use a pastebin when you have a question about your code, like <a href="https://www.codepile.net"\
 >this one</a>. If you <i>really</i> can't explain your problem without showing a picture, upload\
@@ -75,7 +75,7 @@ OFFTOPIC_RULES = f"""<b>Topics:</b>
 
 <b>Rules:</b>
 - The group language is English
-- Advertisement or posting as channels is disallowed
+- Advertisement (including coding job offers) or posting as channels is disallowed
 - Use a pastebin to share code. If you <i>really</i> can't explain your problem without showing a\
  picture, upload it somewhere and share a link.
 - No shitposting, flamewars or excessive trolling
@@ -221,3 +221,9 @@ VEGETABLES = [
     "yam",
     "zucchini",
 ]
+BUY_TEXT = (
+    "Hello there, {0}. You are writing your job offer in our technical focused groups, which is "
+    "against our rules. To find a bot developer, please look at agencies dedicated towards "
+    "freelancers. An example of those would be https://fiverr.com, which we are not "
+    "associated with."
+)
