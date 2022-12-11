@@ -435,14 +435,14 @@ async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     who_banned = cast(User, message.from_user)
     chat = cast(Chat, update.effective_chat)
 
-    await try_to_delete(message)
-
     if not message.reply_to_message:
+        await try_to_delete(message)
         return
 
     user = cast(User, message.reply_to_message.from_user)
-
-    await message.reply_text(BUY_TEXT.format(user.mention_html()))
+    await message.reply_to_message.reply_text(BUY_TEXT.format(user.mention_html()))
 
     if await admin_check(context.chat_data, chat, who_banned):
-        await message.reply_to_message.delete()
+        await try_to_delete(message.reply_to_message)
+
+    await try_to_delete(message)
