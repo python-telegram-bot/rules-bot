@@ -47,7 +47,12 @@ async def inline_query(
         search_results = await search.multi_search_combinations(symbols)
 
         for combination in search_results:
-            description = ", ".join(entry.short_description for entry in combination.values())
+            if len(symbols) == 1:
+                # If we have only one search term, we can show a more verbose description
+                description = list(combination.values())[0].display_name
+            else:
+                description = ", ".join(entry.short_description for entry in combination.values())
+
             message_text = query
             index = []
             keyboard = None
