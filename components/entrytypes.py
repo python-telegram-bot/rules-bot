@@ -470,7 +470,7 @@ class _IssueOrPullRequestOrDiscussion(BaseEntry):
         from .util import truncate_str  # pylint:disable=import-outside-toplevel
 
         string = f"{self._TYPE} {self.short_name}: {self.title}"
-        return truncate_str(string, 25)
+        return truncate_str(string, 50)
 
     def html_markup(self, search_query: str = None) -> str:  # pylint:disable=unused-argument
         return f'<a href="{self.url}">{self.display_name}</a>'
