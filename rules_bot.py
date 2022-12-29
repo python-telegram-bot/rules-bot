@@ -164,7 +164,7 @@ def main() -> None:
 
     # Check if user shared a bot's token
     application.add_handler(
-        MessageHandler(filters.Regex(r"[0-9]{9}:[a-zA-Z0-9_-]{35}"), token_warning)
+        MessageHandler(filters.Regex(r"([0-9]+:[a-zA-Z0-9_-]{35})"), token_warning)
     )
 
     # We need several matches so filters.REGEX is basically useless

@@ -178,17 +178,17 @@ async def admin_check(chat_data: CD, chat: Chat, who_banned: User) -> bool:
     return True
 
 
-async def token_is_valid(match: Match) -> bool:
+async def get_bot_from_token(match: Match) -> Optional[User]:
     token = match.group(0)
     bot = Bot(token)
 
     try:
-        await bot.get_me()
-        return True
+        user = await bot.get_me()
+        return user
 
     # raised when the token isn't valid
     except TelegramError:
-        return False
+        return None
 
 
 def update_shared_token_timestamp(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
