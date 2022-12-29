@@ -55,7 +55,7 @@ from components.joinrequests import join_request_buttons, join_request_callback
 from components.rulesjobqueue import RulesJobQueue
 from components.search import Search
 from components.taghints import TagHintFilter
-from components.util import build_command_list, rate_limit_tracker
+from components.util import FindAllFilter, build_command_list, rate_limit_tracker
 
 if os.environ.get("ROOLSBOT_DEBUG"):
     logging.basicConfig(
@@ -164,7 +164,7 @@ def main() -> None:
 
     # Check if user shared a bot's token
     application.add_handler(
-        MessageHandler(filters.Regex(r"([0-9]+:[a-zA-Z0-9_-]{35})"), token_warning)
+        MessageHandler(FindAllFilter(r"([0-9]+:[a-zA-Z0-9_-]{35})"), token_warning)
     )
 
     # We need several matches so filters.REGEX is basically useless

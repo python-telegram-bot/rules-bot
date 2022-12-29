@@ -1,15 +1,16 @@
 # pylint:disable=cyclic-import
 # because we import truncate_str in entrytypes.Issue.short_description
 import logging
+import re
 import sys
 import warnings
 from functools import wraps
-from typing import Any, Callable, Coroutine, Dict, List, Match, Optional, Tuple, Union, cast
+from typing import Any, Callable, Coroutine, Dict, List, Optional, Pattern, Tuple, Union, cast
 
 from bs4 import MarkupResemblesLocatorWarning
 from telegram import Bot, Chat, InlineKeyboardButton, Message, Update, User
 from telegram.error import BadRequest, Forbidden, TelegramError
-from telegram.ext import CallbackContext, ContextTypes
+from telegram.ext import CallbackContext, ContextTypes, filters
 from telegram.ext._utils.types import CD
 
 from .const import OFFTOPIC_CHAT_ID, ONTOPIC_CHAT_ID, RATE_LIMIT_SPACING
@@ -178,8 +179,7 @@ async def admin_check(chat_data: CD, chat: Chat, who_banned: User) -> bool:
     return True
 
 
-async def get_bot_from_token(match: Match) -> Optional[User]:
-    token = match.group(0)
+async def get_bot_from_token(token: str) -> Optional[User]:
     bot = Bot(token)
 
     try:
@@ -209,3 +209,20 @@ def update_shared_token_timestamp(update: Update, context: ContextTypes.DEFAULT_
     time_diff = current_time - last_time
     # We do a day counter for now
     return f"{time_diff.days} days ago"
+
+
+class FindAllFilter(filters.MessageFilter):
+    __slots__ = ("pattern",)
+
+    def __init__(self, pattern: Union[str, Pattern]):
+        if isinstance(pattern, str):
+            pattern = re.compile(pattern)
+        self.pattern: Pattern = pattern
+        super().__init__(data_filter=True)
+
+    def filter(self, message: Message) -> Optional[Dict[str, List[str]]]:
+        if message.text:
+            matches = re.findall(self.pattern, message.text)
+            if matches:
+                return {"matches": matches}
+        return {}

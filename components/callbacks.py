@@ -452,7 +452,8 @@ async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def token_warning(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Warn people when they share their bot's token, and tell them to revoke it"""
-    matches = cast(List[Match], context.matches)
+    matches = cast(List[str], context.matches)
+    print(f"{matches=}")
     message = cast(Message, update.effective_message)
 
     for match in matches:
