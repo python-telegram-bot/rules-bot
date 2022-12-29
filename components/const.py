@@ -227,3 +227,4 @@ BUY_TEXT = (
     "freelancers. An example of those would be https://fiverr.com, which we are not "
     "associated with."
 )
+TOKEN_TEXT = "⚠️ You posted a token, go revoke it with @BotFather.\n\n"

@@ -28,10 +28,12 @@ from components import inlinequeries
 from components.callbacks import (
     ban_sender_channels,
     buy,
+    command_token_warning,
     delete_new_chat_members_message,
     leave_chat,
     off_on_topic,
     raise_app_handler_stop,
+    regex_token_warning,
     reply_search,
     rules,
     sandwich,
@@ -39,7 +41,6 @@ from components.callbacks import (
     say_potato_command,
     start,
     tag_hint,
-    token_warning,
 )
 from components.const import (
     ALLOWED_CHAT_IDS,
@@ -162,9 +163,10 @@ def main() -> None:
     # Tag hints - works with regex
     application.add_handler(MessageHandler(TagHintFilter(), tag_hint))
 
-    # Check if user shared a bot's token
+    # Warn user who shared a bot's token
+    application.add_handler(CommandHandler("token", command_token_warning))
     application.add_handler(
-        MessageHandler(FindAllFilter(r"([0-9]+:[a-zA-Z0-9_-]{35})"), token_warning)
+        MessageHandler(FindAllFilter(r"([0-9]+:[a-zA-Z0-9_-]{35})"), regex_token_warning)
     )
 
     # We need several matches so filters.REGEX is basically useless

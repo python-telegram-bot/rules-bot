@@ -34,6 +34,7 @@ from components.const import (
     ONTOPIC_CHAT_ID,
     ONTOPIC_RULES,
     ONTOPIC_USERNAME,
+    TOKEN_TEXT,
     VEGETABLES,
 )
 from components.entrytypes import BaseEntry
@@ -450,22 +451,36 @@ async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await try_to_delete(message)
 
 
-async def token_warning(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def _token_warning(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, middle_text: str = ""
+) -> None:
     """Warn people when they share their bot's token, and tell them to revoke it"""
-    matches = cast(List[str], context.matches)
     message = cast(Message, update.effective_message)
 
+    # Update timestamp on chat_data, and get "x time since last time" text
+    last_time = update_shared_token_timestamp(update, context)
+
+    # Send the message
+    await message.reply_text(f"{TOKEN_TEXT}{middle_text}Previous token was shared: {last_time}")
+
+
+async def regex_token_warning(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    matches = cast(List[str], context.matches)
+
+    bots = []
     for match in matches:
         bot = await get_bot_from_token(match)
         if bot is not None:
-            # Update timestamp on chat_data, and get "x time since last time" text
-            last_time = update_shared_token_timestamp(update, context)
+            bots.append(bot.mention_html())
 
-            # Send the message
-            await message.reply_text(
-                "⚠️ You posted a token, go revoke it with @BotFather.\n\n"
-                f"<b>{bot.mention_html()}</b>\n\n"
-                f"Previous token was shared: {last_time}"
-            )
+            # Limit to 10 bots
+            if len(bots) == 10:
+                await _token_warning(update, context, f"<b>{', '.join(bots)}</b>\n\n")
+                return
 
-            return
+    if bots:
+        await _token_warning(update, context, f"<b>{', '.join(bots)}</b>\n\n")
+
+
+async def command_token_warning(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await _token_warning(update, context)
