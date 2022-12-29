@@ -45,7 +45,9 @@ from components.util import (
     get_text_not_in_entities,
     rate_limit,
     reply_or_edit,
+    token_is_valid,
     try_to_delete,
+    update_shared_token_timestamp,
 )
 
 
@@ -446,3 +448,21 @@ async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await try_to_delete(message.reply_to_message)
 
     await try_to_delete(message)
+
+
+async def token_warning(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Warn people when they share their bot's token, and tell them to revoke it"""
+    matches = cast(List[Match], context.matches)
+    message = cast(Message, update.effective_message)
+
+    for match in matches:
+        valid = await token_is_valid(match)
+        if valid:
+            # Update timestamp on chat_data, and get "x time since last time" text
+            last_time = update_shared_token_timestamp(update, context)
+
+            # Send the message
+            await message.reply_text(
+                "⚠️ You posted a token, go revoke it with @BotFather.\n\n"
+                f"Previous token was shared: {last_time}"
+            )

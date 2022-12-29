@@ -4,11 +4,11 @@ import logging
 import sys
 import warnings
 from functools import wraps
-from typing import Any, Callable, Coroutine, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Callable, Coroutine, Dict, List, Match, Optional, Tuple, Union, cast
 
 from bs4 import MarkupResemblesLocatorWarning
-from telegram import Chat, InlineKeyboardButton, Message, Update, User
-from telegram.error import BadRequest, Forbidden
+from telegram import Bot, Chat, InlineKeyboardButton, Message, Update, User
+from telegram.error import BadRequest, Forbidden, TelegramError
 from telegram.ext import CallbackContext, ContextTypes
 from telegram.ext._utils.types import CD
 
@@ -176,3 +176,36 @@ async def admin_check(chat_data: CD, chat: Chat, who_banned: User) -> bool:
     if who_banned not in [admin.user for admin in admins]:
         return False
     return True
+
+
+async def token_is_valid(match: Match) -> bool:
+    token = match.group(0)
+    bot = Bot(token)
+
+    try:
+        await bot.get_me()
+        return True
+
+    # raised when the token isn't valid
+    except TelegramError:
+        return False
+
+
+def update_shared_token_timestamp(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+    chat_data = cast(Dict, context.chat_data)
+    message = cast(Message, update.effective_message)
+    key = "shared_token_timestamp"
+
+    last_time = chat_data.get(key)
+    current_time = message.date
+    chat_data[key] = current_time
+
+    if last_time is None:
+        return (
+            "... Error... No time found....\n"
+            "Oh my god. Where is the time. Has someone seen the time?"
+        )
+
+    time_diff = current_time - last_time
+    # We do a day counter for now
+    return f"{time_diff.days} days ago"

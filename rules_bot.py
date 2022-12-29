@@ -39,6 +39,7 @@ from components.callbacks import (
     say_potato_command,
     start,
     tag_hint,
+    token_warning,
 )
 from components.const import (
     ALLOWED_CHAT_IDS,
@@ -160,6 +161,11 @@ def main() -> None:
 
     # Tag hints - works with regex
     application.add_handler(MessageHandler(TagHintFilter(), tag_hint))
+
+    # Check if user shared a bot's token
+    application.add_handler(
+        MessageHandler(filters.Regex(r"[0-9]{9}:[a-zA-Z0-9_-]{35}"), token_warning)
+    )
 
     # We need several matches so filters.REGEX is basically useless
     # therefore we catch everything and do regex ourselves
