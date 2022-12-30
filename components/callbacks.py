@@ -461,7 +461,9 @@ async def _token_warning(
     last_time = update_shared_token_timestamp(update, context)
 
     # Send the message
-    await message.reply_text(f"{TOKEN_TEXT}{middle_text}Days since last token was shared: {last_time}")
+    await message.reply_text(
+        f"{TOKEN_TEXT}{middle_text}Days since last token was shared: {last_time}"
+    )
 
 
 async def regex_token_warning(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -473,13 +475,18 @@ async def regex_token_warning(update: Update, context: ContextTypes.DEFAULT_TYPE
         if bot is not None:
             bots.append(bot.mention_html())
 
-            # Limit to 10 bots
+            # Limit to 10 bots as checking if the token is valid takes time
             if len(bots) == 10:
-                await _token_warning(update, context, f"<b>{', '.join(bots)}</b>\n\n")
-                return
+                break
 
     if bots:
-        await _token_warning(update, context, f"<b>{', '.join(bots)}</b>\n\n")
+        bots_set = set(bots)  # Use a set to not duplicate names
+        many = len(bots_set) > 1
+        await _token_warning(
+            update,
+            context,
+            f"Token{'s' if many else ''} exposed: <b>{', '.join(bots_set)}</b>\n\n",
+        )
 
 
 async def command_token_warning(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

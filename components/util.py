@@ -9,7 +9,7 @@ from typing import Any, Callable, Coroutine, Dict, List, Optional, Pattern, Tupl
 
 from bs4 import MarkupResemblesLocatorWarning
 from telegram import Bot, Chat, InlineKeyboardButton, Message, Update, User
-from telegram.error import BadRequest, Forbidden, TelegramError
+from telegram.error import BadRequest, Forbidden, InvalidToken
 from telegram.ext import CallbackContext, ContextTypes, filters
 from telegram.ext._utils.types import CD
 
@@ -150,7 +150,11 @@ def build_command_list(
     if private:
         return base_commands + hint_commands
 
-    base_commands += [("rules", "Show the rules for this group.")]
+    base_commands += [
+        ("rules", "Show the rules for this group."),
+        ("buy", "Tell people to not do job offers."),
+        ("token", "Warn people if they share a token."),
+    ]
 
     if group_name is None:
         return base_commands + hint_commands
@@ -208,7 +212,7 @@ def update_shared_token_timestamp(update: Update, context: ContextTypes.DEFAULT_
 
     time_diff = current_time - last_time
     # We do a day counter for now
-    return f"{time_diff.days} days ago"
+    return f"{time_diff.days}"
 
 
 class FindAllFilter(filters.MessageFilter):
