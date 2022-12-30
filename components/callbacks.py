@@ -461,7 +461,7 @@ async def _token_warning(
     last_time = update_shared_token_timestamp(update, context)
 
     # Send the message
-    await message.reply_text(f"{TOKEN_TEXT}{middle_text}Previous token was shared: {last_time}")
+    await message.reply_text(f"{TOKEN_TEXT}{middle_text}Days since last token was shared: {last_time}")
 
 
 async def regex_token_warning(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
