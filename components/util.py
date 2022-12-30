@@ -187,7 +187,7 @@ async def get_bot_from_token(token: str) -> Optional[User]:
         return user
 
     # raised when the token isn't valid
-    except TelegramError:
+    except InvalidToken:
         return None
 
 
