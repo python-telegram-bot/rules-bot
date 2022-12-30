@@ -490,4 +490,6 @@ async def regex_token_warning(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 
 async def command_token_warning(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    message = cast(Message, update.effective_message)
+    await try_to_delete(message)
     await _token_warning(update, context)
