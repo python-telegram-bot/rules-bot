@@ -467,6 +467,11 @@ async def _token_warning(
 
 
 async def regex_token_warning(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Check the potential-token substrings in a message (matches with a Regex)
+    If any is valid:
+     - Warn the user about it, by sending the exposed bot(s) name(s)
+     - Point them to @BotFather to revoke them
+    """
     matches = cast(List[str], context.matches)
 
     bots = []
@@ -490,6 +495,9 @@ async def regex_token_warning(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 
 async def command_token_warning(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """When user shares a token by any way which is not the message's content:
+    Reply their message with `/token` to warn them about it
+    """
     message = cast(Message, update.effective_message)
     await try_to_delete(message)
     await _token_warning(update, context)

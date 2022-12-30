@@ -94,3 +94,7 @@ Copy the [example INI file `bot_example.ini`](bot_example.ini) to `bot.ini` and 
 GraphQL will need this token to be prepended with `Bearer `, but it will be done automatically if you don't.
 
 **Be sure not to commit `bot.ini`.** 
+
+# Token Detection
+
+rules-bot will detect **valid** bot tokens on messages and warn users about the leak, posting the name(s) of the affected bot(s) and telling them to go revoke at @BotFather
