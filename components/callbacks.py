@@ -34,6 +34,7 @@ from components.const import (
     ONTOPIC_CHAT_ID,
     ONTOPIC_RULES,
     ONTOPIC_USERNAME,
+    TOKEN_TEXT,
     VEGETABLES,
 )
 from components.entrytypes import BaseEntry
@@ -41,11 +42,13 @@ from components.search import Search
 from components.taghints import TAG_HINTS
 from components.util import (
     admin_check,
+    get_bot_from_token,
     get_reply_id,
     get_text_not_in_entities,
     rate_limit,
     reply_or_edit,
     try_to_delete,
+    update_shared_token_timestamp,
 )
 
 
@@ -446,3 +449,55 @@ async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await try_to_delete(message.reply_to_message)
 
     await try_to_delete(message)
+
+
+async def _token_warning(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, middle_text: str = ""
+) -> None:
+    """Warn people when they share their bot's token, and tell them to revoke it"""
+    message = cast(Message, update.effective_message)
+
+    # Update timestamp on chat_data, and get "x time since last time" text
+    last_time = update_shared_token_timestamp(update, context)
+
+    # Send the message
+    await message.reply_text(
+        f"{TOKEN_TEXT}{middle_text}Days since last token was shared: {last_time}"
+    )
+
+
+async def regex_token_warning(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Check the potential-token substrings in a message (matches with a Regex)
+    If any is valid:
+     - Warn the user about it, by sending the exposed bot(s) name(s)
+     - Point them to @BotFather to revoke them
+    """
+    matches = cast(List[str], context.matches)
+
+    bots = []
+    for match in matches:
+        bot = await get_bot_from_token(match)
+        if bot is not None:
+            bots.append(bot.mention_html())
+
+            # Limit to 10 bots as checking if the token is valid takes time
+            if len(bots) == 10:
+                break
+
+    if bots:
+        bots_set = set(bots)  # Use a set to not duplicate names
+        many = len(bots_set) > 1
+        await _token_warning(
+            update,
+            context,
+            f"Token{'s' if many else ''} exposed: <b>{', '.join(bots_set)}</b>\n\n",
+        )
+
+
+async def command_token_warning(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """When user shares a token by any way which is not the message's content:
+    Reply their message with `/token` to warn them about it
+    """
+    message = cast(Message, update.effective_message)
+    await try_to_delete(message)
+    await _token_warning(update, context)

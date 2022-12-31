@@ -28,10 +28,12 @@ from components import inlinequeries
 from components.callbacks import (
     ban_sender_channels,
     buy,
+    command_token_warning,
     delete_new_chat_members_message,
     leave_chat,
     off_on_topic,
     raise_app_handler_stop,
+    regex_token_warning,
     reply_search,
     rules,
     sandwich,
@@ -54,7 +56,7 @@ from components.joinrequests import join_request_buttons, join_request_callback
 from components.rulesjobqueue import RulesJobQueue
 from components.search import Search
 from components.taghints import TagHintFilter
-from components.util import build_command_list, rate_limit_tracker
+from components.util import FindAllFilter, build_command_list, rate_limit_tracker
 
 if os.environ.get("ROOLSBOT_DEBUG"):
     logging.basicConfig(
@@ -157,6 +159,12 @@ def main() -> None:
         )
     )
     application.add_handler(MessageHandler(filters.Regex("/(on|off)_topic"), off_on_topic))
+
+    # Warn user who shared a bot's token
+    application.add_handler(CommandHandler("token", command_token_warning))
+    application.add_handler(
+        MessageHandler(FindAllFilter(r"([0-9]+:[a-zA-Z0-9_-]{35})"), regex_token_warning)
+    )
 
     # Tag hints - works with regex
     application.add_handler(MessageHandler(TagHintFilter(), tag_hint))

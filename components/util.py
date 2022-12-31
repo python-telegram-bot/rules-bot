@@ -1,15 +1,16 @@
 # pylint:disable=cyclic-import
 # because we import truncate_str in entrytypes.Issue.short_description
 import logging
+import re
 import sys
 import warnings
 from functools import wraps
-from typing import Any, Callable, Coroutine, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Callable, Coroutine, Dict, List, Optional, Pattern, Tuple, Union, cast
 
 from bs4 import MarkupResemblesLocatorWarning
-from telegram import Chat, InlineKeyboardButton, Message, Update, User
-from telegram.error import BadRequest, Forbidden
-from telegram.ext import CallbackContext, ContextTypes
+from telegram import Bot, Chat, InlineKeyboardButton, Message, Update, User
+from telegram.error import BadRequest, Forbidden, InvalidToken
+from telegram.ext import CallbackContext, ContextTypes, filters
 from telegram.ext._utils.types import CD
 
 from .const import OFFTOPIC_CHAT_ID, ONTOPIC_CHAT_ID, RATE_LIMIT_SPACING
@@ -149,7 +150,11 @@ def build_command_list(
     if private:
         return base_commands + hint_commands
 
-    base_commands += [("rules", "Show the rules for this group.")]
+    base_commands += [
+        ("rules", "Show the rules for this group."),
+        ("buy", "Tell people to not do job offers."),
+        ("token", "Warn people if they share a token."),
+    ]
 
     if group_name is None:
         return base_commands + hint_commands
@@ -176,3 +181,52 @@ async def admin_check(chat_data: CD, chat: Chat, who_banned: User) -> bool:
     if who_banned not in [admin.user for admin in admins]:
         return False
     return True
+
+
+async def get_bot_from_token(token: str) -> Optional[User]:
+    bot = Bot(token)
+
+    try:
+        user = await bot.get_me()
+        return user
+
+    # raised when the token isn't valid
+    except InvalidToken:
+        return None
+
+
+def update_shared_token_timestamp(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+    chat_data = cast(Dict, context.chat_data)
+    message = cast(Message, update.effective_message)
+    key = "shared_token_timestamp"
+
+    last_time = chat_data.get(key)
+    current_time = message.date
+    chat_data[key] = current_time
+
+    if last_time is None:
+        return (
+            "... Error... No time found....\n"
+            "Oh my god. Where is the time. Has someone seen the time?"
+        )
+
+    time_diff = current_time - last_time
+    # We do a day counter for now
+    return f"{time_diff.days}"
+
+
+class FindAllFilter(filters.MessageFilter):
+    __slots__ = ("pattern",)
+
+    def __init__(self, pattern: Union[str, Pattern]):
+        if isinstance(pattern, str):
+            pattern = re.compile(pattern)
+        self.pattern: Pattern = pattern
+        super().__init__(data_filter=True)
+
+    def filter(self, message: Message) -> Optional[Dict[str, List[str]]]:
+        if message.text:
+            matches = re.findall(self.pattern, message.text)
+            if matches:
+                return {"matches": matches}
+        return {}
