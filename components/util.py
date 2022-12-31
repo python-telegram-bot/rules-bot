@@ -195,9 +195,8 @@ async def get_bot_from_token(token: str) -> Optional[User]:
         return None
 
 
-def update_shared_token_timestamp(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+def update_shared_token_timestamp(message: Message, context: ContextTypes.DEFAULT_TYPE) -> str:
     chat_data = cast(Dict, context.chat_data)
-    message = cast(Message, update.effective_message)
     key = "shared_token_timestamp"
 
     last_time = chat_data.get(key)

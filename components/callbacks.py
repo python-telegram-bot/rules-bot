@@ -452,13 +452,11 @@ async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def _token_warning(
-    update: Update, context: ContextTypes.DEFAULT_TYPE, middle_text: str = ""
+    message: Message, context: ContextTypes.DEFAULT_TYPE, middle_text: str = ""
 ) -> None:
     """Warn people when they share their bot's token, and tell them to revoke it"""
-    message = cast(Message, update.effective_message)
-
     # Update timestamp on chat_data, and get "x time since last time" text
-    last_time = update_shared_token_timestamp(update, context)
+    last_time = update_shared_token_timestamp(message, context)
 
     # Send the message
     await message.reply_text(
@@ -488,7 +486,7 @@ async def regex_token_warning(update: Update, context: ContextTypes.DEFAULT_TYPE
         bots_set = set(bots)  # Use a set to not duplicate names
         many = len(bots_set) > 1
         await _token_warning(
-            update,
+            cast(Message, update.effective_message),
             context,
             f"Token{'s' if many else ''} exposed: <b>{', '.join(bots_set)}</b>\n\n",
         )
@@ -500,4 +498,6 @@ async def command_token_warning(update: Update, context: ContextTypes.DEFAULT_TY
     """
     message = cast(Message, update.effective_message)
     await try_to_delete(message)
-    await _token_warning(update, context)
+
+    if message.reply_to_message:
+        await _token_warning(message.reply_to_message, context)
