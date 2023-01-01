@@ -476,7 +476,7 @@ async def regex_token_warning(update: Update, context: ContextTypes.DEFAULT_TYPE
     for match in matches:
         bot = await get_bot_from_token(match)
         if bot is not None:
-            bots.append(bot.mention_html())
+            bots.append(f"@{bot.username}")
 
             # Limit to 10 bots as checking if the token is valid takes time
             if len(bots) == 10:
