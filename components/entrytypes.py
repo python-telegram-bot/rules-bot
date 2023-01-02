@@ -438,7 +438,7 @@ class Commit(BaseEntry):
 
 @dataclass
 class _IssueOrPullRequestOrDiscussion(BaseEntry):
-    _TYPE: ClassVar = ""  # pylint:disable=invalid-name
+    _TYPE: ClassVar[str] = ""
     owner: str
     repo: str
     number: int
@@ -501,7 +501,7 @@ class Issue(_IssueOrPullRequestOrDiscussion):
         title: title of the issue
     """
 
-    _TYPE: ClassVar = "Issue"
+    _TYPE: ClassVar[str] = "Issue"
 
 
 @dataclass
@@ -516,7 +516,7 @@ class PullRequest(_IssueOrPullRequestOrDiscussion):
         title: title of the pull request
     """
 
-    _TYPE: ClassVar = "PullRequest"
+    _TYPE: ClassVar[str] = "PullRequest"
 
 
 @dataclass
@@ -531,7 +531,7 @@ class Discussion(_IssueOrPullRequestOrDiscussion):
         title: title of the pull request
     """
 
-    _TYPE: ClassVar = "Discussion"
+    _TYPE: ClassVar[str] = "Discussion"
 
 
 class PTBContrib(BaseEntry):

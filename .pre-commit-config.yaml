@@ -20,8 +20,6 @@ repos:
     -   id: flake8
 -   repo: https://github.com/PyCQA/pylint
     rev: v2.15.9
-    # When updating pylint, please also check if we can remove ignore-comment at the top of
-    # graphqlclient.py
     hooks:
     -   id: pylint
         args:
