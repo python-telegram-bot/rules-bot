@@ -11,7 +11,6 @@ from bs4 import MarkupResemblesLocatorWarning
 from telegram import Bot, Chat, InlineKeyboardButton, Message, Update, User
 from telegram.error import BadRequest, Forbidden, InvalidToken
 from telegram.ext import CallbackContext, ContextTypes, filters
-from telegram.ext._utils.types import CD
 
 from .const import OFFTOPIC_CHAT_ID, ONTOPIC_CHAT_ID, RATE_LIMIT_SPACING
 from .taghints import TAG_HINTS
@@ -174,10 +173,10 @@ def build_command_list(
     return base_commands + on_off_topic + say_potato + hint_commands
 
 
-async def admin_check(chat_data: CD, chat: Chat, who_banned: User) -> bool:
+async def admin_check(chat_data: Dict, chat: Chat, who_banned: User) -> bool:
     # This check will fail if we add or remove admins at runtime but that is so rare that
     # we can just restart the bot in that case ...
-    admins = cast(Dict, chat_data).setdefault("admins", await chat.get_administrators())
+    admins = chat_data.setdefault("admins", await chat.get_administrators())
     if who_banned not in [admin.user for admin in admins]:
         return False
     return True

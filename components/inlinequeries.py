@@ -55,7 +55,7 @@ async def inline_query(
 
             message_text = query
             index = []
-            keyboard = None
+            buttons = None
 
             for symbol, entry in combination.items():
                 char = ENCLOSING_REPLACEMENT_CHARACTER
@@ -66,10 +66,15 @@ async def inline_query(
                     index.append(entry.html_markup(symbol))
                 # Merge keyboards into one
                 if entry_kb := entry.inline_keyboard:
-                    if not keyboard:
-                        keyboard = deepcopy(entry_kb)
+                    if buttons is None:
+                        buttons = [
+                            [deepcopy(button) for button in row]
+                            for row in entry_kb.inline_keyboard
+                        ]
                     else:
-                        keyboard.inline_keyboard.extend(entry_kb.inline_keyboard)
+                        buttons.extend(entry_kb.inline_keyboard)
+
+            keyboard = InlineKeyboardMarkup(buttons) if buttons else None
 
             if index:
                 message_text += "\n\n" + "\n".join(index)

@@ -291,7 +291,7 @@ async def leave_chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     raise ApplicationHandlerStop
 
 
-async def raise_app_handler_stop(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+async def raise_app_handler_stop(_: Update, __: ContextTypes.DEFAULT_TYPE) -> None:
     raise ApplicationHandlerStop
 
 
@@ -299,10 +299,10 @@ async def tag_hint(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Replies to tag hints like /docs, /xy, /askright."""
     message = cast(Message, update.effective_message)
     reply_to = message.reply_to_message
-    first_match = cast(int, MessageLimit.TEXT_LENGTH)
+    first_match = cast(int, MessageLimit.MAX_TEXT_LENGTH)
 
     messages = []
-    keyboard = None
+    buttons = None
     for match in cast(List[Match], context.matches):
         first_match = min(first_match, match.start(0))
 
@@ -314,10 +314,14 @@ async def tag_hint(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
         # Merge keyboards into one
         if entry_kb := hint.inline_keyboard:
-            if keyboard is None:
-                keyboard = deepcopy(entry_kb)
+            if buttons is None:
+                buttons = [
+                    [deepcopy(button) for button in row] for row in entry_kb.inline_keyboard
+                ]
             else:
-                keyboard.inline_keyboard.extend(entry_kb.inline_keyboard)
+                buttons.extend(entry_kb.inline_keyboard)
+
+    keyboard = InlineKeyboardMarkup(buttons) if buttons else None
 
     effective_text = "\n➖\n".join(messages)
     await message.reply_text(
@@ -382,7 +386,7 @@ async def say_potato_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     who_banned = cast(User, message.from_user)
     chat = cast(Chat, update.effective_chat)
 
-    if not await admin_check(context.chat_data, chat, who_banned):
+    if not await admin_check(cast(Dict, context.chat_data), chat, who_banned):
         await message.reply_text(
             "This command is only available for admins. You are not an admin."
         )
@@ -445,7 +449,7 @@ async def buy(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = cast(User, message.reply_to_message.from_user)
     await message.reply_to_message.reply_text(BUY_TEXT.format(user.mention_html()))
 
-    if await admin_check(context.chat_data, chat, who_banned):
+    if await admin_check(cast(Dict, context.chat_data), chat, who_banned):
         await try_to_delete(message.reply_to_message)
 
     await try_to_delete(message)
