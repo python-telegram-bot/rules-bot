@@ -1,3 +1,6 @@
+# pylint: disable=unexpected-keyword-arg
+# Ignore due to a bug in pylint regarding dataclasses
+# similar to https://github.com/PyCQA/pylint/issues/7623
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 

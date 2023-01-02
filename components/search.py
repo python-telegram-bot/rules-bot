@@ -55,7 +55,8 @@ class Search:
         self, application: Application[Any, Any, Any, Any, Any, JobQueue]
     ) -> None:
         await self.github.initialize()
-        application.job_queue.run_once(callback=self.update_job, when=1, data=(None, None, None))
+        job_queue = cast(JobQueue, application.job_queue)
+        job_queue.run_once(callback=self.update_job, when=1, data=(None, None, None))
 
     async def shutdown(self) -> None:
         await self.github.shutdown()

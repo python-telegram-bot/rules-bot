@@ -19,7 +19,9 @@ repos:
     hooks:
     -   id: flake8
 -   repo: https://github.com/PyCQA/pylint
-    rev: v2.15.8
+    rev: v2.15.9
+    # When updating pylint, please also check if we can remove ignore-comment at the top of
+    # graphqlclient.py
     hooks:
     -   id: pylint
         args:
@@ -27,7 +29,7 @@ repos:
         additional_dependencies:
           - beautifulsoup4~=4.11.0
           - thefuzz~=0.19.0
-          - python-telegram-bot==20.0a2
+          - python-telegram-bot[job-queue]==20.0
           - Sphinx~=5.0.2
           - httpx~=0.23.0
           - gql[aiohttp]~=3.3.0
@@ -39,7 +41,7 @@ repos:
         additional_dependencies:
           - beautifulsoup4~=4.11.0
           - thefuzz~=0.19.0
-          - python-telegram-bot==20.0a2
+          - python-telegram-bot[job-queue]==20.0
           - Sphinx~=5.0.2
           - httpx~=0.23.0
           - gql[aiohttp]~=3.3.0
