@@ -169,7 +169,7 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
             "community of PTB users."
         ),
         "default": "Hey.",
-        "buttons": [[InlineKeyboardButton(text="🔗 Take me there!", url=f"{PTBCONTRIB_LINK}")]],
+        "buttons": [[InlineKeyboardButton(text="🔗 Take me there!", url=PTBCONTRIB_LINK)]],
         "help": "Display a short info text about ptbcontrib",
     },
     "botlists": {
@@ -214,6 +214,30 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
         ),
         "default": "Hey.",
         "help": "Point users to the bots readme",
+        "group_command": True,
+    },
+    "upgrade": {
+        "message": (
+            "{query} You seem to be using a version &lt;=13.5 of <code>python-telegram-bot</code>."
+            " Please note that we only provide support for the latest stable version and that the "
+            "library has undergone significant changes in v20. Please consider upgrading to v20 "
+            "by reading the release notes and the transition guide linked below."
+        ),
+        "buttons": [
+            [
+                InlineKeyboardButton(
+                    text="🔗 Release Notes",
+                    url="https://telegra.ph/Release-notes-for-python-telegram-bot-v200a0-05-06",
+                ),
+                InlineKeyboardButton(
+                    text="🔗 Transition Guide",
+                    url="https://github.com/python-telegram-bot/python-telegram-bot/wiki"
+                    "/Transition-guide-to-Version-20.0",
+                ),
+            ]
+        ],
+        "default": "Hey.",
+        "help": "Ask users to upgrade to the latest version of PTB",
         "group_command": True,
     },
 }
