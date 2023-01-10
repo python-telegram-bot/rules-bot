@@ -240,6 +240,32 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
         "help": "Ask users to upgrade to the latest version of PTB",
         "group_command": True,
     },
+    "compat": {
+        "message": (
+            "{query} You seem to be using a version &gt;=20.0 of <code>python-telegram-bot</code> "
+            " but your code is written for version &lt;=13.5. Please either upgrade your code to "
+            " v20 by reading the release notes and the transition guide linked below or install "
+            "a version of PTB that is compatible with your code base.\n"
+            "Please note that we only provide support for the latest stable version and that the "
+            "library has undergone significant changes in v20."
+        ),
+        "buttons": [
+            [
+                InlineKeyboardButton(
+                    text="🔗 Release Notes",
+                    url="https://telegra.ph/Release-notes-for-python-telegram-bot-v200a0-05-06",
+                ),
+                InlineKeyboardButton(
+                    text="🔗 Transition Guide",
+                    url="https://github.com/python-telegram-bot/python-telegram-bot/wiki"
+                    "/Transition-guide-to-Version-20.0",
+                ),
+            ]
+        ],
+        "default": "Hey.",
+        "help": "Point out compatibility issues of code and PTB version to users",
+        "group_command": True,
+    },
 }
 
 
