@@ -28,7 +28,7 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
     "mwe": {
         "message": (
             '{query} Have a look at <a href="https://github.com/python-telegram-bot/python-'
-            'telegram-bot/wiki/MWE">this short article</a> for information on what a MWE is.'
+            'telegram-bot/wiki/MWE">Minimal Working Example (MWE)</a> if you need help.'
         ),
         "help": "How to build an MWE for PTB.",
         "default": "Hey. Please provide a minimal working example (MWE).",
