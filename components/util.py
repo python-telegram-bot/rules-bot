@@ -138,7 +138,6 @@ def truncate_str(string: str, max_length: int) -> str:
 def build_command_list(
     private: bool = False, group_name: str = None, admins: bool = False
 ) -> List[Tuple[str, str]]:
-
     base_commands = [
         (hint.tag, hint.description) for hint in TAG_HINTS.values() if hint.group_command
     ]
