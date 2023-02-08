@@ -87,14 +87,14 @@ class GraphQLClient:
         data = result["repository"]
         thread_data = data["issueOrPullRequest"] or data["discussion"]
 
-        entry_type_data = dict(
-            owner=organization,
-            repo=repository,
-            number=number,
-            title=thread_data["title"],
-            url=thread_data["url"],
-            author=thread_data["author"]["login"],
-        )
+        entry_type_data = {
+            "owner": organization,
+            "repo": repository,
+            "number": number,
+            "title": thread_data["title"],
+            "url": thread_data["url"],
+            "author": thread_data["author"]["login"],
+        }
 
         if thread_data.get("__typename") == "Issue":
             return Issue(**entry_type_data)
