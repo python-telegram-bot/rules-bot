@@ -74,6 +74,7 @@ async def decline_user(
 async def join_request_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     join_request = cast(ChatJoinRequest, update.chat_join_request)
     user = join_request.from_user
+    user_chat_id = join_request.user_chat_id
     chat_id = join_request.chat.id
     jobs = cast(JobQueue, context.job_queue).get_jobs_by_name(f"JOIN_TIMEOUT {chat_id} {user.id}")
     if jobs:
@@ -87,6 +88,8 @@ async def join_request_callback(update: Update, context: ContextTypes.DEFAULT_TY
     user_data.setdefault(int(chat_id), {}).setdefault("received join request", []).append(
         get_dtm_str()
     )
+    user_data[int(chat_id)]["user_chat_id"] = user_chat_id
+    user_data[int(chat_id)]["user_id"] = user.id
 
     text = (
         f"Hi, {user.mention_html()}! I'm {context.bot.bot.mention_html()}, the "
@@ -104,7 +107,9 @@ async def join_request_callback(update: Update, context: ContextTypes.DEFAULT_TY
         )
     )
     try:
-        message = await user.send_message(text=text, reply_markup=reply_markup)
+        message = await context.bot.send_message(
+            chat_id=user_chat_id, text=text, reply_markup=reply_markup
+        )
     except Forbidden:
         # If the user blocked the bot, let's give the admins a chance to handle that
         # TG also notifies the user and forwards the message once the user unblocks the bot, but
@@ -155,9 +160,7 @@ async def join_request_buttons(update: Update, context: ContextTypes.DEFAULT_TYP
             if "User_already_participant" not in exc.message:
                 raise exc
 
-        context.application.create_task(
-            user.send_message("Nice! Have fun in the group 🙂"), update=update
-        )
+        await user.send_message("Nice! Have fun in the group 🙂")
         reply_markup = None
     else:
         user_data.setdefault(int(chat_id), {}).setdefault("pressed button 1", []).append(
