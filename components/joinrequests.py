@@ -160,7 +160,6 @@ async def join_request_buttons(update: Update, context: ContextTypes.DEFAULT_TYP
             if "User_already_participant" not in exc.message:
                 raise exc
 
-        await user.send_message("Nice! Have fun in the group 🙂")
         reply_markup = None
     else:
         user_data.setdefault(int(chat_id), {}).setdefault("pressed button 1", []).append(
