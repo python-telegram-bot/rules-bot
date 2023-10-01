@@ -1,5 +1,5 @@
 import datetime
-from typing import Any, Dict, Tuple, Union, cast
+from typing import Tuple, Union, cast
 
 from telegram import (
     CallbackQuery,
@@ -30,19 +30,14 @@ def get_dtm_str() -> str:
 async def approve_user(
     user: Union[int, User], chat_id: int, group_name: str, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
-    user_data = cast(Dict[Any, Any], context.user_data)
     try:
         if isinstance(user, User):
             await user.approve_join_request(chat_id=chat_id)
         else:
             await context.bot.approve_chat_join_request(user_id=user, chat_id=chat_id)
-        user_data.setdefault(int(chat_id), {}).setdefault("approved", []).append(get_dtm_str())
     except BadRequest as exc:
         user_mention = f"{user.username} - {user.id}" if isinstance(user, User) else str(user)
         error_message = f"{exc} - {user_mention} - {group_name}"
-        user_data.setdefault(int(chat_id), {}).setdefault("approve failed", []).append(
-            f"{get_dtm_str()}: {exc}"
-        )
         raise BadRequest(error_message) from exc
     except Forbidden as exc:
         if "user is deactivated" not in exc.message:
@@ -52,19 +47,14 @@ async def approve_user(
 async def decline_user(
     user: Union[int, User], chat_id: int, group_name: str, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
-    user_data = cast(Dict[Any, Any], context.user_data)
     try:
         if isinstance(user, User):
             await user.decline_join_request(chat_id=chat_id)
         else:
             await context.bot.decline_chat_join_request(user_id=user, chat_id=chat_id)
-        user_data.setdefault(int(chat_id), {}).setdefault("declined", []).append(get_dtm_str())
     except BadRequest as exc:
         user_mention = f"{user.username} - {user.id}" if isinstance(user, User) else str(user)
         error_message = f"{exc} - {user_mention} - {group_name}"
-        user_data.setdefault(int(chat_id), {}).setdefault("declined failed", []).append(
-            f"{get_dtm_str()}: {exc}"
-        )
         raise BadRequest(error_message) from exc
     except Forbidden as exc:
         if "user is deactivated" not in exc.message:
@@ -81,15 +71,8 @@ async def join_request_callback(update: Update, context: ContextTypes.DEFAULT_TY
         # No need to ping the user again if we already did
         return
 
-    user_data = cast(Dict[Any, Any], context.user_data)
     on_topic = join_request.chat.username == ONTOPIC_USERNAME
     group_mention = ONTOPIC_CHAT_ID if on_topic else OFFTOPIC_CHAT_ID
-
-    user_data.setdefault(int(chat_id), {}).setdefault("received join request", []).append(
-        get_dtm_str()
-    )
-    user_data[int(chat_id)]["user_chat_id"] = user_chat_id
-    user_data[int(chat_id)]["user_id"] = user.id
 
     text = (
         f"Hi, {user.mention_html()}! I'm {context.bot.bot.mention_html()}, the "
@@ -114,7 +97,6 @@ async def join_request_callback(update: Update, context: ContextTypes.DEFAULT_TY
         # If the user blocked the bot, let's give the admins a chance to handle that
         # TG also notifies the user and forwards the message once the user unblocks the bot, but
         # forwarding it still doesn't hurt ...
-        user_data.setdefault("blocked bot", []).append(get_dtm_str())
         text = (
             f"User {user.mention_html()} with id {user.id} requested to join the group "
             f"{join_request.chat.username} but has blocked me. Please manually handle this."
@@ -133,23 +115,16 @@ async def join_request_callback(update: Update, context: ContextTypes.DEFAULT_TY
 
 
 async def join_request_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user_data = cast(Dict[Any, Any], context.user_data)
     callback_query = cast(CallbackQuery, update.callback_query)
     user = cast(User, update.effective_user)
     _, press, chat_id = cast(str, callback_query.data).split()
     if press == "2":
-        user_data.setdefault(int(chat_id), {}).setdefault("pressed button 2", []).append(
-            get_dtm_str()
-        )
         jobs = cast(JobQueue, context.job_queue).get_jobs_by_name(
             f"JOIN_TIMEOUT {chat_id} {user.id}"
         )
         if jobs:
             for job in jobs:
                 job.schedule_removal()
-                user_data.setdefault(int(chat_id), {}).setdefault(
-                    "removed join timeout", []
-                ).append(get_dtm_str())
 
         try:
             await approve_user(
@@ -162,9 +137,6 @@ async def join_request_buttons(update: Update, context: ContextTypes.DEFAULT_TYP
 
         reply_markup = None
     else:
-        user_data.setdefault(int(chat_id), {}).setdefault("pressed button 1", []).append(
-            get_dtm_str()
-        )
         reply_markup = InlineKeyboardMarkup.from_button(
             InlineKeyboardButton(
                 text="⚠️ Tap again to confirm",

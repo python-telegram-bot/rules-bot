@@ -2,7 +2,7 @@ import html
 import json
 import logging
 import traceback
-from typing import Optional, cast
+from typing import cast
 
 from telegram import Update
 from telegram.error import BadRequest
@@ -34,20 +34,6 @@ async def error_handler(update: object, context: CallbackContext) -> None:
     )
     message_2 = f"<pre>{html.escape(tb_string)}</pre>"
 
-    user_id: Optional[int] = None
-    message_3 = ""
-    if isinstance(update, Update) and update.effective_user:
-        user_id = update.effective_user.id
-    if context.job:
-        user_id = context.job.user_id
-    if user_id:
-        data_str = html.escape(
-            json.dumps(context.application.user_data[user_id], indent=2, ensure_ascii=False)
-        )
-        message_3 = (
-            "<code>user_data</code> associated with this exception:\n\n" f"<pre>{data_str}</pre>"
-        )
-
     # Finally, send the messages
     # We send update and traceback in two parts to reduce the chance of hitting max length
     try:
@@ -61,11 +47,6 @@ async def error_handler(update: object, context: CallbackContext) -> None:
                 f"Hey.\nThe error <code>{html.escape(str(context.error))}</code> happened."
                 f" The traceback is too long to send, but it was written to the log."
             )
-            sent_message = await context.bot.send_message(
-                chat_id=ERROR_CHANNEL_CHAT_ID, text=message
-            )
+            await context.bot.send_message(chat_id=ERROR_CHANNEL_CHAT_ID, text=message)
         else:
             raise exc
-    finally:
-        if message_3:
-            await sent_message.reply_html(message_3)
