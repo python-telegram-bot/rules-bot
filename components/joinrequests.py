@@ -165,3 +165,11 @@ async def join_request_timeout_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     except Forbidden as exc:
         if "user is deactivated" not in exc.message:
             raise exc
+    except BadRequest as exc:
+        # These apparently happen frequently, e.g. when user clear the chat
+        if exc.message not in [
+            "Message to edit not found",
+            "Can't access the chat",
+            "Chat not found",
+        ]:
+            raise exc
