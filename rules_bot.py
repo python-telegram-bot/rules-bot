@@ -1,4 +1,3 @@
-import asyncio
 import configparser
 import logging
 import os
@@ -111,6 +110,7 @@ def main() -> None:
         .token(config["KEYS"]["bot_api"])
         .defaults(defaults)
         .post_init(post_init)
+        .post_shutdown(post_shutdown)
         .job_queue(RulesJobQueue())
         .build()
     )
@@ -207,8 +207,6 @@ def main() -> None:
     application.add_error_handler(error_handler)
 
     application.run_polling(allowed_updates=Update.ALL_TYPES, close_loop=False)
-    # Can be used in AppBuilder.post_shutdown once #3126 is released
-    asyncio.get_event_loop().run_until_complete(post_shutdown(application))
 
 
 if __name__ == "__main__":
