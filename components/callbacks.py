@@ -216,52 +216,54 @@ async def reply_search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     If the message is a reply, the bot will reply to the referenced message directly.
     """
     message = cast(Message, update.effective_message)
+    if not message.text:
+        return
+
     last = 0.0
     github_matches: List[Tuple[int, Tuple[str, str, str, str, str]]] = []
     found_entries: List[Tuple[int, BaseEntry]] = []
-
     no_entity_text = get_text_not_in_entities(message).strip()
 
     search = cast(Search, context.bot_data["search"])
     github = search.github
 
     # Parse exact matches for GitHub threads & ptbcontrib found_entries first
-    if not (no_entity_text.startswith("!search") or no_entity_text.endswith("!search")):
-        for match in GITHUB_PATTERN.finditer(no_entity_text):
-            logging.debug(match.groupdict())
-            owner, repo, number, sha, ptbcontrib = (
-                cast(str, match.groupdict()[x])
-                for x in ("owner", "repo", "number", "sha", "ptbcontrib")
-            )
-            if number or sha or ptbcontrib:
-                github_matches.append((match.start(), (owner, repo, number, sha, ptbcontrib)))
+    for match in GITHUB_PATTERN.finditer(no_entity_text):
+        logging.debug(match.groupdict())
+        owner, repo, number, sha, ptbcontrib = (
+            cast(str, match.groupdict()[x])
+            for x in ("owner", "repo", "number", "sha", "ptbcontrib")
+        )
+        if number or sha or ptbcontrib:
+            github_matches.append((match.start(), (owner, repo, number, sha, ptbcontrib)))
 
-        for gh_match in github_matches:
-            last = keep_typing(
-                last,
-                cast(Chat, update.effective_chat),
-                ChatAction.TYPING,
-                application=context.application,
-            )
-            owner, repo, number, sha, ptbcontrib = gh_match[1]
-            owner = owner or DEFAULT_REPO_OWNER
-            repo = repo or DEFAULT_REPO_NAME
-            if number:
-                issue = await github.get_thread(int(number), owner, repo)
-                if issue is not None:
-                    found_entries.append((gh_match[0], issue))
-            elif sha:
-                commit = await github.get_commit(sha, owner, repo)
-                if commit is not None:
-                    found_entries.append((gh_match[0], commit))
-            elif ptbcontrib:
-                contrib = github.ptb_contribs.get(ptbcontrib)
-                if contrib:
-                    found_entries.append((gh_match[0], contrib))
+    for gh_match in github_matches:
+        last = keep_typing(
+            last,
+            cast(Chat, update.effective_chat),
+            ChatAction.TYPING,
+            application=context.application,
+        )
+        owner, repo, number, sha, ptbcontrib = gh_match[1]
+        owner = owner or DEFAULT_REPO_OWNER
+        repo = repo or DEFAULT_REPO_NAME
+        if number:
+            issue = await github.get_thread(int(number), owner, repo)
+            if issue is not None:
+                found_entries.append((gh_match[0], issue))
+        elif sha:
+            commit = await github.get_commit(sha, owner, repo)
+            if commit is not None:
+                found_entries.append((gh_match[0], commit))
+        elif ptbcontrib:
+            contrib = github.ptb_contribs.get(ptbcontrib)
+            if contrib:
+                found_entries.append((gh_match[0], contrib))
 
-    else:
-        # Parse fuzzy search next
-        for match in ENCLOSED_REGEX.finditer(no_entity_text):
+    # Parse fuzzy search next, if requested. Here we use message.text instead of no_entity_text
+    # to avoid tlds like .bot and .app to mess things up for us
+    if message.text.startswith("!search") or message.text.endswith("!search"):
+        for match in ENCLOSED_REGEX.finditer(message.text):
             last = keep_typing(
                 last,
                 cast(Chat, update.effective_chat),

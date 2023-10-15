@@ -120,8 +120,9 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
     "pastebin": {
         "message": (
             "{query} Please post code or tracebacks using a pastebin rather than via plain text "
-            "or a picture. https://pastebin.com/ is quite popular, but there are many "
-            "alternatives out there. Of course, for very short snippets, text is fine. Please at "
+            "or a picture. https://pastebin.com/ is quite popular, but there are "
+            "<a href='https://github.com/lorien/awesome-pastebin'>many alternatives</a> "
+            "out there. Of course, for very short snippets, text is fine. Please at "
             "least format it as monospace in that case."
         ),
         "help": "Ask users not to post code as text or images.",
@@ -281,6 +282,18 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
         ),
         "default": "Hey.",
         "help": "Tell users not to use AI/LLM generated answers",
+        "group_command": True,
+    },
+    "traceback": {
+        "message": (
+            "{query} Please show the <i>full</i> traceback via a pastebin. Make sure to include "
+            "everything from the first <code>Traceback (most recent call last):</code> until the "
+            "last error message. https://pastebin.com/ is a popular pastebin service, but there "
+            "are <a href='https://github.com/lorien/awesome-pastebin'>many alternatives</a> out "
+            "there."
+        ),
+        "default": "Hey.",
+        "help": "Ask for the full traceback",
         "group_command": True,
     },
 }
