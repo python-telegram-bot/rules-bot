@@ -324,13 +324,13 @@ class Search:
             if not amount:
                 return sorted(
                     search_entries,
-                    key=lambda entry: self._sort_key(entry, search_query),  # type: ignore
+                    key=lambda entry: self._sort_key(entry, search_query),
                     reverse=True,
                 )
             return heapq.nlargest(
                 amount,
                 search_entries,
-                key=lambda entry: self._sort_key(entry, search_query),  # type: ignore[arg-type]
+                key=lambda entry: self._sort_key(entry, search_query),
             )
 
     @alru_cache(maxsize=64)  # type: ignore[misc]
