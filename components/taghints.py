@@ -244,8 +244,8 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
     },
     "compat": {
         "message": (
-            "{query} You seem to be using the new version (>=20.0) of <code>python-telegram-bot</code>"
-            " but your code is written for an older and deprecated version (<=13.15).\nPlease update"
+            "{query} You seem to be using the new version (&gt;=20.0) of <code>python-telegram-bot</code>"
+            " but your code is written for an older and deprecated version (&lt;=13.15).\nPlease update"
             " your code to the new v20 by reading the release notes and the transition guide linked below."
             "You can also install a version of PTB that is compatible with your code base, "
             "but please note that the library has undergone significant changes in v20 and the "
