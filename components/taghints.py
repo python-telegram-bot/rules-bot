@@ -95,8 +95,7 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
         ),
         "help": "How to find a Python tutorial",
         "default": (
-            "Oh, hey! There's someone new joining our awesome community of Python developers "
-            "❤️ "
+            "Oh, hey! There's someone new joining our awesome community of Python developers ❤️ "
         ),
     },
     "wronglib": {
