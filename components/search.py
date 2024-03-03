@@ -181,7 +181,7 @@ class Search:
         # Parse main pages from custom sidebar
         for tag in ["ol", "ul"]:
             for element in wiki_soup.select(f"div.wiki-custom-sidebar > {tag}"):
-                category = element.find_previous_sibling("h2").text.strip()
+                category = element.find_previous_sibling("div").text.strip()
                 for list_item in element.select("li"):
                     if list_item.a["href"] != "#":
                         self._wiki.append(
@@ -206,7 +206,7 @@ class Search:
             self._snippets.append(
                 CodeSnippet(
                     name=headline.text.strip(),
-                    url=urljoin(WIKI_CODE_SNIPPETS_URL, headline.a["href"]),
+                    url=urljoin(WIKI_CODE_SNIPPETS_URL, headline.find_next_sibling("a")["href"]),
                 )
             )
 
@@ -216,7 +216,10 @@ class Search:
         self._faq = []
         for headline in faq_soup.select("div#wiki-body h3"):
             self._faq.append(
-                FAQEntry(name=headline.text.strip(), url=urljoin(WIKI_FAQ_URL, headline.a["href"]))
+                FAQEntry(
+                    name=headline.text.strip(),
+                    url=urljoin(WIKI_FAQ_URL, headline.find_next_sibling("a")["href"]),
+                )
             )
 
     async def update_wiki_design_patterns(self) -> None:
@@ -226,7 +229,8 @@ class Search:
         for headline in frdp_soup.select("div#wiki-body h3,div#wiki-body h2"):
             self._design_patterns.append(
                 FRDPEntry(
-                    name=headline.text.strip(), url=urljoin(WIKI_FRDP_URL, headline.a["href"])
+                    name=headline.text.strip(),
+                    url=urljoin(WIKI_FRDP_URL, headline.find_next_sibling("a")["href"]),
                 )
             )
 
