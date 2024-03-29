@@ -28,7 +28,7 @@ from components.callbacks import (
     ban_sender_channels,
     buy,
     command_token_warning,
-    delete_new_chat_members_message,
+    delete_message,
     leave_chat,
     off_on_topic,
     raise_app_handler_stop,
@@ -175,12 +175,15 @@ def main() -> None:
         MessageHandler(filters.TEXT & filters.UpdateType.MESSAGES & ~filters.COMMAND, reply_search)
     )
 
+    # Delete unhandled commands - e.g. for users that like to click on blue text in other messages
+    application.add_handler(MessageHandler(filters.COMMAND, delete_message))
+
     # Status updates
     application.add_handler(
         MessageHandler(
             filters.Chat(username=[ONTOPIC_USERNAME, OFFTOPIC_USERNAME])
             & filters.StatusUpdate.NEW_CHAT_MEMBERS,
-            delete_new_chat_members_message,
+            delete_message,
             block=False,
         ),
         group=1,

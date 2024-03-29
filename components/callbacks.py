@@ -284,8 +284,8 @@ async def reply_search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await reply_or_edit(update, context, "\n".join(html_markup_items))
 
 
-async def delete_new_chat_members_message(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
-    await cast(Message, update.effective_message).delete()
+async def delete_message(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    await try_to_delete(cast(Message, update.effective_message))
 
 
 async def leave_chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
