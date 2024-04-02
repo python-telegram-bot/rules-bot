@@ -507,3 +507,33 @@ async def command_token_warning(update: Update, context: ContextTypes.DEFAULT_TY
 
     if message.reply_to_message:
         await _token_warning(message.reply_to_message, context)
+
+async def compat_warning(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """When someone posts an error message indicative of a compatibility issue:
+    Reply with the /compat taghint
+    """
+    message = cast(Message, update.effective_message)
+    reply_to = message.reply_to_message
+    first_match = cast(int, MessageLimit.MAX_TEXT_LENGTH)
+
+    # Get the compat hint
+    hint = TAG_HINTS["compat"]
+
+    # Store the message
+    messages = hint.html_markup("compat")
+    # Store the keyboard
+    buttons = [
+        [deepcopy(button) for button in row] for row in hint.inline_keyboard
+    ]
+
+    keyboard = InlineKeyboardMarkup(buttons)
+
+    effective_text = "\n➖\n".join(messages)
+    await message.reply_text(
+        effective_text,
+        reply_markup=keyboard,
+        reply_to_message_id=get_reply_id(update),
+    )
+
+    if reply_to and first_match == 0:
+        await try_to_delete(message)

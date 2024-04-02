@@ -40,6 +40,7 @@ from components.callbacks import (
     say_potato_command,
     start,
     tag_hint,
+    compat_warning,
 )
 from components.const import (
     ALLOWED_CHAT_IDS,
@@ -49,6 +50,7 @@ from components.const import (
     OFFTOPIC_USERNAME,
     ONTOPIC_CHAT_ID,
     ONTOPIC_USERNAME,
+    COMPAT_ERRORS,
 )
 from components.errorhandler import error_handler
 from components.joinrequests import join_request_buttons, join_request_callback
@@ -168,6 +170,13 @@ def main() -> None:
 
     # Tag hints - works with regex
     application.add_handler(MessageHandler(TagHintFilter(), tag_hint))
+
+    # Compat tag hint via regex
+    application.add_handler(
+        MessageHandler(
+            filters.Regex(COMPAT_ERRORS), compat_warning
+        )
+    )
 
     # We need several matches so filters.REGEX is basically useless
     # therefore we catch everything and do regex ourselves
