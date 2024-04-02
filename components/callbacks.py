@@ -535,3 +535,4 @@ async def compat_warning(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 
     if reply_to and first_match == 0:
         await try_to_delete(message)
+
