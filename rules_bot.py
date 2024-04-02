@@ -28,6 +28,7 @@ from components.callbacks import (
     ban_sender_channels,
     buy,
     command_token_warning,
+    compat_warning,
     delete_message,
     leave_chat,
     off_on_topic,
@@ -40,17 +41,16 @@ from components.callbacks import (
     say_potato_command,
     start,
     tag_hint,
-    compat_warning,
 )
 from components.const import (
     ALLOWED_CHAT_IDS,
     ALLOWED_USERNAMES,
+    COMPAT_ERRORS,
     ERROR_CHANNEL_CHAT_ID,
     OFFTOPIC_CHAT_ID,
     OFFTOPIC_USERNAME,
     ONTOPIC_CHAT_ID,
     ONTOPIC_USERNAME,
-    COMPAT_ERRORS,
 )
 from components.errorhandler import error_handler
 from components.joinrequests import join_request_buttons, join_request_callback
@@ -172,11 +172,7 @@ def main() -> None:
     application.add_handler(MessageHandler(TagHintFilter(), tag_hint))
 
     # Compat tag hint via regex
-    application.add_handler(
-        MessageHandler(
-            filters.Regex(COMPAT_ERRORS), compat_warning
-        )
-    )
+    application.add_handler(MessageHandler(filters.Regex(COMPAT_ERRORS), compat_warning))
 
     # We need several matches so filters.REGEX is basically useless
     # therefore we catch everything and do regex ourselves
