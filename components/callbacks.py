@@ -514,25 +514,11 @@ async def compat_warning(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     Reply with the /compat taghint
     """
     message = cast(Message, update.effective_message)
-    reply_to = message.reply_to_message
-    first_match = cast(int, MessageLimit.MAX_TEXT_LENGTH)
 
     # Get the compat hint
     hint = TAG_HINTS["compat"]
 
-    # Store the message
-    messages = hint.html_markup("compat")
-    # Store the keyboard
-    buttons = [[deepcopy(button) for button in row] for row in cast(InlineKeyboardMarkup, hint.inline_keyboard)]
-    keyboard = InlineKeyboardMarkup(buttons)
-
-    effective_text = "\n➖\n".join(messages)
     await message.reply_text(
-        effective_text,
-        reply_markup=keyboard,
-        reply_to_message_id=get_reply_id(update),
+        hint.html_markup(),
+        reply_markup=hint.inline_keyboard,
     )
-
-    if reply_to and first_match == 0:
-        await try_to_delete(message)
-
