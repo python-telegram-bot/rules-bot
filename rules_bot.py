@@ -180,20 +180,6 @@ def main() -> None:
         MessageHandler(filters.TEXT & filters.UpdateType.MESSAGES & ~filters.COMMAND, reply_search)
     )
 
-    # Delete unhandled commands - e.g. for users that like to click on blue text in other messages
-    application.add_handler(MessageHandler(filters.COMMAND, delete_message))
-
-    # Status updates
-    application.add_handler(
-        MessageHandler(
-            filters.Chat(username=[ONTOPIC_USERNAME, OFFTOPIC_USERNAME])
-            & filters.StatusUpdate.NEW_CHAT_MEMBERS,
-            delete_message,
-            block=False,
-        ),
-        group=1,
-    )
-
     # Inline Queries
     application.add_handler(InlineQueryHandler(inlinequeries.inline_query))
 
@@ -210,6 +196,20 @@ def main() -> None:
     # Join requests
     application.add_handler(ChatJoinRequestHandler(callback=join_request_callback, block=False))
     application.add_handler(CallbackQueryHandler(join_request_buttons, pattern="^JOIN"))
+
+    # Delete unhandled commands - e.g. for users that like to click on blue text in other messages
+    application.add_handler(MessageHandler(filters.COMMAND, delete_message))
+
+    # Status updates
+    application.add_handler(
+        MessageHandler(
+            filters.Chat(username=[ONTOPIC_USERNAME, OFFTOPIC_USERNAME])
+            & filters.StatusUpdate.NEW_CHAT_MEMBERS,
+            delete_message,
+            block=False,
+        ),
+        group=1,
+    )
 
     # Error Handler
     application.add_error_handler(error_handler)
