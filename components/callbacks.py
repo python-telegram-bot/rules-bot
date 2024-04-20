@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import random
+import re
 import time
 from collections import deque
 from copy import deepcopy
@@ -522,3 +523,50 @@ async def compat_warning(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         hint.html_markup(),
         reply_markup=hint.inline_keyboard,
     )
+
+
+async def long_code_handling(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    """When someone posts a long code snippet:
+    Reply with the /pastebin taghint.
+    Because we do the regexing in here rather than in the filter, the corresponding handler
+    will have to be in a lower group.
+    """
+    message = cast(Message, update.effective_message)
+    text = cast(str, message.text)
+    has_long_code = False
+
+    # We make some educated guesses about the message's content. This is nothing more than
+    # a few simple heuristics, but it should catch the most common cases.
+    # If we have a code block longer than 15 lines, we assume it's a long code snippet
+    parsed_entities = message.parse_entities(types=[MessageEntity.CODE, MessageEntity.PRE])
+    if any(len(text.split("\n")) >= 15 for text in parsed_entities.values()):
+        has_long_code = True
+
+    # if the text contains more than 5 import lines, we assume it's a long code snippet
+    # regex from https://stackoverflow.com/a/44988666/10606962
+    pattern = re.compile(r"(?m)^(?:from +(\S+) +)?import +(\S+)(?: +as +\S+)? *$")
+    if not has_long_code and len(pattern.findall(text)) >= 5:
+        has_long_code = True
+
+    # if the text contains more than 3 class or function definitions, ...
+    pattern = re.compile(r"(class|def) [a-zA-Z]+[a-zA-Z0-9_]*\(")
+    if not has_long_code and len(pattern.findall(text)) >= 3:
+        has_long_code = True
+
+    if not has_long_code:
+        return
+
+    # Get the long_code hint
+    hint = TAG_HINTS["pastebin"]
+
+    # the leading ". " is important here since html_markup() splits on whitespaces!
+    mention = f". {update.effective_user.mention_html()}" if update.effective_user else None
+
+    await message.reply_text(
+        hint.html_markup(mention),
+        reply_markup=hint.inline_keyboard,
+    )
+    await try_to_delete(message)
+
+    # We don't want this message to be processed any further
+    raise ApplicationHandlerStop

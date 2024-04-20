@@ -31,6 +31,7 @@ from components.callbacks import (
     compat_warning,
     delete_message,
     leave_chat,
+    long_code_handling,
     off_on_topic,
     raise_app_handler_stop,
     regex_token_warning,
@@ -137,7 +138,13 @@ def main() -> None:
         group=-2,
     )
 
-    application.add_handler(MessageHandler(~filters.COMMAND, rate_limit_tracker), group=-1)
+    application.add_handler(MessageHandler(~filters.COMMAND, rate_limit_tracker), group=-2)
+
+    # We need several different patterns, so filters.REGEX doesn't do the trick
+    # therefore we catch everything and do regex ourselves. In case the message contains a
+    # long code block, we'll raise AppHandlerStop to prevent further processing.
+    application.add_handler(MessageHandler(filters.TEXT, long_code_handling), group=-1)
+
     application.add_handler(
         MessageHandler(
             filters.SenderChat.CHANNEL
