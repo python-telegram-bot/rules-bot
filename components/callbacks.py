@@ -525,7 +525,7 @@ async def compat_warning(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 
-async def long_code_handling(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+async def long_code_handling(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """When someone posts a long code snippet:
     Reply with the /pastebin taghint.
     Because we do the regexing in here rather than in the filter, the corresponding handler
@@ -561,12 +561,20 @@ async def long_code_handling(update: Update, _: ContextTypes.DEFAULT_TYPE) -> No
 
     # the leading ". " is important here since html_markup() splits on whitespaces!
     mention = f". {update.effective_user.mention_html()}" if update.effective_user else None
+    text = f"{hint.html_markup(mention)}\n\n⚠️ Your message will be deleted in 1 minute."
 
     await message.reply_text(
-        hint.html_markup(mention),
+        text,
         reply_markup=hint.inline_keyboard,
     )
-    await try_to_delete(message)
+
+    async def job_callback(_: ContextTypes.DEFAULT_TYPE) -> None:
+        await try_to_delete(message)
+
+    context.job_queue.run_once(  # type: ignore[union-attr]
+        callback=job_callback,
+        when=60,
+    )
 
     # We don't want this message to be processed any further
     raise ApplicationHandlerStop
