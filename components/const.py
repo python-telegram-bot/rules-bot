@@ -238,8 +238,9 @@ TOKEN_TEXT = "⚠️ You posted a token, go revoke it with @BotFather.\n\n"
 COMPAT_ERRORS = re.compile(
     r"""
     (
-        (Updater\._{0,2}init_{0,2}\(\)\ got\ an\ )?
-        unexpected\ keyword\ argument\ ['"]*(use_context|token|use_controls|dispatcher)['"]*
+        (Updater\._{0,2}init_{0,2}\(\))?
+        (\ got\ an\ unexpected\ keyword\ argument\ ['"]*(use_context|token|use_controls|dispatcher)['"]*|
+        \ missing\ 1\ required\ positional\ argument:\ ['"]*update_queue['"]*)
     )|(
         updater\.(idle\(\)|dispatcher)
     )|(
