@@ -31,6 +31,7 @@ from components.callbacks import (
     compat_warning,
     delete_message,
     leave_chat,
+    long_code_handling,
     off_on_topic,
     raise_app_handler_stop,
     regex_token_warning,
@@ -137,7 +138,13 @@ def main() -> None:
         group=-2,
     )
 
-    application.add_handler(MessageHandler(~filters.COMMAND, rate_limit_tracker), group=-1)
+    application.add_handler(MessageHandler(~filters.COMMAND, rate_limit_tracker), group=-2)
+
+    # We need several different patterns, so filters.REGEX doesn't do the trick
+    # therefore we catch everything and do regex ourselves. In case the message contains a
+    # long code block, we'll raise AppHandlerStop to prevent further processing.
+    application.add_handler(MessageHandler(filters.TEXT, long_code_handling), group=-1)
+
     application.add_handler(
         MessageHandler(
             filters.SenderChat.CHANNEL
@@ -180,20 +187,6 @@ def main() -> None:
         MessageHandler(filters.TEXT & filters.UpdateType.MESSAGES & ~filters.COMMAND, reply_search)
     )
 
-    # Delete unhandled commands - e.g. for users that like to click on blue text in other messages
-    application.add_handler(MessageHandler(filters.COMMAND, delete_message))
-
-    # Status updates
-    application.add_handler(
-        MessageHandler(
-            filters.Chat(username=[ONTOPIC_USERNAME, OFFTOPIC_USERNAME])
-            & filters.StatusUpdate.NEW_CHAT_MEMBERS,
-            delete_message,
-            block=False,
-        ),
-        group=1,
-    )
-
     # Inline Queries
     application.add_handler(InlineQueryHandler(inlinequeries.inline_query))
 
@@ -210,6 +203,20 @@ def main() -> None:
     # Join requests
     application.add_handler(ChatJoinRequestHandler(callback=join_request_callback, block=False))
     application.add_handler(CallbackQueryHandler(join_request_buttons, pattern="^JOIN"))
+
+    # Delete unhandled commands - e.g. for users that like to click on blue text in other messages
+    application.add_handler(MessageHandler(filters.COMMAND, delete_message))
+
+    # Status updates
+    application.add_handler(
+        MessageHandler(
+            filters.Chat(username=[ONTOPIC_USERNAME, OFFTOPIC_USERNAME])
+            & filters.StatusUpdate.NEW_CHAT_MEMBERS,
+            delete_message,
+            block=False,
+        ),
+        group=1,
+    )
 
     # Error Handler
     application.add_error_handler(error_handler)
