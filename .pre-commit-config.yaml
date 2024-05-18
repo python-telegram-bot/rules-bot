@@ -30,7 +30,7 @@ repos:
           - python-telegram-bot[job-queue]==20.2
           - Sphinx~=5.0.2
           - httpx~=0.23.0
-          - gql[aiohttp]~=3.3.0
+          - gql[aiohttp]~=3.5.0
           - async-lru~=1.0.3
 -   repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.9.0
@@ -42,7 +42,7 @@ repos:
           - python-telegram-bot[job-queue]==20.2
           - Sphinx~=5.0.2
           - httpx~=0.23.0
-          - gql[aiohttp]~=3.3.0
+          - gql[aiohttp]~=3.5.0
           - async-lru~=1.0.3
 -   repo: https://github.com/asottile/pyupgrade
     rev: v3.15.2
