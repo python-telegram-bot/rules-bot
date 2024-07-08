@@ -585,5 +585,5 @@ async def privacy(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     """Reply with the privacy policy"""
     message = cast(Message, update.effective_message)
     await message.reply_text(
-        f"Please read my privacy policy in <a href={PRIVACY_POLICY}>here</a>."
+        f"Please read my privacy policy in <a href='{PRIVACY_POLICY}'>here</a>."
     )
