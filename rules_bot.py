@@ -33,6 +33,7 @@ from components.callbacks import (
     leave_chat,
     long_code_handling,
     off_on_topic,
+    privacy,
     raise_app_handler_stop,
     regex_token_warning,
     reply_search,
@@ -47,11 +48,13 @@ from components.const import (
     ALLOWED_CHAT_IDS,
     ALLOWED_USERNAMES,
     COMPAT_ERRORS,
+    DESCRIPTION,
     ERROR_CHANNEL_CHAT_ID,
     OFFTOPIC_CHAT_ID,
     OFFTOPIC_USERNAME,
     ONTOPIC_CHAT_ID,
     ONTOPIC_USERNAME,
+    SHORT_DESCRIPTION,
 )
 from components.errorhandler import error_handler
 from components.joinrequests import join_request_buttons, join_request_callback
@@ -77,6 +80,9 @@ logger = logging.getLogger(__name__)
 async def post_init(application: Application) -> None:
     bot = application.bot
     await cast(Search, application.bot_data["search"]).initialize(application)
+
+    await bot.set_my_short_description(SHORT_DESCRIPTION)
+    await bot.set_my_description(DESCRIPTION)
 
     # set commands
     await bot.set_my_commands(
@@ -160,6 +166,7 @@ def main() -> None:
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("rules", rules))
     application.add_handler(CommandHandler("buy", buy))
+    application.add_handler(CommandHandler("privacy", privacy))
 
     # Stuff that runs on every message with regex
     application.add_handler(

@@ -149,6 +149,7 @@ def build_command_list(
         return base_commands + hint_commands
 
     base_commands += [
+        ("privacy", "Show the privacy policy of this bot"),
         ("rules", "Show the rules for this group."),
         ("buy", "Tell people to not do job offers."),
         ("token", "Warn people if they share a token."),
