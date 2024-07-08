@@ -8,18 +8,18 @@ ci:
 
 repos:
 -   repo: https://github.com/psf/black
-    rev: 24.3.0
+    rev: 24.4.2
     hooks:
     -   id: black
         args:
         - --diff
         - --check
 -   repo: https://github.com/PyCQA/flake8
-    rev: 7.0.0
+    rev: 7.1.0
     hooks:
     -   id: flake8
 -   repo: https://github.com/PyCQA/pylint
-    rev: v3.1.0
+    rev: v3.2.4
     hooks:
     -   id: pylint
         args:
@@ -30,10 +30,10 @@ repos:
           - python-telegram-bot[job-queue]==20.2
           - Sphinx~=5.0.2
           - httpx~=0.23.0
-          - gql[aiohttp]~=3.3.0
+          - gql[aiohttp]~=3.5.0
           - async-lru~=1.0.3
 -   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.9.0
+    rev: v1.10.1
     hooks:
     -   id: mypy
         additional_dependencies:
@@ -42,10 +42,10 @@ repos:
           - python-telegram-bot[job-queue]==20.2
           - Sphinx~=5.0.2
           - httpx~=0.23.0
-          - gql[aiohttp]~=3.3.0
+          - gql[aiohttp]~=3.5.0
           - async-lru~=1.0.3
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.2
+    rev: v3.16.0
     hooks:
     -   id: pyupgrade
         args:
