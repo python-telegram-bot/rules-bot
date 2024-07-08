@@ -35,6 +35,7 @@ from components.const import (
     ONTOPIC_CHAT_ID,
     ONTOPIC_RULES,
     ONTOPIC_USERNAME,
+    PRIVACY_POLICY,
     TOKEN_TEXT,
     VEGETABLES,
 )
@@ -578,3 +579,11 @@ async def long_code_handling(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     # We don't want this message to be processed any further
     raise ApplicationHandlerStop
+
+
+async def privacy(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    """Reply with the privacy policy"""
+    message = cast(Message, update.effective_message)
+    await message.reply_text(
+        f"Please read my privacy policy in <a href={PRIVACY_POLICY}>here</a>."
+    )

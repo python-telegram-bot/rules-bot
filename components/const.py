@@ -248,3 +248,19 @@ COMPAT_ERRORS = re.compile(
     """,
     flags=re.VERBOSE,
 )
+
+PRIVACY_POLICY = "https://github.com/python-telegram-bot/rules-bot/wiki/Privacy-Policy"
+
+SHORT_DESCRIPTION = (
+    "Helper bot of the python-telegram-bot groups | Help and source at "
+    "https://github.com/python-telegram-bot/rules-bot"
+)
+DESCRIPTION = f"""
+Helper bot of the https://python-telegram-bot.org community groups:
+{ONTOPIC_CHAT_ID} and {OFFTOPIC_CHAT_ID}.
+
+The privacy policy of this bot can be found at {PRIVACY_POLICY}.
+
+Usage instructions and source code can be found at
+ https://github.com/python-telegram-bot/rules-bot.
+"""
