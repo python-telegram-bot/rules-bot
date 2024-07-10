@@ -2,6 +2,7 @@ import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import ClassVar, List, Optional
+from urllib.parse import urljoin
 
 from telegram import InlineKeyboardMarkup
 from thefuzz import fuzz
@@ -63,6 +64,49 @@ class BaseEntry(ABC):
         """Inline Keyboard markup that can be attached to this entry. Returns :obj:`None`, if
         not overridden."""
         return None
+
+
+class ReadmeSection(BaseEntry):
+    """A section of the readme.
+
+    Args:
+        name: The name of the section
+        anchor: the URL anchor of the section
+    """
+
+    def __init__(self, name: str, anchor: str):
+        self.name = name
+        self.anchor = anchor
+
+    @property
+    def url(self) -> str:
+        return urljoin(DOCS_URL, self.anchor)
+
+    @property
+    def display_name(self) -> str:
+        return f"Readme {ARROW_CHARACTER} {self.name}"
+
+    @property
+    def short_name(self) -> str:
+        return self.name
+
+    @property
+    def description(self) -> str:
+        return "Readme of python-telegram-bot"
+
+    def html_markup(self, search_query: str = None) -> str:
+        return (
+            f"Readme of <i>python-telegram-bot</i>\n" f"{self.html_insertion_markup(search_query)}"
+        )
+
+    def html_insertion_markup(self, search_query: str = None) -> str:
+        return f'<a href="{self.url}">{self.short_name}</a>'
+
+    def html_reply_markup(self, search_query: str = None) -> str:
+        return f'<a href="{self.url}">Readme Section: {self.short_name}</a>'
+
+    def compare_to_query(self, search_query: str) -> float:
+        return fuzz.token_set_ratio(f"readme {self.name}", search_query)
 
 
 class Example(BaseEntry):

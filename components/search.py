@@ -33,6 +33,7 @@ from .entrytypes import (
     FAQEntry,
     FRDPEntry,
     ParamDocEntry,
+    ReadmeSection,
     WikiPage,
 )
 from .github import GitHub
@@ -43,6 +44,7 @@ class Search:
     def __init__(self, github_auth: str, github_user_agent: str = USER_AGENT) -> None:
         self.__lock = asyncio.Lock()
         self._docs: List[DocEntry] = []
+        self._readme: List[ReadmeSection] = []
         self._official: Dict[str, str] = {}
         self._wiki: List[WikiPage] = []
         self._snippets: List[CodeSnippet] = []
@@ -76,6 +78,7 @@ class Search:
             )
             async with self.__lock:
                 await asyncio.gather(
+                    context.application.create_task(self.update_readme()),
                     context.application.create_task(self.update_docs()),
                     context.application.create_task(self.update_wiki()),
                     context.application.create_task(self.update_wiki_code_snippets()),
@@ -173,6 +176,24 @@ class Search:
                         )
                     )
 
+    async def update_readme(self) -> None:
+        response = await self._httpx_client.get(url=DOCS_URL, headers=DEFAULT_HEADERS)
+        readme_soup = BeautifulSoup(response.content, "html.parser")
+        self._readme = []
+
+        # parse section headers from readme
+        for tag in ["h1", "h2", "h3", "h4", "h5"]:
+            for headline in readme_soup.select(tag):
+                # check if element is inside a hidden div - special casing for the
+                # "Hidden Headline" we include for furo
+                if headline.find_parent("div", attrs={"style": "display: none"}):
+                    continue
+                self._readme.append(
+                    ReadmeSection(
+                        name=str(headline.contents[0]).strip(), anchor=headline.find("a")["href"]
+                    )
+                )
+
     async def update_wiki(self) -> None:
         response = await self._httpx_client.get(url=WIKI_URL, headers=DEFAULT_HEADERS)
         wiki_soup = BeautifulSoup(response.content, "html.parser")
@@ -244,9 +265,10 @@ class Search:
     ) -> Optional[List[BaseEntry]]:
         """Searches all available entries for appropriate results. This includes:
 
+        * readme sections
         * wiki pages
         * FAQ entries
-        * Design Pattern entries entries
+        * Design Pattern entries
         * Code snippets
         * examples
         * documentation
@@ -312,6 +334,7 @@ class Search:
         async with self.__lock:
             if not search_entries:
                 search_entries = itertools.chain(
+                    self._readme,
                     self._wiki,
                     self.github.all_examples,
                     self._faq,
