@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import logging
 import random
 import re
@@ -18,11 +19,14 @@ from telegram import (
     User,
 )
 from telegram.constants import ChatAction, MessageLimit
+from telegram.error import BadRequest
 from telegram.ext import Application, ApplicationHandlerStop, ContextTypes, Job, JobQueue
 from telegram.helpers import escape_markdown
 
 from components import const
 from components.const import (
+    ALLOWED_CHAT_IDS,
+    ALLOWED_USERNAMES,
     BUY_TEXT,
     DEFAULT_REPO_NAME,
     DEFAULT_REPO_OWNER,
@@ -290,8 +294,18 @@ async def delete_message(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     await try_to_delete(cast(Message, update.effective_message))
 
 
-async def leave_chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    context.application.create_task(cast(Chat, update.effective_chat).leave(), update=update)
+async def leave_chat(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
+    if (
+        not (chat := update.effective_chat)
+        or chat.type == chat.PRIVATE
+        or chat.username in ALLOWED_USERNAMES
+        or chat.id in ALLOWED_CHAT_IDS
+    ):
+        return
+
+    with contextlib.suppress(BadRequest):
+        await chat.leave()
+
     raise ApplicationHandlerStop
 
 
