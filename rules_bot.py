@@ -20,6 +20,7 @@ from telegram.ext import (
     Defaults,
     InlineQueryHandler,
     MessageHandler,
+    TypeHandler,
     filters,
 )
 
@@ -45,8 +46,6 @@ from components.callbacks import (
     tag_hint,
 )
 from components.const import (
-    ALLOWED_CHAT_IDS,
-    ALLOWED_USERNAMES,
     COMPAT_ERRORS,
     DESCRIPTION,
     ERROR_CHANNEL_CHAT_ID,
@@ -135,11 +134,9 @@ def main() -> None:
     )
     # Leave groups that are not maintained by PTB
     application.add_handler(
-        MessageHandler(
-            filters.ChatType.GROUPS
-            & ~filters.StatusUpdate.LEFT_CHAT_MEMBER
-            & ~(filters.Chat(username=ALLOWED_USERNAMES) | filters.Chat(chat_id=ALLOWED_CHAT_IDS)),
-            leave_chat,
+        TypeHandler(
+            type=Update,
+            callback=leave_chat,
         ),
         group=-2,
     )
@@ -153,9 +150,7 @@ def main() -> None:
 
     application.add_handler(
         MessageHandler(
-            filters.SenderChat.CHANNEL
-            & ~filters.IS_AUTOMATIC_FORWARD
-            & ~filters.Chat(chat_id=ERROR_CHANNEL_CHAT_ID),
+            filters.SenderChat.CHANNEL & ~filters.ChatType.CHANNEL & ~filters.IS_AUTOMATIC_FORWARD,
             ban_sender_channels,
             block=False,
         )
