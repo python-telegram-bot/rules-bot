@@ -33,6 +33,7 @@ from .entrytypes import (
     FAQEntry,
     FRDPEntry,
     ParamDocEntry,
+    ReadmeSection,
     WikiPage,
 )
 from .github import GitHub
@@ -43,13 +44,14 @@ class Search:
     def __init__(self, github_auth: str, github_user_agent: str = USER_AGENT) -> None:
         self.__lock = asyncio.Lock()
         self._docs: List[DocEntry] = []
+        self._readme: List[ReadmeSection] = []
         self._official: Dict[str, str] = {}
         self._wiki: List[WikiPage] = []
         self._snippets: List[CodeSnippet] = []
         self._faq: List[FAQEntry] = []
         self._design_patterns: List[FRDPEntry] = []
         self.github = GitHub(auth=github_auth, user_agent=github_user_agent)
-        self._httpx_client = httpx.AsyncClient()
+        self._httpx_client = httpx.AsyncClient(headers=DEFAULT_HEADERS)
 
     async def initialize(
         self, application: Application[Any, Any, Any, Any, Any, JobQueue]
@@ -76,6 +78,7 @@ class Search:
             )
             async with self.__lock:
                 await asyncio.gather(
+                    context.application.create_task(self.update_readme()),
                     context.application.create_task(self.update_docs()),
                     context.application.create_task(self.update_wiki()),
                     context.application.create_task(self.update_wiki_code_snippets()),
@@ -108,7 +111,7 @@ class Search:
         self.multi_search_combinations.cache_clear()  # pylint:disable=no-member
 
     async def _update_official_docs(self) -> None:
-        response = await self._httpx_client.get(url=OFFICIAL_URL, headers=DEFAULT_HEADERS)
+        response = await self._httpx_client.get(url=OFFICIAL_URL)
         official_soup = BeautifulSoup(response.content, "html.parser")
         for anchor in official_soup.select("a.anchor"):
             if "-" not in anchor["href"]:
@@ -173,8 +176,26 @@ class Search:
                         )
                     )
 
+    async def update_readme(self) -> None:
+        response = await self._httpx_client.get(url=DOCS_URL, follow_redirects=True)
+        readme_soup = BeautifulSoup(response.content, "html.parser")
+        self._readme = []
+
+        # parse section headers from readme
+        for tag in ["h1", "h2", "h3", "h4", "h5"]:
+            for headline in readme_soup.select(tag):
+                # check if element is inside a hidden div - special casing for the
+                # "Hidden Headline" we include for furo
+                if headline.find_parent("div", attrs={"style": "display: none"}):
+                    continue
+                self._readme.append(
+                    ReadmeSection(
+                        name=str(headline.contents[0]).strip(), anchor=headline.find("a")["href"]
+                    )
+                )
+
     async def update_wiki(self) -> None:
-        response = await self._httpx_client.get(url=WIKI_URL, headers=DEFAULT_HEADERS)
+        response = await self._httpx_client.get(url=WIKI_URL)
         wiki_soup = BeautifulSoup(response.content, "html.parser")
         self._wiki = []
 
@@ -195,9 +216,7 @@ class Search:
         self._wiki.append(WikiPage(category="Code Resources", name="Examples", url=EXAMPLES_URL))
 
     async def update_wiki_code_snippets(self) -> None:
-        response = await self._httpx_client.get(
-            url=WIKI_CODE_SNIPPETS_URL, headers=DEFAULT_HEADERS
-        )
+        response = await self._httpx_client.get(url=WIKI_CODE_SNIPPETS_URL)
         code_snippet_soup = BeautifulSoup(response.content, "html.parser")
         self._snippets = []
         for headline in code_snippet_soup.select(
@@ -211,7 +230,7 @@ class Search:
             )
 
     async def update_wiki_faq(self) -> None:
-        response = await self._httpx_client.get(url=WIKI_FAQ_URL, headers=DEFAULT_HEADERS)
+        response = await self._httpx_client.get(url=WIKI_FAQ_URL)
         faq_soup = BeautifulSoup(response.content, "html.parser")
         self._faq = []
         for headline in faq_soup.select("div#wiki-body h3"):
@@ -223,7 +242,7 @@ class Search:
             )
 
     async def update_wiki_design_patterns(self) -> None:
-        response = await self._httpx_client.get(url=WIKI_FRDP_URL, headers=DEFAULT_HEADERS)
+        response = await self._httpx_client.get(url=WIKI_FRDP_URL)
         frdp_soup = BeautifulSoup(response.content, "html.parser")
         self._design_patterns = []
         for headline in frdp_soup.select("div#wiki-body h3,div#wiki-body h2"):
@@ -244,9 +263,10 @@ class Search:
     ) -> Optional[List[BaseEntry]]:
         """Searches all available entries for appropriate results. This includes:
 
+        * readme sections
         * wiki pages
         * FAQ entries
-        * Design Pattern entries entries
+        * Design Pattern entries
         * Code snippets
         * examples
         * documentation
@@ -312,6 +332,7 @@ class Search:
         async with self.__lock:
             if not search_entries:
                 search_entries = itertools.chain(
+                    self._readme,
                     self._wiki,
                     self.github.all_examples,
                     self._faq,
