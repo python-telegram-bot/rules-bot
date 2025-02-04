@@ -101,7 +101,7 @@ async def rate_limit_tracker(_: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
 
 def rate_limit(
-    func: Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[Any, Any, None]]
+    func: Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[Any, Any, None]],
 ) -> Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[Any, Any, None]]:
     """
     Rate limit command so that RATE_LIMIT_SPACING non-command messages are
