@@ -576,7 +576,32 @@ async def long_code_handling(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     # the leading ". " is important here since html_markup() splits on whitespaces!
     mention = f". {update.effective_user.mention_html()}" if update.effective_user else None
-    text = f"{hint.html_markup(mention)}\n\n⚠️ Your message will be deleted in 1 minute."
+
+    text = (
+        f"Hi {hint.html_markup(mention)}, we like to keep our groups readable and thus"
+        f" require long code to be in a pastebin. \n\n⚠️ Your message will be deleted in 1 minute."
+    )
+
+    # this is needed if the request fails, because we raise this instead of ApplicationHandlerStop
+    r = None
+    # check if pastebin was setup
+    if "pastebin_client" in context.bot_data:
+        # if there are code formatted snippets we only move those
+        if parsed_entities:
+            content = "\n\n".join(parsed_entities.values())
+            beginning = "⚠️ The code snippet(s) in your message have"
+        else:
+            content = text
+            beginning = "⚠️ Your message has"
+        r = await context.bot_data["pastebin_client"].post(const.PASTEBIN_URL, content=content)
+        # if the request was successful we put the link in the message
+        if r.status_code == 200:
+            text = (
+                f"Hi {hint.html_markup(mention)}, we like to keep our groups readable and thus "
+                f"require long code to be in a pastebin. \n\n{beginning} been moved to "
+                f"{const.PASTEBIN_URL}{r.text}.py. Your original message will be deleted in a "
+                f"minute, please reply to this message with your query."
+            )
 
     await message.reply_text(
         text,
@@ -591,7 +616,10 @@ async def long_code_handling(update: Update, context: ContextTypes.DEFAULT_TYPE)
         when=60,
     )
 
-    # We don't want this message to be processed any further
+    # We don't want this message to be processed any further, if the request didn't work out
+    # we want to log it
+    if r and r.status_code != 200:
+        r.raise_for_status()
     raise ApplicationHandlerStop
 
 
