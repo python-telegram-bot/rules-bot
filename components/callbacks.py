@@ -8,6 +8,7 @@ from collections import deque
 from copy import deepcopy
 from typing import Dict, List, Match, Tuple, cast
 
+from httpx import codes
 from telegram import (
     CallbackQuery,
     Chat,
@@ -595,7 +596,7 @@ async def long_code_handling(update: Update, context: ContextTypes.DEFAULT_TYPE)
             beginning = "⚠️ Your message has"
         r = await pastebin_client.post(const.PASTEBIN_URL, content=content)
         # if the request was successful we put the link in the message
-        if r.status_code == 200:
+        if r.status_code == codes.OK:
             text = (
                 f"Hi {hint.html_markup(mention)}, we like to keep our groups readable and thus "
                 f"require long code to be in a pastebin. \n\n{beginning} been moved to "
