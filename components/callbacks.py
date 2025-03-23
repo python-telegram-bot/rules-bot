@@ -585,7 +585,7 @@ async def long_code_handling(update: Update, context: ContextTypes.DEFAULT_TYPE)
     # this is needed if the request fails, because we raise this instead of ApplicationHandlerStop
     r = None
     # check if pastebin was setup
-    if "pastebin_client" in context.bot_data:
+    if pastebin_client := context.bot_data.get("pastebin_client"):
         # if there are code formatted snippets we only move those
         if parsed_entities:
             content = "\n\n".join(parsed_entities.values())
@@ -593,7 +593,7 @@ async def long_code_handling(update: Update, context: ContextTypes.DEFAULT_TYPE)
         else:
             content = text
             beginning = "⚠️ Your message has"
-        r = await context.bot_data["pastebin_client"].post(const.PASTEBIN_URL, content=content)
+        r = await pastebin_client.post(const.PASTEBIN_URL, content=content)
         # if the request was successful we put the link in the message
         if r.status_code == 200:
             text = (
