@@ -1,5 +1,7 @@
 import asyncio
 import contextlib
+import html
+import json
 import logging
 import random
 import re
@@ -603,6 +605,15 @@ async def long_code_handling(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 f"{const.PASTEBIN_URL}{r.text}.py. Your original message will be deleted in a "
                 f"minute, please reply to this message with your query."
             )
+        else:
+            logging.info(
+                "The pastebin request failed with the status code %s and the text %s. The "
+                "triggering update: %s",
+                r.status_code,
+                r.text,
+                html.escape(json.dumps(update.to_dict(), indent=2, ensure_ascii=False)),
+                exc_info=True,
+            )
 
     await message.reply_text(
         text,
@@ -617,10 +628,7 @@ async def long_code_handling(update: Update, context: ContextTypes.DEFAULT_TYPE)
         when=60,
     )
 
-    # We don't want this message to be processed any further, if the request didn't work out
-    # we want to log it
-    if r and r.status_code != 200:
-        r.raise_for_status()
+    # We don't want this message to be processed any further
     raise ApplicationHandlerStop
 
 
