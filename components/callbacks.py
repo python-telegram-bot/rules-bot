@@ -585,8 +585,6 @@ async def long_code_handling(update: Update, context: ContextTypes.DEFAULT_TYPE)
         f" require long code to be in a pastebin. \n\n⚠️ Your message will be deleted in 1 minute."
     )
 
-    # this is needed if the request fails, because we raise this instead of ApplicationHandlerStop
-    r = None
     # check if pastebin was setup
     if pastebin_client := context.bot_data.get("pastebin_client"):
         # if there are code formatted snippets we only move those
