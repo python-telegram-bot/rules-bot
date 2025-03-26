@@ -1,5 +1,7 @@
 import asyncio
 import contextlib
+import html
+import json
 import logging
 import random
 import re
@@ -8,6 +10,7 @@ from collections import deque
 from copy import deepcopy
 from typing import Dict, List, Match, Tuple, cast
 
+from httpx import codes
 from telegram import (
     CallbackQuery,
     Chat,
@@ -576,7 +579,39 @@ async def long_code_handling(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     # the leading ". " is important here since html_markup() splits on whitespaces!
     mention = f". {update.effective_user.mention_html()}" if update.effective_user else None
-    text = f"{hint.html_markup(mention)}\n\n⚠️ Your message will be deleted in 1 minute."
+
+    text = (
+        f"Hi {hint.html_markup(mention)}, we like to keep our groups readable and thus"
+        f" require long code to be in a pastebin. \n\n⚠️ Your message will be deleted in 1 minute."
+    )
+
+    # check if pastebin was setup
+    if pastebin_client := context.bot_data.get("pastebin_client"):
+        # if there are code formatted snippets we only move those
+        if parsed_entities:
+            content = "\n\n".join(parsed_entities.values())
+            beginning = "⚠️ The code snippet(s) in your message have"
+        else:
+            content = text
+            beginning = "⚠️ Your message has"
+        r = await pastebin_client.post(const.PASTEBIN_URL, content=content)
+        # if the request was successful we put the link in the message
+        if r.status_code == codes.OK:
+            text = (
+                f"Hi {hint.html_markup(mention)}, we like to keep our groups readable and thus "
+                f"require long code to be in a pastebin. \n\n{beginning} been moved to "
+                f"{const.PASTEBIN_URL}{r.text}.py. Your original message will be deleted in a "
+                f"minute, please reply to this message with your query."
+            )
+        else:
+            logging.info(
+                "The pastebin request failed with the status code %s and the text %s. The "
+                "triggering update: %s",
+                r.status_code,
+                r.text,
+                html.escape(json.dumps(update.to_dict(), indent=2, ensure_ascii=False)),
+                exc_info=True,
+            )
 
     await message.reply_text(
         text,

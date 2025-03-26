@@ -3,6 +3,7 @@ import logging
 import os
 from typing import cast
 
+import httpx
 from telegram import (
     BotCommandScopeAllGroupChats,
     BotCommandScopeAllPrivateChats,
@@ -124,6 +125,11 @@ def main() -> None:
     )
 
     application.bot_data["search"] = Search(github_auth=config["KEYS"]["github_auth"])
+
+    if "pastebin_auth" in config["KEYS"]:
+        application.bot_data["pastebin_client"] = httpx.AsyncClient(
+            auth=httpx.BasicAuth(username="Rools", password=config["KEYS"]["pastebin_auth"])
+        )
 
     # Note: Order matters!
 

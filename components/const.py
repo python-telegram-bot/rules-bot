@@ -31,6 +31,7 @@ PTBCONTRIB_LINK = "https://github.com/python-telegram-bot/ptbcontrib/"
 DOCS_URL = "https://docs.python-telegram-bot.org/"
 OFFICIAL_URL = "https://core.telegram.org/bots/api"
 PROJECT_URL = urljoin(GITHUB_URL, DEFAULT_REPO + "/")
+PASTEBIN_URL = "https://pastebin.poolitzer.eu"
 WIKI_URL = urljoin(PROJECT_URL, "wiki/")
 WIKI_CODE_SNIPPETS_URL = urljoin(WIKI_URL, "Code-snippets")
 WIKI_FAQ_URL = urljoin(WIKI_URL, "Frequently-Asked-Questions")
