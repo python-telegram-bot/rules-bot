@@ -7,8 +7,9 @@ import random
 import re
 import time
 from collections import deque
+from collections.abc import MutableSequence, Sequence
 from copy import deepcopy
-from typing import Dict, List, Match, Tuple, cast
+from typing import Dict, List, Match, Optional, Tuple, cast
 
 from httpx import codes
 from telegram import (
@@ -323,7 +324,7 @@ async def tag_hint(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     first_match = cast(int, MessageLimit.MAX_TEXT_LENGTH)
 
     messages = []
-    buttons = None
+    buttons: Optional[MutableSequence[Sequence[InlineKeyboardButton]]] = None
     for match in cast(List[Match], context.matches):
         first_match = min(first_match, match.start(0))
 
