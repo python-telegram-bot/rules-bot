@@ -15,7 +15,7 @@ repos:
         - --diff
         - --check
 -   repo: https://github.com/PyCQA/flake8
-    rev: 7.2.0
+    rev: 7.3.0
     hooks:
     -   id: flake8
 -   repo: https://github.com/PyCQA/pylint
@@ -33,7 +33,7 @@ repos:
           - gql[aiohttp]~=3.5.0
           - async-lru~=1.0.3
 -   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.16.0
+    rev: v1.16.1
     hooks:
     -   id: mypy
         additional_dependencies:
