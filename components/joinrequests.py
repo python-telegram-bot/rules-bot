@@ -106,7 +106,7 @@ async def join_request_callback(update: Update, context: ContextTypes.DEFAULT_TY
 
     cast(JobQueue, context.job_queue).run_once(
         callback=join_request_timeout_job,
-        when=datetime.timedelta(hours=2),
+        when=datetime.timedelta(minutes=4, seconds=30),
         data=(user, message, group_mention),
         name=f"JOIN_TIMEOUT {chat_id} {user.id}",
         user_id=user.id,
