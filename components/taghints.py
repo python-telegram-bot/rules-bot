@@ -302,7 +302,7 @@ _TAG_HINTS: Dict[str, Dict[str, Any]] = {
 
 
 # Sort the hints by key
-_TAG_HINTS = dict(sorted(_TAG_HINTS.items()))
+_TAG_HINTS_SORTED = dict(sorted(_TAG_HINTS.items()))
 # convert into proper objects
 TAG_HINTS: Dict[str, TagHint] = {
     key: TagHint(
@@ -313,7 +313,7 @@ TAG_HINTS: Dict[str, TagHint] = {
         inline_keyboard=InlineKeyboardMarkup(value["buttons"]) if "buttons" in value else None,
         group_command=value.get("group_command", False),
     )
-    for key, value in _TAG_HINTS.items()
+    for key, value in _TAG_HINTS_SORTED.items()
 }
 TAG_HINTS_PATTERN = re.compile(
     # case insensitive
