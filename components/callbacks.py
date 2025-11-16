@@ -551,7 +551,7 @@ async def long_code_handling(update: Update, context: ContextTypes.DEFAULT_TYPE)
     will have to be in a lower group.
     """
     message = cast(Message, update.effective_message)
-    text = cast(str, message.text)
+    message_text = cast(str, message.text)
     has_long_code = False
 
     # We make some educated guesses about the message's content. This is nothing more than
@@ -564,12 +564,12 @@ async def long_code_handling(update: Update, context: ContextTypes.DEFAULT_TYPE)
     # if the text contains more than 5 import lines, we assume it's a long code snippet
     # regex from https://stackoverflow.com/a/44988666/10606962
     pattern = re.compile(r"(?m)^(?:from +(\S+) +)?import +(\S+)(?: +as +\S+)? *$")
-    if not has_long_code and len(pattern.findall(text)) >= 5:
+    if not has_long_code and len(pattern.findall(message_text)) >= 5:
         has_long_code = True
 
     # if the text contains more than 3 class or function definitions, ...
     pattern = re.compile(r"(class|def) [a-zA-Z]+[a-zA-Z0-9_]*\(")
-    if not has_long_code and len(pattern.findall(text)) >= 3:
+    if not has_long_code and len(pattern.findall(message_text)) >= 3:
         has_long_code = True
 
     if not has_long_code:
@@ -581,7 +581,7 @@ async def long_code_handling(update: Update, context: ContextTypes.DEFAULT_TYPE)
     # the leading ". " is important here since html_markup() splits on whitespaces!
     mention = f". {update.effective_user.mention_html()}" if update.effective_user else None
 
-    text = (
+    reply_text = (
         f"Hi {hint.html_markup(mention)}, we like to keep our groups readable and thus"
         f" require long code to be in a pastebin. \n\n⚠️ Your message will be deleted in 1 minute."
     )
@@ -593,12 +593,12 @@ async def long_code_handling(update: Update, context: ContextTypes.DEFAULT_TYPE)
             content = "\n\n".join(parsed_entities.values())
             beginning = "⚠️ The code snippet(s) in your message have"
         else:
-            content = text
+            content = message_text
             beginning = "⚠️ Your message has"
         r = await pastebin_client.post(const.PASTEBIN_URL, content=content)
         # if the request was successful we put the link in the message
         if r.status_code == codes.OK:
-            text = (
+            reply_text = (
                 f"Hi {hint.html_markup(mention)}, we like to keep our groups readable and thus "
                 f"require long code to be in a pastebin. \n\n{beginning} been moved to "
                 f"{const.PASTEBIN_URL}{r.text}.py. Your original message will be deleted in a "
@@ -615,7 +615,7 @@ async def long_code_handling(update: Update, context: ContextTypes.DEFAULT_TYPE)
             )
 
     await message.reply_text(
-        text,
+        reply_text,
         reply_markup=hint.inline_keyboard,
     )
 
