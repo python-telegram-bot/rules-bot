@@ -8,18 +8,18 @@ ci:
 
 repos:
 -   repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 26.3.1
+    rev: 26.10.0
     hooks:
     -   id: black
         args:
         - --diff
         - --check
 -   repo: https://github.com/PyCQA/flake8
-    rev: 7.3.0
+    rev: 7.4.1
     hooks:
     -   id: flake8
 -   repo: https://github.com/PyCQA/pylint
-    rev: v4.0.5
+    rev: v4.1.2
     hooks:
     -   id: pylint
         args:
@@ -33,7 +33,7 @@ repos:
           - gql[aiohttp]~=3.5.0
           - async-lru~=1.0.3
 -   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.20.0
+    rev: v2.4.0
     hooks:
     -   id: mypy
         additional_dependencies:
@@ -51,7 +51,7 @@ repos:
         args:
           - --py36-plus
 -   repo: https://github.com/pycqa/isort
-    rev: 8.0.1
+    rev: 9.0.2
     hooks:
     -   id: isort
         name: isort
